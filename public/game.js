@@ -518,9 +518,13 @@
       return;
     }
 
-    // 5. Plant Seed Anywhere in Garden World
+    // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..canvas.width - 220)
     if (myWorld !== 'garden') {
       spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant!', '#ffab40');
+      return;
+    }
+    if (me.x < 180 || me.x > canvas.width - 220 || Math.abs(me.y - groundY) > 20) {
+      spawnFloatText(me.x, me.y - 40, 'Must plant inside soil bed!', '#ff5252');
       return;
     }
 
@@ -768,6 +772,28 @@
         ctx.fillText('PRESS [E] OPEN SHOP', sx, sy - 101);
       }
     }
+
+    ctx.restore();
+  }
+
+  // Physical Garden Soil Bed Graphics (No Text)
+  function drawGardenSoilBed(groundY) {
+    const gx = 180;
+    const gw = Math.max(200, canvas.width - 360);
+    const gy = groundY;
+
+    ctx.save();
+    // Wooden Fence Posts
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(gx - 10, gy - 24, 8, 24);
+    ctx.fillRect(gx + gw + 2, gy - 24, 8, 24);
+    ctx.fillRect(gx - 10, gy - 18, gw + 20, 4);
+
+    // Tilled Earth Soil Beds
+    ctx.fillStyle = '#3e2723';
+    ctx.fillRect(gx, gy - 8, gw, 8);
+    ctx.fillStyle = '#4e342e';
+    ctx.fillRect(gx + 2, gy - 6, gw - 4, 4);
 
     ctx.restore();
   }
@@ -1071,6 +1097,8 @@
     if (myWorld === 'garden') {
       ctx.fillStyle = '#1e3323';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Garden Soil Bed
+      drawGardenSoilBed(groundY);
       // Shop Building
       drawShopBuilding(groundY);
       // Portal to Main World (far left in Garden World)

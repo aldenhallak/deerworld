@@ -257,6 +257,10 @@ io.on('connection', (socket) => {
       socket.emit('notice', { text: 'You can only plant in the Garden World!' });
       return;
     }
+    if (data.x < 180 || data.x > 780 || Math.abs(data.yRel) > 40) {
+      socket.emit('notice', { text: 'Must plant inside soil bed!' });
+      return;
+    }
 
     const plantType = data.type || 'crop';
     const config = SEED_CONFIG[plantType] || SEED_CONFIG.crop;
