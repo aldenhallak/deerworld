@@ -35,6 +35,12 @@
   "courseLeaderboard": [
     {
       "name": "Pip",
+      "timeMs": 3192,
+      "formattedTime": "3.19s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "Pip",
       "timeMs": 3668,
       "formattedTime": "3.67s",
       "date": "7/21/2026"
@@ -52,5 +58,5 @@
       "date": "7/21/2026"
     }
   ],
-  "timestamp": 1784610915286
+  "timestamp": 1784610991006
 }

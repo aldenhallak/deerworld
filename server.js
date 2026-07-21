@@ -441,7 +441,7 @@ io.on('connection', (socket) => {
   // Submit Obstacle Course Speedrun Time
   socket.on('submitCourseTime', (timeMs) => {
     const player = players[socket.id];
-    if (!player || typeof timeMs !== 'number' || timeMs < 3000) return; // Min 3 sec sanity
+    if (!player || typeof timeMs !== 'number' || timeMs < 500) return; // Min 0.5 sec sanity check
 
     const sec = (timeMs / 1000).toFixed(2);
     const formattedTime = `${sec}s`;
