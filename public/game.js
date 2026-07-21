@@ -26,11 +26,14 @@
   let stepTimer = 0;
 
   // World & Inventory State
-  let myWorld = 'main'; // 'main' or 'garden'
+  let myWorld = 'main'; // 'main', 'garden', or 'course'
   let coins = {};        // { id: {id, x, yRel} }
   let plants = {};       // { id: {id, type, x, yRel, stage, maxStage, ownerName} }
   let droppedItems = {}; // { id: {id, world, type, x, yRel, label} }
   let shopCatalog = {};
+  let courseLeaderboard = [];
+  let courseRunStartTime = 0;
+  let courseRunFinished = false;
   let myCoins = 0;
   let myInventory = [];
   let myEquippedHat = null;
@@ -178,12 +181,25 @@
     return canvas.height - 40;
   }
 
-  // ---- Platforms (Main World Only) ----
+  // ---- Platforms (Multi-World Support) ----
   function getPlatforms() {
     const groundY = getGroundY();
     if (myWorld === 'garden') {
       // Flat ground layout for Garden World
       return [{ x: 0, y: groundY, w: canvas.width, h: 40 }];
+    }
+    if (myWorld === 'course') {
+      // Obstacle Course Platform Jumps
+      return [
+        { x: 0,    y: groundY,       w: 260, h: 40 }, // Start Ground
+        { x: 310,  y: groundY - 40,  w: 100, h: 16 }, // Jump 1
+        { x: 460,  y: groundY - 90,  w: 110, h: 16 }, // Jump 2
+        { x: 620,  y: groundY - 140, w: 90,  h: 16 }, // Jump 3
+        { x: 760,  y: groundY - 80,  w: 110, h: 16 }, // Jump 4
+        { x: 920,  y: groundY - 150, w: 100, h: 16 }, // Jump 5
+        { x: 1070, y: groundY - 70,  w: 110, h: 16 }, // Jump 6
+        { x: 1220, y: groundY,       w: 400, h: 40 }  // Finish Ground
+      ];
     }
     return [
       { x: 0,   y: groundY,       w: canvas.width, h: 40  },
@@ -225,6 +241,7 @@
       plants = data.plants || {};
       droppedItems = data.droppedItems || {};
       shopCatalog = data.shopCatalog || {};
+      if (Array.isArray(data.courseLeaderboard)) courseLeaderboard = data.courseLeaderboard;
       
       const me = data.players[selfId];
       if (me) {
@@ -271,7 +288,12 @@
         players[data.id].y = groundY + data.yRel;
         if (data.id === selfId) {
           myWorld = data.world;
-          spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${data.world === 'garden' ? 'Garden World' : 'Main World'}!`, '#00e676');
+          courseRunStartTime = 0;
+          courseRunFinished = false;
+          let wName = 'Main World';
+          if (data.world === 'garden') wName = 'Garden World';
+          else if (data.world === 'course') wName = 'Obstacle Course';
+          spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${wName}!`, '#00e676');
         }
       }
     });
@@ -382,6 +404,10 @@
         spawnFloatText(players[selfId].x, players[selfId].y - 40, 'Picked up item!', '#ffd700');
       }
     });
+
+    socket.on('leaderboardUpdated', (lb) => {
+      courseLeaderboard = lb || [];
+    });
   }
 
   // ---- Shop Popup Modal Logic ----
@@ -484,7 +510,15 @@
       socket.emit('switchWorld', 'garden');
       return;
     }
+    if (myWorld === 'main' && Math.abs(me.x - 100) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'course');
+      return;
+    }
     if (myWorld === 'garden' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'main');
+      return;
+    }
+    if (myWorld === 'course' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'main');
       return;
     }
@@ -961,7 +995,12 @@
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffd700';
-    ctx.fillText(`COINS: ${myCoins} | WORLD: ${myWorld === 'garden' ? 'GARDEN & SHOP' : 'PLATFORMER'}`, 14, 26);
+
+    let worldLabel = 'PLATFORMER';
+    if (myWorld === 'garden') worldLabel = 'GARDEN & SHOP';
+    else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE';
+
+    ctx.fillText(`COINS: ${myCoins} | WORLD: ${worldLabel}`, 14, 26);
 
     const hatName = myEquippedHat && shopCatalog[myEquippedHat] ? shopCatalog[myEquippedHat].name : 'None';
     ctx.fillStyle = '#ffffff';
@@ -970,6 +1009,21 @@
     ctx.font = '11px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin', 14, 68);
+
+    // Live Obstacle Course Stopwatch Header
+    if (myWorld === 'course' && courseRunStartTime > 0) {
+      const elapsedSec = ((Date.now() - courseRunStartTime) / 1000).toFixed(2);
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(canvas.width / 2 - 80, 10, 160, 32);
+      ctx.strokeStyle = '#76ff03';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(canvas.width / 2 - 80, 10, 160, 32);
+      ctx.fillStyle = '#76ff03';
+      ctx.font = 'bold 16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`RUN TIME: ${elapsedSec}s`, canvas.width / 2, 32);
+    }
+
     ctx.restore();
   }
 
@@ -1082,6 +1136,28 @@
     checkCoinPickup();
     checkDroppedItemPickup();
 
+    // Obstacle Course Timers (Start Line x: 200, Finish Line x: 1260)
+    if (myWorld === 'course' && selfId && players[selfId]) {
+      const me = players[selfId];
+      if (me.x >= 200 && me.x < 240 && courseRunStartTime === 0 && !courseRunFinished) {
+        courseRunStartTime = Date.now();
+        spawnFloatText(me.x, me.y - 40, 'TIMER STARTED! GO GO GO!', '#76ff03');
+      }
+      if (me.x < 180) {
+        courseRunStartTime = 0;
+        courseRunFinished = false;
+      }
+      if (me.x >= 1260 && courseRunStartTime > 0 && !courseRunFinished) {
+        const elapsedMs = Date.now() - courseRunStartTime;
+        courseRunFinished = true;
+        courseRunStartTime = 0;
+        playHarvestSound();
+        const sec = (elapsedMs / 1000).toFixed(2);
+        spawnFloatText(me.x, me.y - 40, `COURSE FINISHED! ${sec}s`, '#76ff03');
+        if (socket) socket.emit('submitCourseTime', elapsedMs);
+      }
+    }
+
     const now = Date.now();
     const groundY = getGroundY();
     if (socket && now - lastEmitTime > 30) {
@@ -1123,6 +1199,108 @@
       drawShopBuilding(groundY);
       // Portal to Main World (far left in Garden World)
       drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
+    } else if (myWorld === 'course') {
+      // Obstacle Course World
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Platforms with course-specific styling
+      getPlatforms().forEach(plat => {
+        ctx.fillStyle = '#16213e';
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        ctx.fillStyle = '#e94560';
+        ctx.fillRect(plat.x, plat.y, plat.w, 4);
+        // Side edges
+        ctx.fillStyle = '#0f3460';
+        ctx.fillRect(plat.x, plat.y + 4, 3, plat.h - 4);
+        ctx.fillRect(plat.x + plat.w - 3, plat.y + 4, 3, plat.h - 4);
+      });
+
+      // Start Line Archway at x: 200
+      ctx.save();
+      ctx.strokeStyle = '#76ff03';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(200, groundY);
+      ctx.lineTo(200, groundY - 80);
+      ctx.lineTo(240, groundY - 80);
+      ctx.lineTo(240, groundY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#76ff03';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('START', 220, groundY - 86);
+      // Chevron arrows
+      ctx.font = '16px monospace';
+      ctx.fillText('>>', 220, groundY - 50);
+      ctx.restore();
+
+      // Finish Line Archway at x: 1260
+      ctx.save();
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(1260, groundY);
+      ctx.lineTo(1260, groundY - 80);
+      ctx.lineTo(1300, groundY - 80);
+      ctx.lineTo(1300, groundY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('FINISH', 1280, groundY - 86);
+      // Checkered flag pattern
+      for (let fy = 0; fy < 4; fy++) {
+        for (let fx = 0; fx < 2; fx++) {
+          ctx.fillStyle = (fx + fy) % 2 === 0 ? '#ffd700' : '#1a1a2e';
+          ctx.fillRect(1262 + fx * 8, groundY - 78 + fy * 8, 8, 8);
+        }
+      }
+      ctx.restore();
+
+      // Leaderboard Billboard at x: 120
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(90, groundY - 200, 160, 140);
+      ctx.strokeStyle = '#e94560';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(90, groundY - 200, 160, 140);
+      ctx.fillStyle = '#e94560';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('LEADERBOARD', 170, groundY - 183);
+      // Divider line
+      ctx.strokeStyle = 'rgba(233,69,96,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(95, groundY - 174);
+      ctx.lineTo(245, groundY - 174);
+      ctx.stroke();
+      // Entries
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'left';
+      const topRuns = courseLeaderboard.slice(0, 8);
+      topRuns.forEach((entry, i) => {
+        const sec = (entry.timeMs / 1000).toFixed(2);
+        const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
+        ctx.fillStyle = color;
+        ctx.fillText(`${i + 1}. ${entry.name}`, 98, groundY - 160 + i * 15);
+        ctx.textAlign = 'right';
+        ctx.fillText(`${sec}s`, 244, groundY - 160 + i * 15);
+        ctx.textAlign = 'left';
+      });
+      if (topRuns.length === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.textAlign = 'center';
+        ctx.fillText('No runs yet!', 170, groundY - 145);
+      }
+      ctx.restore();
+
+      // Return Portal (far left)
+      drawPortal(80, groundY, '[E] RETURN TO MAIN', '#00e676');
     } else {
       // Main Platformer World
       ctx.fillStyle = '#22382b';
@@ -1138,6 +1316,9 @@
 
       // Portal to Garden World (far right in Main World)
       drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD', '#ffd700');
+
+      // Portal to Obstacle Course (far left in Main World)
+      drawPortal(100, groundY, '[E] OBSTACLE COURSE', '#e94560');
 
       // Draw Coins (Main World Only)
       Object.values(coins).forEach(coin => {

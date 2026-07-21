@@ -27,6 +27,7 @@ const plants = {};
 const coins = {};
 const userProfiles = {}; // { username: { coins, inventory, equippedHat } }
 const chatHistory = [];   // Array of persistent chat message objects
+const courseLeaderboard = []; // Array of top speedrun records: [{ name, timeMs, formattedTime }]
 const CHAT_LOG_FILE = path.join(DATA_DIR, 'chat_history.log');
 let plantIdCounter = 0;
 let coinIdCounter = 0;
@@ -83,6 +84,7 @@ async function atomicSaveState() {
       coins,
       userProfiles,
       chatHistory: chatHistory.slice(-100),
+      courseLeaderboard: courseLeaderboard.slice(0, 10),
       timestamp: Date.now()
     }, null, 2);
     await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
@@ -101,6 +103,7 @@ try {
     if (parsed.plants) Object.assign(plants, parsed.plants);
     if (parsed.userProfiles) Object.assign(userProfiles, parsed.userProfiles);
     if (Array.isArray(parsed.chatHistory)) chatHistory.push(...parsed.chatHistory);
+    if (Array.isArray(parsed.courseLeaderboard)) courseLeaderboard.push(...parsed.courseLeaderboard);
   }
 } catch (e) {}
 
@@ -181,7 +184,8 @@ io.on('connection', (socket) => {
       plants,
       droppedItems,
       shopCatalog: SHOP_ITEMS,
-      chatHistory
+      chatHistory,
+      courseLeaderboard
     });
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
@@ -216,12 +220,16 @@ io.on('connection', (socket) => {
   socket.on('switchWorld', (targetWorld) => {
     const player = players[socket.id];
     if (!player) return;
-    if (targetWorld !== 'main' && targetWorld !== 'garden') return;
+    if (targetWorld !== 'main' && targetWorld !== 'garden' && targetWorld !== 'course') return;
 
+    const prevWorld = player.world;
     player.world = targetWorld;
-    player.x = targetWorld === 'garden' ? 120 : 880;
-    player.yRel = 0;
+    if (targetWorld === 'garden') player.x = 120;
+    else if (targetWorld === 'course') player.x = 120;
+    else if (prevWorld === 'course') player.x = 160;
+    else player.x = 880;
 
+    player.yRel = 0;
     io.emit('playerWorldSwitched', { id: socket.id, world: player.world, x: player.x, yRel: player.yRel });
   });
 
@@ -427,6 +435,29 @@ io.on('connection', (socket) => {
     });
 
     io.emit('chatMessage', msgObj);
+    atomicSaveState();
+  });
+
+  // Submit Obstacle Course Speedrun Time
+  socket.on('submitCourseTime', (timeMs) => {
+    const player = players[socket.id];
+    if (!player || typeof timeMs !== 'number' || timeMs < 3000) return; // Min 3 sec sanity
+
+    const sec = (timeMs / 1000).toFixed(2);
+    const formattedTime = `${sec}s`;
+
+    const record = {
+      name: player.name,
+      timeMs: Math.round(timeMs),
+      formattedTime,
+      date: new Date().toLocaleDateString()
+    };
+
+    courseLeaderboard.push(record);
+    courseLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
+    if (courseLeaderboard.length > 10) courseLeaderboard.length = 10;
+
+    io.emit('leaderboardUpdated', courseLeaderboard);
     atomicSaveState();
   });
 
