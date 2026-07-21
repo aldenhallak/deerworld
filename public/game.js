@@ -32,6 +32,7 @@
   let droppedItems = {}; // { id: {id, world, type, x, yRel, label} }
   let shopCatalog = {};
   let courseLeaderboard = [];
+  let megaCourseLeaderboard = [];
   let courseRunStartTime = 0;
   let courseRunFinished = false;
   let myCoins = 0;
@@ -204,6 +205,44 @@
         { x: 1330, y: groundY,       w: 300, h: 40 }   // Finish Island
       ];
     }
+    if (myWorld === 'course2') {
+      // Mega Obstacle Course - 4000px Scrolling Gauntlet
+      return [
+        { x: 0,    y: groundY,       w: 240, h: 40 },  // Start Island (x: 0..240)
+        // Section 1: The Warmup Clamber (x: 240..1000)
+        { x: 310,  y: groundY - 40,  w: 65,  h: 14 },
+        { x: 440,  y: groundY - 90,  w: 60,  h: 14 },
+        { x: 570,  y: groundY - 140, w: 55,  h: 14 },
+        { x: 700,  y: groundY - 90,  w: 60,  h: 14 },
+        { x: 830,  y: groundY - 160, w: 50,  h: 14 },
+        { x: 960,  y: groundY - 80,  w: 70,  h: 14 },
+        // Section 2: Sky High Stepping Stones (x: 1000..1900)
+        { x: 1100, y: groundY - 50,  w: 50,  h: 14 },
+        { x: 1220, y: groundY - 110, w: 50,  h: 14 },
+        { x: 1340, y: groundY - 180, w: 45,  h: 14 },
+        { x: 1460, y: groundY - 250, w: 45,  h: 14 },  // Sky Peak
+        { x: 1590, y: groundY - 180, w: 50,  h: 14 },
+        { x: 1720, y: groundY - 100, w: 55,  h: 14 },
+        { x: 1850, y: groundY - 40,  w: 65,  h: 14 },
+        // Section 3: Precision Drops & Gaps (x: 1900..2900)
+        { x: 2000, y: groundY - 140, w: 45,  h: 14 },
+        { x: 2130, y: groundY - 70,  w: 45,  h: 14 },
+        { x: 2260, y: groundY - 190, w: 45,  h: 14 },
+        { x: 2400, y: groundY - 100, w: 50,  h: 14 },
+        { x: 2540, y: groundY - 220, w: 45,  h: 14 },
+        { x: 2680, y: groundY - 130, w: 55,  h: 14 },
+        { x: 2820, y: groundY - 50,  w: 60,  h: 14 },
+        // Section 4: Final Gauntlet Sprint (x: 2900..3750)
+        { x: 2970, y: groundY - 120, w: 55,  h: 14 },
+        { x: 3110, y: groundY - 180, w: 50,  h: 14 },
+        { x: 3250, y: groundY - 240, w: 45,  h: 14 },
+        { x: 3390, y: groundY - 160, w: 55,  h: 14 },
+        { x: 3530, y: groundY - 80,  w: 60,  h: 14 },
+        { x: 3670, y: groundY - 30,  w: 70,  h: 14 },
+        // Finish Island (x: 3770..4200)
+        { x: 3770, y: groundY,       w: 400, h: 40 }
+      ];
+    }
     return [
       { x: 0,   y: groundY,       w: canvas.width, h: 40  },
       { x: 80,  y: groundY - 110, w: 200, h: 16 },
@@ -245,6 +284,7 @@
       droppedItems = data.droppedItems || {};
       shopCatalog = data.shopCatalog || {};
       if (Array.isArray(data.courseLeaderboard)) courseLeaderboard = data.courseLeaderboard;
+      if (Array.isArray(data.megaCourseLeaderboard)) megaCourseLeaderboard = data.megaCourseLeaderboard;
       
       const me = data.players[selfId];
       if (me) {
@@ -295,7 +335,8 @@
           courseRunFinished = false;
           let wName = 'Main World';
           if (data.world === 'garden') wName = 'Garden World';
-          else if (data.world === 'course') wName = 'Obstacle Course';
+          else if (data.world === 'course') wName = 'Obstacle Course 1';
+          else if (data.world === 'course2') wName = 'MEGA Obstacle Course';
           spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${wName}!`, '#00e676');
         }
       }
@@ -350,6 +391,15 @@
         speechBubbles[msg.id] = { text: msg.text, expiresAt: Date.now() + 5000 };
       }
     });
+
+    if (cameraX > 0) {
+      ctx.restore();
+    }
+
+    // Floating text notifications (World relative if camera active)
+    drawFloatingText(cameraX);
+    drawSpeechBubbles(cameraX);
+    drawHUD();
 
     // Coin events
     socket.on('coinCollected', (data) => {
@@ -410,6 +460,10 @@
 
     socket.on('leaderboardUpdated', (lb) => {
       courseLeaderboard = lb || [];
+    });
+
+    socket.on('megaLeaderboardUpdated', (lb) => {
+      megaCourseLeaderboard = lb || [];
     });
   }
 
@@ -523,6 +577,15 @@
     }
     if (myWorld === 'course' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'main');
+      return;
+    }
+    // Enter Mega Course from Finish Island of Course 1 (x: 1440)
+    if (myWorld === 'course' && Math.abs(me.x - 1440) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'course2');
+      return;
+    }
+    if (myWorld === 'course2' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'course');
       return;
     }
 
@@ -1001,7 +1064,8 @@
 
     let worldLabel = 'PLATFORMER';
     if (myWorld === 'garden') worldLabel = 'GARDEN & SHOP';
-    else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE';
+    else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE 1';
+    else if (myWorld === 'course2') worldLabel = 'MEGA COURSE (STAGE 2)';
 
     ctx.fillText(`COINS: ${myCoins} | WORLD: ${worldLabel}`, 14, 26);
 
@@ -1014,14 +1078,14 @@
     ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin', 14, 68);
 
     // Live Obstacle Course Stopwatch Header
-    if (myWorld === 'course' && courseRunStartTime > 0) {
+    if ((myWorld === 'course' || myWorld === 'course2') && courseRunStartTime > 0) {
       const elapsedSec = ((Date.now() - courseRunStartTime) / 1000).toFixed(2);
       ctx.fillStyle = 'rgba(0,0,0,0.85)';
       ctx.fillRect(canvas.width / 2 - 80, 10, 160, 32);
-      ctx.strokeStyle = '#76ff03';
+      ctx.strokeStyle = myWorld === 'course2' ? '#ff007f' : '#76ff03';
       ctx.lineWidth = 2;
       ctx.strokeRect(canvas.width / 2 - 80, 10, 160, 32);
-      ctx.fillStyle = '#76ff03';
+      ctx.fillStyle = myWorld === 'course2' ? '#ff007f' : '#76ff03';
       ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
       ctx.fillText(`RUN TIME: ${elapsedSec}s`, canvas.width / 2, 32);
@@ -1136,8 +1200,8 @@
     if (!landed) { me.y = nextY; me.isGrounded = false; }
     me.x = Math.max(20, Math.min(canvas.width - 20, nextX));
 
-    // Fall off screen in Obstacle Course = teleport to start
-    if (myWorld === 'course' && me.y > canvas.height + 60) {
+    // Fall off screen in Obstacle Courses = teleport to start
+    if ((myWorld === 'course' || myWorld === 'course2') && me.y > canvas.height + 60) {
       me.x = 120;
       me.y = getGroundY();
       me.vx = 0;
@@ -1151,7 +1215,7 @@
     checkCoinPickup();
     checkDroppedItemPickup();
 
-    // Obstacle Course Timers (Start Line x: 200, Finish Line x: 1370)
+    // Obstacle Course 1 Timers (Start Line x: 200, Finish Line x: 1370)
     if (myWorld === 'course' && selfId && players[selfId]) {
       const me = players[selfId];
       if (me.x >= 200 && me.x < 240 && courseRunStartTime === 0 && !courseRunFinished) {
@@ -1169,7 +1233,29 @@
         playHarvestSound();
         const sec = (elapsedMs / 1000).toFixed(2);
         spawnFloatText(me.x, me.y - 40, `COURSE FINISHED! ${sec}s`, '#76ff03');
-        if (socket) socket.emit('submitCourseTime', elapsedMs);
+        if (socket) socket.emit('submitCourseTime', { timeMs: elapsedMs, courseId: 'course' });
+      }
+    }
+
+    // Mega Obstacle Course 2 Timers (Start Line x: 200, Finish Line x: 3870)
+    if (myWorld === 'course2' && selfId && players[selfId]) {
+      const me = players[selfId];
+      if (me.x >= 200 && me.x < 240 && courseRunStartTime === 0 && !courseRunFinished) {
+        courseRunStartTime = Date.now();
+        spawnFloatText(me.x, me.y - 40, 'MEGA TIMER STARTED! GO!', '#ff007f');
+      }
+      if (me.x < 180) {
+        courseRunStartTime = 0;
+        courseRunFinished = false;
+      }
+      if (me.x >= 3870 && courseRunStartTime > 0 && !courseRunFinished) {
+        const elapsedMs = Date.now() - courseRunStartTime;
+        courseRunFinished = true;
+        courseRunStartTime = 0;
+        playHarvestSound();
+        const sec = (elapsedMs / 1000).toFixed(2);
+        spawnFloatText(me.x, me.y - 40, `MEGA COURSE FINISHED! ${sec}s`, '#ff007f');
+        if (socket) socket.emit('submitCourseTime', { timeMs: elapsedMs, courseId: 'course2' });
       }
     }
 
@@ -1316,6 +1402,123 @@
 
       // Return Portal (far left)
       drawPortal(80, groundY, '[E] RETURN TO MAIN', '#00e676');
+
+      // Portal to Mega Course (far right on finish island x: 1440)
+      drawPortal(1440, groundY, '[E] ENTER MEGA COURSE', '#ff007f');
+    } else if (myWorld === 'course2') {
+      // Mega Obstacle Course (4000px Cyber Stage)
+      ctx.fillStyle = '#0b0813';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Background Cyber Grid Beams
+      ctx.strokeStyle = 'rgba(224,64,251,0.06)';
+      ctx.lineWidth = 2;
+      for (let gx = 0; gx < canvas.width; gx += 40) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, canvas.height);
+        ctx.stroke();
+      }
+
+      ctx.save();
+      const meX = (selfId && players[selfId]) ? players[selfId].x : 120;
+      const cameraX = Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2));
+      ctx.translate(-cameraX, 0);
+
+      // Platforms with Mega Cyber styling
+      getPlatforms().forEach(plat => {
+        ctx.fillStyle = '#181028';
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        ctx.fillStyle = '#e040fb';
+        ctx.fillRect(plat.x, plat.y, plat.w, 4);
+        ctx.fillStyle = '#7b1fa2';
+        ctx.fillRect(plat.x, plat.y + 4, 3, plat.h - 4);
+        ctx.fillRect(plat.x + plat.w - 3, plat.y + 4, 3, plat.h - 4);
+      });
+
+      // Start Line Archway at x: 200
+      ctx.save();
+      ctx.strokeStyle = '#ff007f';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(200, groundY);
+      ctx.lineTo(200, groundY - 90);
+      ctx.lineTo(240, groundY - 90);
+      ctx.lineTo(240, groundY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ff007f';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('MEGA START', 220, groundY - 96);
+      ctx.font = '16px monospace';
+      ctx.fillText('>>>', 220, groundY - 55);
+      ctx.restore();
+
+      // Finish Line Archway at x: 3870
+      ctx.save();
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(3870, groundY);
+      ctx.lineTo(3870, groundY - 90);
+      ctx.lineTo(3910, groundY - 90);
+      ctx.lineTo(3910, groundY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('MEGA FINISH', 3890, groundY - 96);
+      for (let fy = 0; fy < 4; fy++) {
+        for (let fx = 0; fx < 2; fx++) {
+          ctx.fillStyle = (fx + fy) % 2 === 0 ? '#ff007f' : '#ffd700';
+          ctx.fillRect(3872 + fx * 8, groundY - 88 + fy * 8, 8, 8);
+        }
+      }
+      ctx.restore();
+
+      // Mega Leaderboard Billboard at x: 120
+      ctx.save();
+      ctx.fillStyle = 'rgba(11,8,19,0.9)';
+      ctx.fillRect(90, groundY - 200, 160, 140);
+      ctx.strokeStyle = '#ff007f';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(90, groundY - 200, 160, 140);
+      ctx.fillStyle = '#ff007f';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('MEGA LEADERBOARD', 170, groundY - 183);
+      ctx.strokeStyle = 'rgba(255,0,127,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(95, groundY - 174);
+      ctx.lineTo(245, groundY - 174);
+      ctx.stroke();
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'left';
+      const topMegaRuns = megaCourseLeaderboard.slice(0, 8);
+      topMegaRuns.forEach((entry, i) => {
+        const sec = (entry.timeMs / 1000).toFixed(2);
+        const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
+        ctx.fillStyle = color;
+        ctx.fillText(`${i + 1}. ${entry.name}`, 98, groundY - 160 + i * 15);
+        ctx.textAlign = 'right';
+        ctx.fillText(`${sec}s`, 244, groundY - 160 + i * 15);
+        ctx.textAlign = 'left';
+      });
+      if (topMegaRuns.length === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.textAlign = 'center';
+        ctx.fillText('No mega runs yet!', 170, groundY - 145);
+      }
+      ctx.restore();
+
+      // Return Portal (far left)
+      drawPortal(80, groundY, '[E] RETURN TO COURSE 1', '#00e676');
+
+      ctx.restore(); // Restore camera translation
     } else {
       // Main Platformer World
       ctx.fillStyle = '#22382b';
@@ -1377,6 +1580,12 @@
     });
 
     // Draw Players (Filter by same world)
+    const cameraX = (myWorld === 'course2' && selfId && players[selfId]) ? Math.max(0, Math.min(4100 - canvas.width, players[selfId].x - canvas.width / 2)) : 0;
+    if (cameraX > 0) {
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+    }
+
     Object.values(players).forEach(p => {
       if ((p.world || 'main') !== myWorld) return;
 

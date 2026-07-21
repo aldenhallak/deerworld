@@ -28,6 +28,7 @@ const coins = {};
 const userProfiles = {}; // { username: { coins, inventory, equippedHat } }
 const chatHistory = [];   // Array of persistent chat message objects
 const courseLeaderboard = []; // Array of top speedrun records: [{ name, timeMs, formattedTime }]
+const megaCourseLeaderboard = []; // Array of mega speedrun records: [{ name, timeMs, formattedTime }]
 const CHAT_LOG_FILE = path.join(DATA_DIR, 'chat_history.log');
 let plantIdCounter = 0;
 let coinIdCounter = 0;
@@ -85,6 +86,7 @@ async function atomicSaveState() {
       userProfiles,
       chatHistory: chatHistory.slice(-100),
       courseLeaderboard: courseLeaderboard.slice(0, 10),
+      megaCourseLeaderboard: megaCourseLeaderboard.slice(0, 10),
       timestamp: Date.now()
     }, null, 2);
     await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
@@ -104,6 +106,7 @@ try {
     if (parsed.userProfiles) Object.assign(userProfiles, parsed.userProfiles);
     if (Array.isArray(parsed.chatHistory)) chatHistory.push(...parsed.chatHistory);
     if (Array.isArray(parsed.courseLeaderboard)) courseLeaderboard.push(...parsed.courseLeaderboard);
+    if (Array.isArray(parsed.megaCourseLeaderboard)) megaCourseLeaderboard.push(...parsed.megaCourseLeaderboard);
   }
 } catch (e) {}
 
@@ -185,7 +188,8 @@ io.on('connection', (socket) => {
       droppedItems,
       shopCatalog: SHOP_ITEMS,
       chatHistory,
-      courseLeaderboard
+      courseLeaderboard,
+      megaCourseLeaderboard
     });
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
@@ -220,12 +224,14 @@ io.on('connection', (socket) => {
   socket.on('switchWorld', (targetWorld) => {
     const player = players[socket.id];
     if (!player) return;
-    if (targetWorld !== 'main' && targetWorld !== 'garden' && targetWorld !== 'course') return;
+    if (targetWorld !== 'main' && targetWorld !== 'garden' && targetWorld !== 'course' && targetWorld !== 'course2') return;
 
     const prevWorld = player.world;
     player.world = targetWorld;
     if (targetWorld === 'garden') player.x = 120;
     else if (targetWorld === 'course') player.x = 120;
+    else if (targetWorld === 'course2') player.x = 120;
+    else if (prevWorld === 'course2') player.x = 1420;
     else if (prevWorld === 'course') player.x = 160;
     else player.x = 880;
 
@@ -438,9 +444,12 @@ io.on('connection', (socket) => {
     atomicSaveState();
   });
 
-  // Submit Obstacle Course Speedrun Time
-  socket.on('submitCourseTime', (timeMs) => {
+  // Submit Obstacle Course Speedrun Time (courseId: 'course' or 'course2')
+  socket.on('submitCourseTime', (payload) => {
     const player = players[socket.id];
+    let timeMs = typeof payload === 'number' ? payload : (payload ? payload.timeMs : null);
+    let courseId = (payload && payload.courseId) || 'course';
+
     if (!player || typeof timeMs !== 'number' || timeMs < 500) return; // Min 0.5 sec sanity check
 
     const sec = (timeMs / 1000).toFixed(2);
@@ -453,11 +462,17 @@ io.on('connection', (socket) => {
       date: new Date().toLocaleDateString()
     };
 
-    courseLeaderboard.push(record);
-    courseLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
-    if (courseLeaderboard.length > 10) courseLeaderboard.length = 10;
-
-    io.emit('leaderboardUpdated', courseLeaderboard);
+    if (courseId === 'course2') {
+      megaCourseLeaderboard.push(record);
+      megaCourseLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
+      if (megaCourseLeaderboard.length > 10) megaCourseLeaderboard.length = 10;
+      io.emit('megaLeaderboardUpdated', megaCourseLeaderboard);
+    } else {
+      courseLeaderboard.push(record);
+      courseLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
+      if (courseLeaderboard.length > 10) courseLeaderboard.length = 10;
+      io.emit('leaderboardUpdated', courseLeaderboard);
+    }
     atomicSaveState();
   });
 
