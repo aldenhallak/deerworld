@@ -78,27 +78,30 @@ try {
   }
 } catch (e) {}
 
-function spawnCoin(x, yRel) {
+// --- SINGLE COIN SPAWNING SYSTEM ---
+const COIN_POSITIONS = [
+  { x: 150, yRel: -20 }, { x: 300, yRel: -20 }, { x: 500, yRel: -20 },
+  { x: 700, yRel: -20 }, { x: 900, yRel: -20 }, { x: 1050, yRel: -20 },
+  { x: 130, yRel: -130 }, { x: 200, yRel: -130 },
+  { x: 390, yRel: -220 }, { x: 470, yRel: -220 },
+  { x: 690, yRel: -150 }, { x: 770, yRel: -150 },
+  { x: 230, yRel: -310 }, { x: 300, yRel: -310 },
+  { x: 540, yRel: -390 }, { x: 620, yRel: -390 },
+  { x: 850, yRel: -280 }, { x: 930, yRel: -280 },
+];
+
+function spawnSingleCoin() {
+  // Clear any existing coins to ensure strictly ONE coin exists
+  Object.keys(coins).forEach(k => delete coins[k]);
+
+  const pos = COIN_POSITIONS[Math.floor(Math.random() * COIN_POSITIONS.length)];
   const id = `coin_${coinIdCounter++}`;
-  coins[id] = { id, x, yRel };
+  coins[id] = { id, x: pos.x, yRel: pos.yRel };
   return coins[id];
 }
 
-function initCoins() {
-  if (Object.keys(coins).length > 0) return;
-  const coinPositions = [
-    { x: 150, yRel: -20 }, { x: 300, yRel: -20 }, { x: 500, yRel: -20 },
-    { x: 700, yRel: -20 }, { x: 900, yRel: -20 }, { x: 1050, yRel: -20 },
-    { x: 130, yRel: -130 }, { x: 200, yRel: -130 },
-    { x: 390, yRel: -220 }, { x: 470, yRel: -220 },
-    { x: 690, yRel: -150 }, { x: 770, yRel: -150 },
-    { x: 230, yRel: -310 }, { x: 300, yRel: -310 },
-    { x: 540, yRel: -390 }, { x: 620, yRel: -390 },
-    { x: 850, yRel: -280 }, { x: 930, yRel: -280 },
-  ];
-  coinPositions.forEach(pos => spawnCoin(pos.x, pos.yRel));
-}
-initCoins();
+// Initial Single Coin
+spawnSingleCoin();
 
 // Growth Tick
 setInterval(() => {
@@ -141,7 +144,7 @@ io.on('connection', (socket) => {
       coins: 5,
       equippedHat: null,
       inventory: ['carrot_seed'],
-      world: 'main' // 'main' or 'garden'
+      world: 'main'
     };
 
     socket.emit('init', {
@@ -181,7 +184,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Switch World (Main ↔ Garden)
+  // Switch World
   socket.on('switchWorld', (targetWorld) => {
     const player = players[socket.id];
     if (!player) return;
@@ -194,7 +197,7 @@ io.on('connection', (socket) => {
     io.emit('playerWorldSwitched', { id: socket.id, world: player.world, x: player.x, yRel: player.yRel });
   });
 
-  // Collect coin
+  // Collect single coin & spawn next single coin after short delay
   socket.on('collectCoin', (coinId) => {
     if (!players[socket.id] || !coins[coinId]) return;
     delete coins[coinId];
@@ -202,15 +205,13 @@ io.on('connection', (socket) => {
     io.emit('coinCollected', { coinId, playerId: socket.id, coins: players[socket.id].coins });
     atomicSaveState();
 
+    // Spawn next single coin after 1.5 seconds
     setTimeout(() => {
-      if (Object.keys(coins).length < 24) {
-        const x = 80 + Math.random() * 900;
-        const platformYRels = [0, -110, -200, -130, -290, -370, -260];
-        const yRel = platformYRels[Math.floor(Math.random() * platformYRels.length)] - 20;
-        const nc = spawnCoin(x, yRel);
-        io.emit('coinSpawned', nc);
+      if (Object.keys(coins).length === 0) {
+        const newCoin = spawnSingleCoin();
+        io.emit('coinSpawned', newCoin);
       }
-    }, 15000);
+    }, 1500);
   });
 
   // Buy item from shop
@@ -246,12 +247,11 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Plant a crop/tree (restricted strictly to garden world & soil bed x: 200..750)
+  // Plant a crop/tree (restricted strictly to garden world & soil bed)
   socket.on('plant', (data) => {
     const player = players[socket.id];
     if (!player || !data) return;
 
-    // Strict Garden World & Soil Bed Constraint
     if (player.world !== 'garden') {
       socket.emit('notice', { text: 'You can only plant in the Garden World! 🌻' });
       return;
@@ -396,5 +396,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Klipspringer Farmville Multi-World Server running on http://localhost:${PORT}`);
+  console.log(`Klipspringer Farmville Single-Coin Server running on http://localhost:${PORT}`);
 });
