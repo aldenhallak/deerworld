@@ -349,7 +349,9 @@ io.on('connection', (socket) => {
       yRel: player.yRel,
       type: data.type,
       itemId: data.itemId,
-      label: dropLabel
+      label: dropLabel,
+      droppedBy: socket.id,
+      createdAt: Date.now()
     };
 
     io.emit('itemDropped', droppedItems[id]);

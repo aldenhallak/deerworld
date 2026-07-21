@@ -507,8 +507,8 @@
       }
     }
 
-    // 4. Dropped Items nearby
-    let dropTarget = null, dropDist = 60;
+    // 4. Dropped Items nearby (Pressing E picks up immediately!)
+    let dropTarget = null, dropDist = 70;
     Object.values(droppedItems).forEach(drop => {
       if ((drop.world || 'main') === myWorld) {
         const dropAbsY = groundY + drop.yRel;
@@ -519,6 +519,7 @@
 
     if (dropTarget) {
       socket.emit('pickupItem', dropTarget.id);
+      delete droppedItems[dropTarget.id];
       return;
     }
 
@@ -1007,9 +1008,16 @@
     if (!selfId || !players[selfId]) return;
     const me = players[selfId];
     const groundY = getGroundY();
+    const now = Date.now();
 
     Object.values(droppedItems).forEach(drop => {
       if ((drop.world || 'main') === myWorld) {
+        const age = now - (drop.createdAt || 0);
+        // Don't auto-repickup your own dropped item for 2.5 seconds
+        if (drop.droppedBy === selfId && age < 2500) return;
+        // Don't auto-pickup any item younger than 800ms
+        if (age < 800) return;
+
         const dropAbsY = groundY + drop.yRel;
         const dx = Math.abs(me.x - drop.x);
         const dy = Math.abs((me.y - 20) - dropAbsY);
@@ -1180,6 +1188,16 @@
         ctx.fillStyle = '#ffd700';
         ctx.textAlign = 'center';
         ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 16);
+
+        if (selfId && players[selfId]) {
+          const me = players[selfId];
+          const d = Math.hypot(me.x - drop.x, me.y - dropAbsY);
+          if (d < 65) {
+            ctx.font = 'bold 9px monospace';
+            ctx.fillStyle = '#76ff03';
+            ctx.fillText('[E] PICK UP', drop.x, dropAbsY + bob - 28);
+          }
+        }
         ctx.restore();
       }
     });
