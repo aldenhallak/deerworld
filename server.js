@@ -21,12 +21,13 @@ if (!fs.existsSync(DATA_DIR)) {
 const SAVE_PATH = path.join(DATA_DIR, 'save.json');
 const SAVE_TMP_PATH = path.join(DATA_DIR, 'save.json.tmp');
 
-// --- In-Memory State (Single Threaded, Zero Race Conditions) ---
+// --- Persistent Game State ---
 const players = {};
-let coinIdCounter = 0;
-const coins = {};
-let plantIdCounter = 0;
 const plants = {};
+const coins = {};
+const userProfiles = {}; // { username: { coins, inventory, equippedHat } }
+let plantIdCounter = 0;
+let coinIdCounter = 0;
 let droppedItemIdCounter = 0;
 const droppedItems = {};
 
@@ -64,9 +65,21 @@ async function atomicSaveState() {
   if (isSaving) return;
   isSaving = true;
   try {
+    // Sync current connected player states to userProfiles
+    Object.values(players).forEach(p => {
+      if (p.name) {
+        userProfiles[p.name] = {
+          coins: p.coins,
+          inventory: p.inventory || [],
+          equippedHat: p.equippedHat || null
+        };
+      }
+    });
+
     const dataToSave = JSON.stringify({
       plants,
       coins,
+      userProfiles,
       timestamp: Date.now()
     }, null, 2);
     await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
@@ -83,6 +96,7 @@ try {
     const raw = fs.readFileSync(SAVE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     if (parsed.plants) Object.assign(plants, parsed.plants);
+    if (parsed.userProfiles) Object.assign(userProfiles, parsed.userProfiles);
   }
 } catch (e) {}
 
@@ -140,6 +154,7 @@ io.on('connection', (socket) => {
       ? data.name.trim().substring(0, 16)
       : `Klipspringer #${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const saved = userProfiles[username] || { coins: 0, inventory: [], equippedHat: null };
     const spawnX = 200 + Math.random() * 400;
 
     players[socket.id] = {
@@ -149,9 +164,9 @@ io.on('connection', (socket) => {
       vx: 0, vy: 0,
       facing: 'right',
       isMoving: false, isJumping: false, isGrounded: true,
-      coins: 5,
-      equippedHat: null,
-      inventory: ['carrot_seed'],
+      coins: saved.coins !== undefined ? saved.coins : 0,
+      equippedHat: saved.equippedHat || null,
+      inventory: saved.inventory || [],
       world: 'main'
     };
 

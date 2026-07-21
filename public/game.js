@@ -31,7 +31,7 @@
   let plants = {};       // { id: {id, type, x, yRel, stage, maxStage, ownerName} }
   let droppedItems = {}; // { id: {id, world, type, x, yRel, label} }
   let shopCatalog = {};
-  let myCoins = 5;
+  let myCoins = 0;
   let myInventory = [];
   let myEquippedHat = null;
 
@@ -490,7 +490,7 @@
       return;
     }
 
-    // 3. Harvestable Plants nearby (Garden World only)
+    // 4. Harvestable Plants nearby (Garden World only)
     if (myWorld === 'garden') {
       let harvestTarget = null, minDist = 70;
       Object.values(plants).forEach(plant => {
@@ -505,22 +505,6 @@
         socket.emit('harvest', harvestTarget.id);
         return;
       }
-    }
-
-    // 4. Dropped Items nearby (Pressing E picks up immediately!)
-    let dropTarget = null, dropDist = 70;
-    Object.values(droppedItems).forEach(drop => {
-      if ((drop.world || 'main') === myWorld) {
-        const dropAbsY = groundY + drop.yRel;
-        const d = Math.hypot(me.x - drop.x, me.y - dropAbsY);
-        if (d < dropDist) { dropDist = d; dropTarget = drop; }
-      }
-    });
-
-    if (dropTarget) {
-      socket.emit('pickupItem', dropTarget.id);
-      delete droppedItems[dropTarget.id];
-      return;
     }
 
     // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..canvas.width - 220)
@@ -610,7 +594,7 @@
     if (e.code === 'KeyK') tryKiss();
     if (e.code === 'KeyE') tryInteract();
     if (e.code === 'KeyH') cycleEquippedHat();
-    if (e.code === 'KeyD' && !keysPressed['KeyA'] && !keysPressed['ArrowRight']) dropCoinOnGround();
+    if (e.code === 'KeyQ') dropCoinOnGround();
 
     if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
       players[selfId].jumpBufferTimer = 0.15;
@@ -980,7 +964,7 @@
 
     ctx.font = '11px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [D] Drop Coin', 14, 68);
+    ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin', 14, 68);
     ctx.restore();
   }
 
@@ -1012,16 +996,15 @@
 
     Object.values(droppedItems).forEach(drop => {
       if ((drop.world || 'main') === myWorld) {
-        const age = now - (drop.createdAt || 0);
-        // Don't auto-repickup your own dropped item for 2.5 seconds
-        if (drop.droppedBy === selfId && age < 2500) return;
-        // Don't auto-pickup any item younger than 800ms
-        if (age < 800) return;
-
         const dropAbsY = groundY + drop.yRel;
         const dx = Math.abs(me.x - drop.x);
         const dy = Math.abs((me.y - 20) - dropAbsY);
 
+        const age = now - (drop.createdAt || 0);
+        // If owner is still standing right on top of drop point, delay re-pickup for 1s
+        if (drop.droppedBy === selfId && dx < 30 && age < 1000) return;
+
+        // Walk over collision check
         if (dx < 36 && dy < 44) {
           socket.emit('pickupItem', drop.id);
           delete droppedItems[drop.id];
@@ -1188,16 +1171,6 @@
         ctx.fillStyle = '#ffd700';
         ctx.textAlign = 'center';
         ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 16);
-
-        if (selfId && players[selfId]) {
-          const me = players[selfId];
-          const d = Math.hypot(me.x - drop.x, me.y - dropAbsY);
-          if (d < 65) {
-            ctx.font = 'bold 9px monospace';
-            ctx.fillStyle = '#76ff03';
-            ctx.fillText('[E] PICK UP', drop.x, dropAbsY + bob - 28);
-          }
-        }
         ctx.restore();
       }
     });
