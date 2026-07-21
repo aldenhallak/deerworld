@@ -229,9 +229,14 @@
       const me = data.players[selfId];
       if (me) {
         myWorld = me.world || 'main';
-        myCoins = me.coins !== undefined ? me.coins : 5;
+        myCoins = me.coins !== undefined ? me.coins : 0;
         myInventory = me.inventory || [];
         myEquippedHat = me.equippedHat || null;
+      }
+
+      if (Array.isArray(data.chatHistory) && data.chatHistory.length > 0) {
+        chatMessagesEl.innerHTML = '';
+        data.chatHistory.forEach(msg => addChatMessage(msg));
       }
 
       joinModal.classList.add('hidden');

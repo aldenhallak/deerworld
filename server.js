@@ -26,6 +26,8 @@ const players = {};
 const plants = {};
 const coins = {};
 const userProfiles = {}; // { username: { coins, inventory, equippedHat } }
+const chatHistory = [];   // Array of persistent chat message objects
+const CHAT_LOG_FILE = path.join(DATA_DIR, 'chat_history.log');
 let plantIdCounter = 0;
 let coinIdCounter = 0;
 let droppedItemIdCounter = 0;
@@ -80,6 +82,7 @@ async function atomicSaveState() {
       plants,
       coins,
       userProfiles,
+      chatHistory: chatHistory.slice(-100),
       timestamp: Date.now()
     }, null, 2);
     await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
@@ -97,6 +100,7 @@ try {
     const parsed = JSON.parse(raw);
     if (parsed.plants) Object.assign(plants, parsed.plants);
     if (parsed.userProfiles) Object.assign(userProfiles, parsed.userProfiles);
+    if (Array.isArray(parsed.chatHistory)) chatHistory.push(...parsed.chatHistory);
   }
 } catch (e) {}
 
@@ -176,7 +180,8 @@ io.on('connection', (socket) => {
       coins,
       plants,
       droppedItems,
-      shopCatalog: SHOP_ITEMS
+      shopCatalog: SHOP_ITEMS,
+      chatHistory
     });
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
@@ -403,13 +408,26 @@ io.on('connection', (socket) => {
     if (!players[socket.id]) return;
     const cleanMsg = (messageText || '').trim().substring(0, 140);
     if (!cleanMsg) return;
-    io.emit('chatMessage', {
+
+    const msgObj = {
       id: socket.id,
       sender: players[socket.id].name,
       text: cleanMsg,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isSystem: false
+    };
+
+    chatHistory.push(msgObj);
+    if (chatHistory.length > 200) chatHistory.shift();
+
+    // Append to text log file
+    const logLine = `[${new Date().toISOString()}] ${msgObj.sender}: ${msgObj.text}\n`;
+    fs.appendFile(CHAT_LOG_FILE, logLine, (err) => {
+      if (err) console.error('Chat log write error:', err);
     });
+
+    io.emit('chatMessage', msgObj);
+    atomicSaveState();
   });
 
   socket.on('disconnect', () => {
