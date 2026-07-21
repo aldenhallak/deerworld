@@ -1,5 +1,17 @@
 {
-  "plants": {},
+  "plants": {
+    "plant_0": {
+      "id": "plant_0",
+      "type": "carrot",
+      "x": 553.5343520000024,
+      "yRel": 0,
+      "ownerId": "wq5ZTSEhcTi1azbBAAAB",
+      "ownerName": "peep",
+      "stage": 0,
+      "maxStage": 2,
+      "plantedAt": 1784608328876
+    }
+  },
   "coins": {},
-  "timestamp": 1784608261656
+  "timestamp": 1784608337458
 }

@@ -903,7 +903,8 @@
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    const headY = py - approxH + 8;
+    // Position hat snugly on top of the Klipspringer's head & ears
+    const headY = py - approxH + 22;
     const headX = px;
 
     if (hatId === 'straw_hat') {
@@ -1184,13 +1185,14 @@
       const currentHat = p.id === selfId ? myEquippedHat : p.equippedHat;
       drawWearableHat(px, py, currentHat, p.facing, approxH);
 
-      // Name / speech bubble
+      // Name / speech bubble offset higher if wearing a hat
+      const textYOffset = currentHat ? -18 : -4;
       if (speechBubbles[p.id]) {
         const b = speechBubbles[p.id];
         if (Date.now() > b.expiresAt) delete speechBubbles[p.id];
-        else drawSpeechBubble(px, py - approxH - 4, b.text);
+        else drawSpeechBubble(px, py - approxH + textYOffset, b.text);
       } else {
-        drawNameTag(px, py - approxH - 4, p.name);
+        drawNameTag(px, py - approxH + textYOffset, p.name);
       }
     });
 
