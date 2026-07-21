@@ -254,11 +254,7 @@ io.on('connection', (socket) => {
     if (!player || !data) return;
 
     if (player.world !== 'garden') {
-      socket.emit('notice', { text: 'You can only plant in the Garden World! 🌻' });
-      return;
-    }
-    if (data.x < 180 || data.x > 780 || Math.abs(data.yRel) > 40) {
-      socket.emit('notice', { text: 'Must plant inside the tilled soil bed! 🌾' });
+      socket.emit('notice', { text: 'You can only plant in the Garden World!' });
       return;
     }
 
@@ -325,7 +321,7 @@ io.on('connection', (socket) => {
     if (data.type === 'coin') {
       if (player.coins < 1) return;
       player.coins -= 1;
-      dropLabel = '1 Coin 🪙';
+      dropLabel = '1 Coin';
     } else if (data.type === 'item') {
       const idx = player.inventory.indexOf(data.itemId);
       if (idx === -1) return;

@@ -141,6 +141,20 @@
     } catch(e) {}
   }
 
+  function playHopSound() {
+    try {
+      const actx = getAudioContext();
+      const osc = actx.createOscillator(); const gain = actx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(340, actx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(680, actx.currentTime + 0.09);
+      gain.gain.setValueAtTime(0.14, actx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.1);
+      osc.connect(gain); gain.connect(actx.destination);
+      osc.start(); osc.stop(actx.currentTime + 0.1);
+    } catch(e) {}
+  }
+
   // ---- Sprites ----
   const spriteF = new Image(); spriteF.src = 'sprite_f.png';
   const spriteG = new Image(); spriteG.src = 'sprite_g.png';
@@ -248,7 +262,7 @@
         players[data.id].y = groundY + data.yRel;
         if (data.id === selfId) {
           myWorld = data.world;
-          spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${data.world === 'garden' ? 'Garden World 🌻' : 'Main World 🏰'}!`, '#00e676');
+          spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${data.world === 'garden' ? 'Garden World' : 'Main World'}!`, '#00e676');
         }
       }
     });
@@ -287,7 +301,7 @@
       updateShopBalance();
       renderShopGrid();
       if (selfId && players[selfId]) {
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, `Bought ${data.item.name}! 🛍️`, '#76ff03');
+        spawnFloatText(players[selfId].x, players[selfId].y - 40, `Bought ${data.item.name}!`, '#76ff03');
       }
     });
 
@@ -310,7 +324,7 @@
         myCoins = data.coins;
         playCoinSound();
         updateShopBalance();
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, '+1 🪙', '#ffd700');
+        spawnFloatText(players[selfId].x, players[selfId].y - 40, '+1 Coin', '#ffd700');
       }
     });
 
@@ -340,8 +354,7 @@
         myCoins = data.coins;
         playHarvestSound();
         updateShopBalance();
-        const icon = data.plantType === 'tree' ? '🍎' : '🌾';
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, `+${data.reward} 🪙 ${icon}`, '#76ff03');
+        spawnFloatText(players[selfId].x, players[selfId].y - 40, `+${data.reward} Coins`, '#76ff03');
       }
     });
 
@@ -357,7 +370,7 @@
         if (data.inventory) myInventory = data.inventory;
         playCoinSound();
         updateShopBalance();
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, `Picked up item! 🎁`, '#ffd700');
+        spawnFloatText(players[selfId].x, players[selfId].y - 40, 'Picked up item!', '#ffd700');
       }
     });
   }
@@ -505,13 +518,9 @@
       return;
     }
 
-    // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..canvas.width - 220)
+    // 5. Plant Seed Anywhere in Garden World
     if (myWorld !== 'garden') {
-      spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant! 🌻', '#ffab40');
-      return;
-    }
-    if (me.x < 180 || me.x > canvas.width - 220 || Math.abs(me.y - groundY) > 20) {
-      spawnFloatText(me.x, me.y - 40, 'Must plant inside the tilled soil bed! 🌾', '#ff5252');
+      spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant!', '#ffab40');
       return;
     }
 
@@ -541,7 +550,7 @@
     socket.emit('equipItem', nextHat);
     playShopSound();
     const label = nextHat && shopCatalog[nextHat] ? shopCatalog[nextHat].name : 'Barehead';
-    spawnFloatText(players[selfId].x, players[selfId].y - 40, `Equipped: ${label} 👒`, '#00e676');
+    spawnFloatText(players[selfId].x, players[selfId].y - 40, `Equipped: ${label}`, '#00e676');
   }
 
   function dropCoinOnGround() {
@@ -746,7 +755,7 @@
     ctx.fillStyle = '#ffd700';
     ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('🛍️ FARM SHOP', sx, sy - 78);
+    ctx.fillText('FARM SHOP', sx, sy - 78);
 
     // Diegetic Prompt
     if (selfId && players[selfId]) {
@@ -763,32 +772,7 @@
     ctx.restore();
   }
 
-  // Physical Garden Soil Bed (Garden World Only)
-  function drawGardenSoilBed(groundY) {
-    const gx = 180;
-    const gw = Math.max(200, canvas.width - 360);
-    const gy = groundY;
 
-    ctx.save();
-    // Wooden Fence Posts
-    ctx.fillStyle = '#8d6e63';
-    ctx.fillRect(gx - 10, gy - 24, 8, 24);
-    ctx.fillRect(gx + gw + 2, gy - 24, 8, 24);
-    ctx.fillRect(gx - 10, gy - 18, gw + 20, 4);
-
-    // Tilled Earth Soil Beds
-    ctx.fillStyle = '#3e2723';
-    ctx.fillRect(gx, gy - 8, gw, 8);
-    ctx.fillStyle = '#4e342e';
-    ctx.fillRect(gx + 2, gy - 6, gw - 4, 4);
-
-    ctx.font = 'bold 11px monospace';
-    ctx.fillStyle = '#a1887f';
-    ctx.textAlign = 'center';
-    ctx.fillText('🌾 TILLED GARDEN SOIL BED (PLANT HERE)', gx + gw / 2, gy - 16);
-
-    ctx.restore();
-  }
 
   // Crisp Pixel Art Coin
   function drawPixelCoin(x, y, t) {
@@ -957,11 +941,11 @@
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffd700';
-    ctx.fillText(`🪙 COINS: ${myCoins} | 🌍 WORLD: ${myWorld === 'garden' ? 'GARDEN & SHOP 🌻' : 'PLATFORMER 🏰'}`, 14, 26);
+    ctx.fillText(`COINS: ${myCoins} | WORLD: ${myWorld === 'garden' ? 'GARDEN & SHOP' : 'PLATFORMER'}`, 14, 26);
 
     const hatName = myEquippedHat && shopCatalog[myEquippedHat] ? shopCatalog[myEquippedHat].name : 'None';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`👒 HAT: ${hatName} [H to Swap]`, 14, 48);
+    ctx.fillText(`HAT: ${hatName} [H to Swap]`, 14, 48);
 
     ctx.font = '11px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -1030,6 +1014,7 @@
       me.vy = -JUMP_FORCE;
       me.isGrounded = false; me.isJumping = true;
       me.coyoteTimer = 0; me.jumpBufferTimer = 0;
+      playHopSound();
     }
 
     me.vy += GRAVITY * dt;
@@ -1086,12 +1071,10 @@
     if (myWorld === 'garden') {
       ctx.fillStyle = '#1e3323';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Garden Soil Bed
-      drawGardenSoilBed(groundY);
       // Shop Building
       drawShopBuilding(groundY);
       // Portal to Main World (far left in Garden World)
-      drawPortal(80, groundY, '[E] RETURN TO PLATFORMER 🏰', '#00e676');
+      drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
     } else {
       // Main Platformer World
       ctx.fillStyle = '#22382b';
@@ -1106,7 +1089,7 @@
       });
 
       // Portal to Garden World (far right in Main World)
-      drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD 🌻', '#ffd700');
+      drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD', '#ffd700');
 
       // Draw Coins (Main World Only)
       Object.values(coins).forEach(coin => {
@@ -1131,12 +1114,20 @@
         const dropAbsY = groundY + drop.yRel;
         const bob = Math.sin(animTime * 5 + drop.x) * 3;
         ctx.save();
-        ctx.font = '14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(drop.type === 'coin' ? '🪙' : '🎁', drop.x, dropAbsY + bob - 4);
+        if (drop.type === 'coin') {
+          drawPixelCoin(drop.x, dropAbsY, animTime);
+        } else {
+          // Pixel gift box shape
+          ctx.fillStyle = '#e53935';
+          ctx.fillRect(drop.x - 6, dropAbsY + bob - 10, 12, 10);
+          ctx.fillStyle = '#ffd700';
+          ctx.fillRect(drop.x - 2, dropAbsY + bob - 10, 4, 10);
+          ctx.fillRect(drop.x - 6, dropAbsY + bob - 6, 12, 2);
+        }
         ctx.font = '10px monospace';
         ctx.fillStyle = '#ffd700';
-        ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 18);
+        ctx.textAlign = 'center';
+        ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 16);
         ctx.restore();
       }
     });
@@ -1199,7 +1190,20 @@
       }
     });
 
-    // Heart Particles
+  function drawPixelHeart(x, y, scale) {
+    ctx.save();
+    ctx.fillStyle = '#ff4081';
+    const s = Math.max(1, Math.round(scale * 2.5));
+    ctx.fillRect(x - s * 2, y - s * 2, s * 2, s * 2);
+    ctx.fillRect(x + s, y - s * 2, s * 2, s * 2);
+    ctx.fillRect(x - s * 3, y - s, s * 7, s * 2);
+    ctx.fillRect(x - s * 2, y + s, s * 5, s);
+    ctx.fillRect(x - s, y + s * 2, s * 3, s);
+    ctx.fillRect(x, y + s * 3, s, s);
+    ctx.restore();
+  }
+
+  // Render loop heart particle drawing
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.x += p.vx * dt; p.y += p.vy * dt;
@@ -1207,9 +1211,7 @@
       if (p.alpha <= 0) { particles.splice(i, 1); continue; }
       ctx.save();
       ctx.globalAlpha = Math.max(0, p.alpha);
-      ctx.font = `${Math.round(16 * p.scale)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText(p.emoji || '❤️', p.x, p.y);
+      drawPixelHeart(p.x, p.y, p.scale);
       ctx.restore();
     }
 
