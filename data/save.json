@@ -7,11 +7,17 @@
       "yRel": 0,
       "ownerId": "wq5ZTSEhcTi1azbBAAAB",
       "ownerName": "peep",
-      "stage": 0,
+      "stage": 1,
       "maxStage": 2,
       "plantedAt": 1784608328876
     }
   },
-  "coins": {},
-  "timestamp": 1784608458324
+  "coins": {
+    "coin_0": {
+      "id": "coin_0",
+      "x": 770,
+      "yRel": -150
+    }
+  },
+  "timestamp": 1784609229857
 }

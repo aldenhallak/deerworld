@@ -201,7 +201,7 @@ body, html {
 
 /* Chat Log: Zero background, pure floating text */
 .chat-log {
-  height: 110px;
+  height: 160px;
   background: transparent !important;
   border: none !important;
   overflow: hidden;

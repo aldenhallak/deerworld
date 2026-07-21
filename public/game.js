@@ -36,11 +36,15 @@
   let myEquippedHat = null;
 
   const SEED_CONFIG = {
-    crop: { totalTime: 900000 },       // 15 min
-    carrot: { totalTime: 1800000 },    // 30 min
-    strawberry: { totalTime: 3600000 },// 1 hour
-    flower: { totalTime: 7200000 },    // 2 hours
-    tree: { totalTime: 14400000 }      // 4 hours
+    crop: { totalTime: 900000 },          // 15 min
+    carrot: { totalTime: 1800000 },       // 30 min
+    corn: { totalTime: 2700000 },         // 45 min
+    strawberry: { totalTime: 3600000 },   // 1 hour
+    flower: { totalTime: 7200000 },       // 2 hours
+    pumpkin: { totalTime: 10800000 },      // 3 hours
+    watermelon: { totalTime: 14400000 },   // 4 hours
+    grape: { totalTime: 21600000 },        // 6 hours
+    tree: { totalTime: 28800000 }         // 8 hours
   };
 
   // ---- Web Audio API Synthesizer ----
@@ -529,12 +533,12 @@
     }
 
     const yRel = me.y - groundY;
-    if (myInventory.includes('carrot_seed')) {
-      socket.emit('plant', { type: 'carrot', x: me.x, yRel });
-    } else if (myInventory.includes('strawberry_seed')) {
-      socket.emit('plant', { type: 'strawberry', x: me.x, yRel });
-    } else if (myInventory.includes('flower_seed')) {
-      socket.emit('plant', { type: 'flower', x: me.x, yRel });
+    const seedOrder = ['carrot_seed','corn_seed','strawberry_seed','flower_seed','pumpkin_seed','watermelon_seed','grape_seed','tree_seed','crop_seed'];
+    let foundSeed = seedOrder.find(s => myInventory.includes(s));
+
+    if (foundSeed) {
+      const type = shopCatalog[foundSeed] ? shopCatalog[foundSeed].seedType || 'crop' : 'crop';
+      socket.emit('plant', { type, x: me.x, yRel });
     } else if (myCoins >= 1) {
       socket.emit('plant', { type: 'crop', x: me.x, yRel });
     } else {
@@ -661,13 +665,13 @@
     chatMessagesEl.appendChild(div);
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 
-    // Auto fade-out chat message after 7 seconds so screen stays clean
+    // Auto fade-out chat message after 45 seconds so conversation stays readable much longer
     setTimeout(() => {
       div.style.opacity = '0';
       setTimeout(() => {
         if (div.parentNode) div.parentNode.removeChild(div);
       }, 500);
-    }, 7000);
+    }, 45000);
   }
 
   function escapeHTML(s) {
@@ -999,6 +1003,25 @@
     });
   }
 
+  function checkDroppedItemPickup() {
+    if (!selfId || !players[selfId]) return;
+    const me = players[selfId];
+    const groundY = getGroundY();
+
+    Object.values(droppedItems).forEach(drop => {
+      if ((drop.world || 'main') === myWorld) {
+        const dropAbsY = groundY + drop.yRel;
+        const dx = Math.abs(me.x - drop.x);
+        const dy = Math.abs((me.y - 20) - dropAbsY);
+
+        if (dx < 36 && dy < 44) {
+          socket.emit('pickupItem', drop.id);
+          delete droppedItems[drop.id];
+        }
+      }
+    });
+  }
+
   // ---- Physics Engine ----
   const GRAVITY = 1750, MOVE_SPEED = 400, ACCELERATION = 3000, FRICTION = 3400, JUMP_FORCE = 740;
   let lastEmitTime = 0;
@@ -1061,6 +1084,7 @@
     me.x = Math.max(20, Math.min(canvas.width - 20, nextX));
 
     checkCoinPickup();
+    checkDroppedItemPickup();
 
     const now = Date.now();
     const groundY = getGroundY();

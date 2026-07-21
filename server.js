@@ -33,22 +33,29 @@ const droppedItems = {};
 // --- Catalog & Configs ---
 const SHOP_ITEMS = {
   straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', cost: 5 },
-  flower_crown: { id: 'flower_crown', name: 'Flower Crown', type: 'hat', cost: 8 },
   cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', cost: 4 },
-  party_hat: { id: 'party_hat', name: 'Party Hat', type: 'hat', cost: 10 },
-  cool_shades: { id: 'cool_shades', name: 'Sunglasses', type: 'hat', cost: 6 },
+  crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', cost: 1 },
   carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 2 },
-  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 3 },
-  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', cost: 4 }
+  corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', cost: 3 },
+  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 4 },
+  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', cost: 5 },
+  pumpkin_seed: { id: 'pumpkin_seed', name: 'Pumpkin Seed', type: 'seed', seedType: 'pumpkin', cost: 6 },
+  watermelon_seed: { id: 'watermelon_seed', name: 'Watermelon Seed', type: 'seed', seedType: 'watermelon', cost: 8 },
+  grape_seed: { id: 'grape_seed', name: 'Grape Seed', type: 'seed', seedType: 'grape', cost: 10 },
+  tree_seed: { id: 'tree_seed', name: 'Apple Tree Seed', type: 'seed', seedType: 'tree', cost: 12 }
 };
 
-// Farmville-style growth times (min 15 mins up to 4 hours)
+// Farmville-style growth times (15 min up to 8 hours)
 const SEED_CONFIG = {
-  crop: { name: 'Wheat', cost: 1, yield: 4, maxStage: 2, totalTime: 900000, stageTime: 450000 },          // 15 min total
-  carrot: { name: 'Carrot', cost: 2, yield: 6, maxStage: 2, totalTime: 1800000, stageTime: 900000 },       // 30 min total
-  strawberry: { name: 'Strawberry', cost: 3, yield: 9, maxStage: 2, totalTime: 3600000, stageTime: 1800000 },// 1 hour total
-  flower: { name: 'Flower', cost: 4, yield: 14, maxStage: 3, totalTime: 7200000, stageTime: 2400000 },      // 2 hours total
-  tree: { name: 'Apple Tree', cost: 2, yield: 10, maxStage: 3, totalTime: 14400000, stageTime: 4800000 }    // 4 hours total
+  crop: { name: 'Wheat', cost: 1, yield: 4, maxStage: 2, totalTime: 900000, stageTime: 450000 },
+  carrot: { name: 'Carrot', cost: 2, yield: 6, maxStage: 2, totalTime: 1800000, stageTime: 900000 },
+  corn: { name: 'Corn', cost: 3, yield: 9, maxStage: 2, totalTime: 2700000, stageTime: 1350000 },
+  strawberry: { name: 'Strawberry', cost: 4, yield: 12, maxStage: 2, totalTime: 3600000, stageTime: 1800000 },
+  flower: { name: 'Flower', cost: 5, yield: 16, maxStage: 3, totalTime: 7200000, stageTime: 2400000 },
+  pumpkin: { name: 'Pumpkin', cost: 6, yield: 22, maxStage: 3, totalTime: 10800000, stageTime: 3600000 },
+  watermelon: { name: 'Watermelon', cost: 8, yield: 30, maxStage: 3, totalTime: 14400000, stageTime: 4800000 },
+  grape: { name: 'Grape', cost: 10, yield: 40, maxStage: 3, totalTime: 21600000, stageTime: 7200000 },
+  tree: { name: 'Apple Tree', cost: 12, yield: 50, maxStage: 3, totalTime: 28800000, stageTime: 9600000 }
 };
 
 // --- Atomic File Writer ---
