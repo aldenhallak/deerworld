@@ -15,8 +15,8 @@
   "coins": {
     "coin_0": {
       "id": "coin_0",
-      "x": 300,
-      "yRel": -310
+      "x": 470,
+      "yRel": -220
     }
   },
   "userProfiles": {
@@ -27,6 +27,11 @@
     },
     "Pip": {
       "coins": 1,
+      "inventory": [],
+      "equippedHat": null
+    },
+    "Peep": {
+      "coins": 0,
       "inventory": [],
       "equippedHat": null
     }
@@ -40,9 +45,21 @@
       "date": "7/21/2026"
     },
     {
+      "name": "Peep",
+      "timeMs": 3543,
+      "formattedTime": "3.54s",
+      "date": "7/21/2026"
+    },
+    {
       "name": "Pip",
       "timeMs": 3668,
       "formattedTime": "3.67s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "Pip",
+      "timeMs": 3709,
+      "formattedTime": "3.71s",
       "date": "7/21/2026"
     },
     {
@@ -58,5 +75,6 @@
       "date": "7/21/2026"
     }
   ],
-  "timestamp": 1784610991006
+  "megaCourseLeaderboard": [],
+  "timestamp": 1784637874815
 }

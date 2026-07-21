@@ -392,15 +392,6 @@
       }
     });
 
-    if (cameraX > 0) {
-      ctx.restore();
-    }
-
-    // Floating text notifications (World relative if camera active)
-    drawFloatingText(cameraX);
-    drawSpeechBubbles(cameraX);
-    drawHUD();
-
     // Coin events
     socket.on('coinCollected', (data) => {
       delete coins[data.coinId];
@@ -1198,7 +1189,8 @@
     });
 
     if (!landed) { me.y = nextY; me.isGrounded = false; }
-    me.x = Math.max(20, Math.min(canvas.width - 20, nextX));
+    const maxWorldX = myWorld === 'course2' ? 4100 : canvas.width;
+    me.x = Math.max(20, Math.min(maxWorldX - 20, nextX));
 
     // Fall off screen in Obstacle Courses = teleport to start
     if ((myWorld === 'course' || myWorld === 'course2') && me.y > canvas.height + 60) {
@@ -1289,11 +1281,40 @@
     ctx.imageSmoothingEnabled = false;
 
     const groundY = getGroundY();
+    const meX = (selfId && players[selfId]) ? players[selfId].x : 120;
+    const cameraX = (myWorld === 'course2') ? Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2)) : 0;
 
     // Background color per world
     if (myWorld === 'garden') {
       ctx.fillStyle = '#1e3323';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (myWorld === 'course') {
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (myWorld === 'course2') {
+      ctx.fillStyle = '#0b0813';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Background Cyber Grid Beams
+      ctx.strokeStyle = 'rgba(224,64,251,0.06)';
+      ctx.lineWidth = 2;
+      for (let gx = 0; gx < canvas.width; gx += 40) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, canvas.height);
+        ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = '#22382b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Begin World Camera Transformation
+    ctx.save();
+    if (cameraX !== 0) {
+      ctx.translate(-cameraX, 0);
+    }
+
+    if (myWorld === 'garden') {
       // Garden Soil Bed
       drawGardenSoilBed(groundY);
       // Shop Building
@@ -1302,10 +1323,6 @@
       drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
     } else if (myWorld === 'course') {
       // Obstacle Course World
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Platforms with course-specific styling
       getPlatforms().forEach(plat => {
         ctx.fillStyle = '#16213e';
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
@@ -1407,24 +1424,6 @@
       drawPortal(1440, groundY, '[E] ENTER MEGA COURSE', '#ff007f');
     } else if (myWorld === 'course2') {
       // Mega Obstacle Course (4000px Cyber Stage)
-      ctx.fillStyle = '#0b0813';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Background Cyber Grid Beams
-      ctx.strokeStyle = 'rgba(224,64,251,0.06)';
-      ctx.lineWidth = 2;
-      for (let gx = 0; gx < canvas.width; gx += 40) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, canvas.height);
-        ctx.stroke();
-      }
-
-      ctx.save();
-      const meX = (selfId && players[selfId]) ? players[selfId].x : 120;
-      const cameraX = Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2));
-      ctx.translate(-cameraX, 0);
-
       // Platforms with Mega Cyber styling
       getPlatforms().forEach(plat => {
         ctx.fillStyle = '#181028';
@@ -1517,13 +1516,8 @@
 
       // Return Portal (far left)
       drawPortal(80, groundY, '[E] RETURN TO COURSE 1', '#00e676');
-
-      ctx.restore(); // Restore camera translation
     } else {
       // Main Platformer World
-      ctx.fillStyle = '#22382b';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       // Platforms
       getPlatforms().forEach(plat => {
         ctx.fillStyle = '#1b2e23';
@@ -1580,12 +1574,6 @@
     });
 
     // Draw Players (Filter by same world)
-    const cameraX = (myWorld === 'course2' && selfId && players[selfId]) ? Math.max(0, Math.min(4100 - canvas.width, players[selfId].x - canvas.width / 2)) : 0;
-    if (cameraX > 0) {
-      ctx.save();
-      ctx.translate(-cameraX, 0);
-    }
-
     Object.values(players).forEach(p => {
       if ((p.world || 'main') !== myWorld) return;
 
@@ -1682,6 +1670,9 @@
       ctx.fillText(ft.text, ft.x, ft.y);
       ctx.restore();
     }
+
+    // End World Camera Transformation
+    ctx.restore();
 
     drawHUD();
 
