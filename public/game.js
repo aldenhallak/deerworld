@@ -425,6 +425,7 @@
 
   // Crisp Pixel Art Coin
   function drawPixelCoin(x, y, t) {
+    if (isNaN(x) || isNaN(y)) return;
     const bob = Math.sin(t * 4 + x * 0.05) * 3;
     const cy = y + bob;
     ctx.save();
@@ -588,13 +589,15 @@
     const groundY = getGroundY();
 
     Object.values(coins).forEach(coin => {
-      const coinAbsY = groundY + coin.yRel;
+      const yRel = coin.yRel !== undefined ? Number(coin.yRel) : (coin.y !== undefined ? Number(coin.y) - groundY : -20);
+      const coinAbsY = groundY + yRel;
+      const coinX = Number(coin.x) || 100;
       
       // Generous AABB pickup box: 44px wide x 60px high around player center
-      const dx = Math.abs(me.x - coin.x);
+      const dx = Math.abs(me.x - coinX);
       const dy = Math.abs((me.y - 20) - coinAbsY);
 
-      if (dx < 32 && dy < 40) {
+      if (dx < 34 && dy < 44) {
         socket.emit('collectCoin', coin.id);
         delete coins[coin.id]; // optimistic client remove
       }
@@ -708,8 +711,10 @@
 
     // Draw Coins with crisp Pixel Art & floating bob
     Object.values(coins).forEach(coin => {
-      const coinAbsY = groundY + coin.yRel;
-      drawPixelCoin(coin.x, coinAbsY, animTime);
+      const yRel = coin.yRel !== undefined ? Number(coin.yRel) : (coin.y !== undefined ? Number(coin.y) - groundY : -20);
+      const coinAbsY = groundY + yRel;
+      const coinX = Number(coin.x) || 100;
+      drawPixelCoin(coinX, coinAbsY, animTime);
     });
 
     // Draw Plants & Trees with Pixel Art
