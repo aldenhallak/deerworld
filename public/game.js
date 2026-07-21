@@ -455,17 +455,20 @@
     const groundY = getGroundY();
 
     // 1. World Portal / Doorway Interaction
-    if (myWorld === 'main' && Math.abs(me.x - 880) < 60 && Math.abs(me.y - groundY) < 30) {
+    const mainPortalX = canvas.width - 100;
+    const shopX = canvas.width - 100;
+
+    if (myWorld === 'main' && Math.abs(me.x - mainPortalX) < 70 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'garden');
       return;
     }
-    if (myWorld === 'garden' && Math.abs(me.x - 100) < 60 && Math.abs(me.y - groundY) < 30) {
+    if (myWorld === 'garden' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'main');
       return;
     }
 
-    // 2. Open Shop Popup Modal (when near Shop Stall at x: 850 in Garden World)
-    if (myWorld === 'garden' && Math.abs(me.x - 850) < 70 && Math.abs(me.y - groundY) < 30) {
+    // 2. Open Shop Popup Modal (when near Shop Stall on far right in Garden World)
+    if (myWorld === 'garden' && Math.abs(me.x - shopX) < 75 && Math.abs(me.y - groundY) < 30) {
       openShopModal();
       return;
     }
@@ -502,12 +505,12 @@
       return;
     }
 
-    // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..780)
+    // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..canvas.width - 220)
     if (myWorld !== 'garden') {
       spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant! 🌻', '#ffab40');
       return;
     }
-    if (me.x < 180 || me.x > 780 || Math.abs(me.y - groundY) > 20) {
+    if (me.x < 180 || me.x > canvas.width - 220 || Math.abs(me.y - groundY) > 20) {
       spawnFloatText(me.x, me.y - 40, 'Must plant inside the tilled soil bed! 🌾', '#ff5252');
       return;
     }
@@ -710,9 +713,9 @@
     ctx.restore();
   }
 
-  // Physical Shop Building (Garden World)
+  // Physical Shop Building (Far Right Edge of Garden World)
   function drawShopBuilding(groundY) {
-    const sx = 850;
+    const sx = canvas.width - 90;
     const sy = groundY;
 
     ctx.save();
@@ -763,7 +766,7 @@
   // Physical Garden Soil Bed (Garden World Only)
   function drawGardenSoilBed(groundY) {
     const gx = 180;
-    const gw = 600;
+    const gw = Math.max(200, canvas.width - 360);
     const gy = groundY;
 
     ctx.save();
@@ -1087,8 +1090,8 @@
       drawGardenSoilBed(groundY);
       // Shop Building
       drawShopBuilding(groundY);
-      // Portal to Main World
-      drawPortal(100, groundY, '[E] RETURN TO PLATFORMER 🏰', '#00e676');
+      // Portal to Main World (far left in Garden World)
+      drawPortal(80, groundY, '[E] RETURN TO PLATFORMER 🏰', '#00e676');
     } else {
       // Main Platformer World
       ctx.fillStyle = '#22382b';
@@ -1102,8 +1105,8 @@
         ctx.fillRect(plat.x, plat.y, plat.w, 4);
       });
 
-      // Portal to Garden World
-      drawPortal(880, groundY, '[E] ENTER GARDEN WORLD 🌻', '#ffd700');
+      // Portal to Garden World (far right in Main World)
+      drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD 🌻', '#ffd700');
 
       // Draw Coins (Main World Only)
       Object.values(coins).forEach(coin => {
