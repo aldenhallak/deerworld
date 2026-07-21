@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klipspringer World</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Simple Join Overlay -->
+    <div id="joinModal" class="modal">
+      <form id="joinForm" class="join-box">
+        <label for="usernameInput">Name:</label>
+        <input type="text" id="usernameInput" placeholder="Pip" maxlength="16" required autofocus autocomplete="off">
+        <button type="submit">Enter</button>
+      </form>
+    </div>
+
+    <!-- Minimal Chat Bar -->
+    <div id="chatBar" class="chat-bar hidden">
+      <div id="chatMessages" class="chat-log"></div>
+      <form id="chatForm" class="chat-inputs">
+        <input type="text" id="chatInput" placeholder="Type message..." maxlength="140" autocomplete="off">
+        <button type="submit">Send</button>
+        <button type="button" id="btnJump">Jump</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
