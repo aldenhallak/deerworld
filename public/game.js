@@ -559,7 +559,6 @@
     if (e.code === 'KeyK') tryKiss();
     if (e.code === 'KeyE') tryInteract();
     if (e.code === 'KeyH') cycleEquippedHat();
-    if (e.code === 'KeyS') openShopModal(); // Hotkey to open shop popup!
     if (e.code === 'KeyD' && !keysPressed['KeyA'] && !keysPressed['ArrowRight']) dropCoinOnGround();
 
     if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
@@ -894,7 +893,7 @@
 
     const hatName = myEquippedHat && shopCatalog[myEquippedHat] ? shopCatalog[myEquippedHat].name : 'None';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`👒 HAT: ${hatName} [H to Swap] | [S] Open Shop Modal`, 14, 48);
+    ctx.fillText(`👒 HAT: ${hatName} [H to Swap]`, 14, 48);
 
     ctx.font = '11px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
