@@ -12,7 +12,13 @@
       "plantedAt": 1784608328876
     }
   },
-  "coins": {},
+  "coins": {
+    "coin_0": {
+      "id": "coin_0",
+      "x": 300,
+      "yRel": -310
+    }
+  },
   "userProfiles": {
     "pep": {
       "coins": 1,
@@ -38,7 +44,13 @@
       "timeMs": 4166,
       "formattedTime": "4.17s",
       "date": "7/21/2026"
+    },
+    {
+      "name": "Pip",
+      "timeMs": 4599,
+      "formattedTime": "4.60s",
+      "date": "7/21/2026"
     }
   ],
-  "timestamp": 1784610704112
+  "timestamp": 1784610915286
 }

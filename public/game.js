@@ -513,7 +513,7 @@
       socket.emit('switchWorld', 'garden');
       return;
     }
-    if (myWorld === 'main' && Math.abs(me.x - 100) < 60 && Math.abs(me.y - groundY) < 30) {
+    if (myWorld === 'main' && Math.abs(me.x - (canvas.width - 200)) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'course');
       return;
     }
@@ -1333,7 +1333,7 @@
       drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD', '#ffd700');
 
       // Portal to Obstacle Course (far left in Main World)
-      drawPortal(100, groundY, '[E] OBSTACLE COURSE', '#e94560');
+      drawPortal(canvas.width - 200, groundY, '[E] OBSTACLE COURSE', '#e94560');
 
       // Draw Coins (Main World Only)
       Object.values(coins).forEach(coin => {
