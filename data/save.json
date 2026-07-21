@@ -1,23 +1,5 @@
 {
-  "plants": {
-    "plant_45": {
-      "id": "plant_45",
-      "type": "crop",
-      "x": 674.2622699999895,
-      "yRel": 0,
-      "ownerId": "RyqiHw00GvmNfW15AAAL",
-      "ownerName": "pie",
-      "stage": 2,
-      "maxStage": 2,
-      "plantedAt": 1784608107986
-    }
-  },
-  "coins": {
-    "coin_4": {
-      "id": "coin_4",
-      "x": 770,
-      "yRel": -150
-    }
-  },
-  "timestamp": 1784608120312
+  "plants": {},
+  "coins": {},
+  "timestamp": 1784608261656
 }

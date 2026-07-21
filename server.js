@@ -32,22 +32,23 @@ const droppedItems = {};
 
 // --- Catalog & Configs ---
 const SHOP_ITEMS = {
-  straw_hat: { id: 'straw_hat', name: 'Farmer Straw Hat', type: 'hat', cost: 5, color: '#e5c158', desc: 'A cozy woven hat for sunny farm days' },
-  flower_crown: { id: 'flower_crown', name: 'Flower Crown', type: 'hat', cost: 8, color: '#ff77aa', desc: 'A beautiful wreath of fresh blossoms' },
-  cute_bow: { id: 'cute_bow', name: 'Cute Pink Bow', type: 'hat', cost: 4, color: '#ff5599', desc: 'A delightful pink ribbon bow' },
-  party_hat: { id: 'party_hat', name: 'Party Cone Hat', type: 'hat', cost: 10, color: '#aa33ff', desc: 'Fun colorful party cone hat' },
-  cool_shades: { id: 'cool_shades', name: 'Cool Sunglasses', type: 'hat', cost: 6, color: '#222222', desc: 'Retro black shades for cool Klipspringers' },
-  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 2, desc: 'Grows sweet orange carrots (+6 🪙)' },
-  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 3, desc: 'Grows juicy strawberries (+9 🪙)' },
-  flower_seed: { id: 'flower_seed', name: 'Golden Flower Seed', type: 'seed', seedType: 'flower', cost: 4, desc: 'Grows glowing golden flowers (+14 🪙)' }
+  straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', cost: 5 },
+  flower_crown: { id: 'flower_crown', name: 'Flower Crown', type: 'hat', cost: 8 },
+  cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', cost: 4 },
+  party_hat: { id: 'party_hat', name: 'Party Hat', type: 'hat', cost: 10 },
+  cool_shades: { id: 'cool_shades', name: 'Sunglasses', type: 'hat', cost: 6 },
+  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 2 },
+  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 3 },
+  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', cost: 4 }
 };
 
+// Farmville-style growth times (min 15 mins up to 4 hours)
 const SEED_CONFIG = {
-  carrot: { name: 'Carrot', cost: 2, yield: 6, maxStage: 2, stageTime: 7000 },
-  strawberry: { name: 'Strawberry', cost: 3, yield: 9, maxStage: 2, stageTime: 9000 },
-  flower: { name: 'Golden Flower', cost: 4, yield: 14, maxStage: 3, stageTime: 10000 },
-  crop: { name: 'Wheat Crop', cost: 1, yield: 4, maxStage: 2, stageTime: 6000 },
-  tree: { name: 'Apple Tree', cost: 2, yield: 10, maxStage: 3, stageTime: 12000 }
+  crop: { name: 'Wheat', cost: 1, yield: 4, maxStage: 2, totalTime: 900000, stageTime: 450000 },          // 15 min total
+  carrot: { name: 'Carrot', cost: 2, yield: 6, maxStage: 2, totalTime: 1800000, stageTime: 900000 },       // 30 min total
+  strawberry: { name: 'Strawberry', cost: 3, yield: 9, maxStage: 2, totalTime: 3600000, stageTime: 1800000 },// 1 hour total
+  flower: { name: 'Flower', cost: 4, yield: 14, maxStage: 3, totalTime: 7200000, stageTime: 2400000 },      // 2 hours total
+  tree: { name: 'Apple Tree', cost: 2, yield: 10, maxStage: 3, totalTime: 14400000, stageTime: 4800000 }    // 4 hours total
 };
 
 // --- Atomic File Writer ---

@@ -35,6 +35,14 @@
   let myInventory = [];
   let myEquippedHat = null;
 
+  const SEED_CONFIG = {
+    crop: { totalTime: 900000 },       // 15 min
+    carrot: { totalTime: 1800000 },    // 30 min
+    strawberry: { totalTime: 3600000 },// 1 hour
+    flower: { totalTime: 7200000 },    // 2 hours
+    tree: { totalTime: 14400000 }      // 4 hours
+  };
+
   // ---- Web Audio API Synthesizer ----
   let audioCtx = null;
   function getAudioContext() {
@@ -366,13 +374,11 @@
     Object.values(shopCatalog).forEach(item => {
       const card = document.createElement('div');
       card.className = 'shop-card';
-      const icon = item.type === 'hat' ? '👒' : '🌱';
       const canAfford = myCoins >= item.cost;
 
       card.innerHTML = `
         <div>
-          <div class="item-name">${icon} ${escapeHTML(item.name)}</div>
-          <div class="item-desc">${escapeHTML(item.desc || '')}</div>
+          <div class="item-name">${escapeHTML(item.name)}</div>
         </div>
         <div class="item-footer">
           <span class="item-cost">${item.cost} 🪙</span>
@@ -870,6 +876,23 @@
       ctx.fillStyle = '#76ff03';
       ctx.textAlign = 'center';
       ctx.fillText('[E] HARVEST', px, py - 26);
+    } else if (plant.plantedAt) {
+      const config = SEED_CONFIG[plantType] || SEED_CONFIG.crop;
+      const elapsed = Date.now() - plant.plantedAt;
+      const remainingMs = Math.max(0, config.totalTime - elapsed);
+      const totalSec = Math.ceil(remainingMs / 1000);
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      const hrs = Math.floor(mins / 60);
+      const displayMins = mins % 60;
+
+      let timeStr = `${mins}m ${secs}s`;
+      if (hrs > 0) timeStr = `${hrs}h ${displayMins}m`;
+
+      ctx.font = '9px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.textAlign = 'center';
+      ctx.fillText(timeStr, px, py - 22);
     }
 
     ctx.restore();
