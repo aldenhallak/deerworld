@@ -189,16 +189,19 @@
       return [{ x: 0, y: groundY, w: canvas.width, h: 40 }];
     }
     if (myWorld === 'course') {
-      // Obstacle Course Platform Jumps
+      // Obstacle Course - Daring Platform Gauntlet
       return [
-        { x: 0,    y: groundY,       w: 260, h: 40 }, // Start Ground
-        { x: 310,  y: groundY - 40,  w: 100, h: 16 }, // Jump 1
-        { x: 460,  y: groundY - 90,  w: 110, h: 16 }, // Jump 2
-        { x: 620,  y: groundY - 140, w: 90,  h: 16 }, // Jump 3
-        { x: 760,  y: groundY - 80,  w: 110, h: 16 }, // Jump 4
-        { x: 920,  y: groundY - 150, w: 100, h: 16 }, // Jump 5
-        { x: 1070, y: groundY - 70,  w: 110, h: 16 }, // Jump 6
-        { x: 1220, y: groundY,       w: 400, h: 40 }  // Finish Ground
+        { x: 0,    y: groundY,       w: 220, h: 40 },  // Start Island
+        { x: 300,  y: groundY - 30,  w: 70,  h: 14 },  // Hop 1 - small
+        { x: 430,  y: groundY - 80,  w: 60,  h: 14 },  // Hop 2 - narrow climb
+        { x: 540,  y: groundY - 150, w: 55,  h: 14 },  // Hop 3 - high narrow
+        { x: 660,  y: groundY - 90,  w: 50,  h: 14 },  // Drop 4 - tiny
+        { x: 760,  y: groundY - 180, w: 65,  h: 14 },  // Leap 5 - big jump up
+        { x: 890,  y: groundY - 110, w: 45,  h: 14 },  // Drop 6 - smallest
+        { x: 980,  y: groundY - 200, w: 70,  h: 14 },  // Leap 7 - peak
+        { x: 1100, y: groundY - 130, w: 55,  h: 14 },  // Drop 8
+        { x: 1210, y: groundY - 60,  w: 60,  h: 14 },  // Descent 9
+        { x: 1330, y: groundY,       w: 300, h: 40 }   // Finish Island
       ];
     }
     return [
@@ -1133,10 +1136,22 @@
     if (!landed) { me.y = nextY; me.isGrounded = false; }
     me.x = Math.max(20, Math.min(canvas.width - 20, nextX));
 
+    // Fall off screen in Obstacle Course = teleport to start
+    if (myWorld === 'course' && me.y > canvas.height + 60) {
+      me.x = 120;
+      me.y = getGroundY();
+      me.vx = 0;
+      me.vy = 0;
+      me.isGrounded = true;
+      courseRunStartTime = 0;
+      courseRunFinished = false;
+      spawnFloatText(me.x, me.y - 40, 'FELL! Back to start...', '#e94560');
+    }
+
     checkCoinPickup();
     checkDroppedItemPickup();
 
-    // Obstacle Course Timers (Start Line x: 200, Finish Line x: 1260)
+    // Obstacle Course Timers (Start Line x: 200, Finish Line x: 1370)
     if (myWorld === 'course' && selfId && players[selfId]) {
       const me = players[selfId];
       if (me.x >= 200 && me.x < 240 && courseRunStartTime === 0 && !courseRunFinished) {
@@ -1147,7 +1162,7 @@
         courseRunStartTime = 0;
         courseRunFinished = false;
       }
-      if (me.x >= 1260 && courseRunStartTime > 0 && !courseRunFinished) {
+      if (me.x >= 1370 && courseRunStartTime > 0 && !courseRunFinished) {
         const elapsedMs = Date.now() - courseRunStartTime;
         courseRunFinished = true;
         courseRunStartTime = 0;
@@ -1237,27 +1252,27 @@
       ctx.fillText('>>', 220, groundY - 50);
       ctx.restore();
 
-      // Finish Line Archway at x: 1260
+      // Finish Line Archway at x: 1370
       ctx.save();
       ctx.strokeStyle = '#ffd700';
       ctx.lineWidth = 3;
       ctx.setLineDash([6, 4]);
       ctx.beginPath();
-      ctx.moveTo(1260, groundY);
-      ctx.lineTo(1260, groundY - 80);
-      ctx.lineTo(1300, groundY - 80);
-      ctx.lineTo(1300, groundY);
+      ctx.moveTo(1370, groundY);
+      ctx.lineTo(1370, groundY - 80);
+      ctx.lineTo(1410, groundY - 80);
+      ctx.lineTo(1410, groundY);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = '#ffd700';
       ctx.font = 'bold 12px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('FINISH', 1280, groundY - 86);
+      ctx.fillText('FINISH', 1390, groundY - 86);
       // Checkered flag pattern
       for (let fy = 0; fy < 4; fy++) {
         for (let fx = 0; fx < 2; fx++) {
           ctx.fillStyle = (fx + fy) % 2 === 0 ? '#ffd700' : '#1a1a2e';
-          ctx.fillRect(1262 + fx * 8, groundY - 78 + fy * 8, 8, 8);
+          ctx.fillRect(1372 + fx * 8, groundY - 78 + fy * 8, 8, 8);
         }
       }
       ctx.restore();

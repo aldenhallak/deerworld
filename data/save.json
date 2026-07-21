@@ -12,19 +12,33 @@
       "plantedAt": 1784608328876
     }
   },
-  "coins": {
-    "coin_1": {
-      "id": "coin_1",
-      "x": 930,
-      "yRel": -280
-    }
-  },
+  "coins": {},
   "userProfiles": {
     "pep": {
       "coins": 1,
       "inventory": [],
       "equippedHat": null
+    },
+    "Pip": {
+      "coins": 1,
+      "inventory": [],
+      "equippedHat": null
     }
   },
-  "timestamp": 1784610129528
+  "chatHistory": [],
+  "courseLeaderboard": [
+    {
+      "name": "Pip",
+      "timeMs": 3668,
+      "formattedTime": "3.67s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "Pip",
+      "timeMs": 4166,
+      "formattedTime": "4.17s",
+      "date": "7/21/2026"
+    }
+  ],
+  "timestamp": 1784610704112
 }
