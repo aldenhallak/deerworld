@@ -12,12 +12,13 @@
       "plantedAt": 1784608328876
     }
   },
-  "coins": {
-    "coin_0": {
-      "id": "coin_0",
-      "x": 770,
-      "yRel": -150
+  "coins": {},
+  "userProfiles": {
+    "pep": {
+      "coins": 1,
+      "inventory": [],
+      "equippedHat": null
     }
   },
-  "timestamp": 1784609229857
+  "timestamp": 1784609789597
 }
