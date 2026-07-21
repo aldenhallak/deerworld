@@ -1,0 +1,185 @@
+{
+  "plants": {
+    "plant_3": {
+      "id": "plant_3",
+      "type": "crop",
+      "x": 1129.1850311194576,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607842994
+    },
+    "plant_4": {
+      "id": "plant_4",
+      "type": "crop",
+      "x": 1129.1850311194576,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607843312
+    },
+    "plant_5": {
+      "id": "plant_5",
+      "type": "crop",
+      "x": 1129.1850311194576,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607843537
+    },
+    "plant_6": {
+      "id": "plant_6",
+      "type": "crop",
+      "x": 1129.1850311194576,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607843722
+    },
+    "plant_7": {
+      "id": "plant_7",
+      "type": "crop",
+      "x": 1129.1850311194576,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607843906
+    },
+    "plant_8": {
+      "id": "plant_8",
+      "type": "carrot",
+      "x": 565.8062691194616,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607851366
+    },
+    "plant_9": {
+      "id": "plant_9",
+      "type": "carrot",
+      "x": 502.33924111946027,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607851760
+    },
+    "plant_10": {
+      "id": "plant_10",
+      "type": "carrot",
+      "x": 592.421567119462,
+      "yRel": 0,
+      "ownerId": "7EjH1oij4TXjmH5zAAAL",
+      "ownerName": "peep",
+      "stage": 2,
+      "maxStage": 2,
+      "plantedAt": 1784607852446
+    }
+  },
+  "coins": {
+    "coin_0": {
+      "id": "coin_0",
+      "x": 150,
+      "yRel": -20
+    },
+    "coin_1": {
+      "id": "coin_1",
+      "x": 300,
+      "yRel": -20
+    },
+    "coin_2": {
+      "id": "coin_2",
+      "x": 500,
+      "yRel": -20
+    },
+    "coin_3": {
+      "id": "coin_3",
+      "x": 700,
+      "yRel": -20
+    },
+    "coin_4": {
+      "id": "coin_4",
+      "x": 900,
+      "yRel": -20
+    },
+    "coin_5": {
+      "id": "coin_5",
+      "x": 1050,
+      "yRel": -20
+    },
+    "coin_6": {
+      "id": "coin_6",
+      "x": 130,
+      "yRel": -130
+    },
+    "coin_7": {
+      "id": "coin_7",
+      "x": 200,
+      "yRel": -130
+    },
+    "coin_8": {
+      "id": "coin_8",
+      "x": 390,
+      "yRel": -220
+    },
+    "coin_9": {
+      "id": "coin_9",
+      "x": 470,
+      "yRel": -220
+    },
+    "coin_10": {
+      "id": "coin_10",
+      "x": 690,
+      "yRel": -150
+    },
+    "coin_11": {
+      "id": "coin_11",
+      "x": 770,
+      "yRel": -150
+    },
+    "coin_12": {
+      "id": "coin_12",
+      "x": 230,
+      "yRel": -310
+    },
+    "coin_13": {
+      "id": "coin_13",
+      "x": 300,
+      "yRel": -310
+    },
+    "coin_14": {
+      "id": "coin_14",
+      "x": 540,
+      "yRel": -390
+    },
+    "coin_15": {
+      "id": "coin_15",
+      "x": 620,
+      "yRel": -390
+    },
+    "coin_16": {
+      "id": "coin_16",
+      "x": 850,
+      "yRel": -280
+    },
+    "coin_17": {
+      "id": "coin_17",
+      "x": 930,
+      "yRel": -280
+    }
+  },
+  "timestamp": 1784607867123
+}

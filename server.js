@@ -28,18 +28,18 @@ const coins = {};
 let plantIdCounter = 0;
 const plants = {};
 let droppedItemIdCounter = 0;
-const droppedItems = {}; // ground items: { id, type, x, yRel, label, value }
+const droppedItems = {};
 
 // --- Catalog & Configs ---
 const SHOP_ITEMS = {
-  straw_hat: { id: 'straw_hat', name: 'Farmer Straw Hat', type: 'hat', cost: 5, color: '#e5c158' },
-  flower_crown: { id: 'flower_crown', name: 'Flower Crown', type: 'hat', cost: 8, color: '#ff77aa' },
-  cute_bow: { id: 'cute_bow', name: 'Cute Pink Bow', type: 'hat', cost: 4, color: '#ff5599' },
-  party_hat: { id: 'party_hat', name: 'Party Cone Hat', type: 'hat', cost: 10, color: '#aa33ff' },
-  cool_shades: { id: 'cool_shades', name: 'Cool Sunglasses', type: 'hat', cost: 6, color: '#222222' },
-  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 2 },
-  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 3 },
-  flower_seed: { id: 'flower_seed', name: 'Golden Flower Seed', type: 'seed', seedType: 'flower', cost: 4 }
+  straw_hat: { id: 'straw_hat', name: 'Farmer Straw Hat', type: 'hat', cost: 5, color: '#e5c158', desc: 'A cozy woven hat for sunny farm days' },
+  flower_crown: { id: 'flower_crown', name: 'Flower Crown', type: 'hat', cost: 8, color: '#ff77aa', desc: 'A beautiful wreath of fresh blossoms' },
+  cute_bow: { id: 'cute_bow', name: 'Cute Pink Bow', type: 'hat', cost: 4, color: '#ff5599', desc: 'A delightful pink ribbon bow' },
+  party_hat: { id: 'party_hat', name: 'Party Cone Hat', type: 'hat', cost: 10, color: '#aa33ff', desc: 'Fun colorful party cone hat' },
+  cool_shades: { id: 'cool_shades', name: 'Cool Sunglasses', type: 'hat', cost: 6, color: '#222222', desc: 'Retro black shades for cool Klipspringers' },
+  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 2, desc: 'Grows sweet orange carrots (+6 🪙)' },
+  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 3, desc: 'Grows juicy strawberries (+9 🪙)' },
+  flower_seed: { id: 'flower_seed', name: 'Golden Flower Seed', type: 'seed', seedType: 'flower', cost: 4, desc: 'Grows glowing golden flowers (+14 🪙)' }
 };
 
 const SEED_CONFIG = {
@@ -50,7 +50,7 @@ const SEED_CONFIG = {
   tree: { name: 'Apple Tree', cost: 2, yield: 10, maxStage: 3, stageTime: 12000 }
 };
 
-// --- Atomic File Writer to prevent race conditions ---
+// --- Atomic File Writer ---
 let isSaving = false;
 async function atomicSaveState() {
   if (isSaving) return;
@@ -70,16 +70,13 @@ async function atomicSaveState() {
   }
 }
 
-// Load initial state if present
 try {
   if (fs.existsSync(SAVE_PATH)) {
     const raw = fs.readFileSync(SAVE_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     if (parsed.plants) Object.assign(plants, parsed.plants);
   }
-} catch (e) {
-  console.log('No prior save file loaded.');
-}
+} catch (e) {}
 
 function spawnCoin(x, yRel) {
   const id = `coin_${coinIdCounter++}`;
@@ -103,7 +100,7 @@ function initCoins() {
 }
 initCoins();
 
-// --- Growth Loop ---
+// Growth Tick
 setInterval(() => {
   const now = Date.now();
   let updated = false;
@@ -141,9 +138,10 @@ io.on('connection', (socket) => {
       vx: 0, vy: 0,
       facing: 'right',
       isMoving: false, isJumping: false, isGrounded: true,
-      coins: 5, // Start with 5 coins!
+      coins: 5,
       equippedHat: null,
-      inventory: ['carrot_seed'] // Free starter seed!
+      inventory: ['carrot_seed'],
+      world: 'main' // 'main' or 'garden'
     };
 
     socket.emit('init', {
@@ -178,8 +176,22 @@ io.on('connection', (socket) => {
       isMoving: player.isMoving,
       isJumping: player.isJumping,
       isGrounded: player.isGrounded,
-      equippedHat: player.equippedHat
+      equippedHat: player.equippedHat,
+      world: player.world
     });
+  });
+
+  // Switch World (Main ↔ Garden)
+  socket.on('switchWorld', (targetWorld) => {
+    const player = players[socket.id];
+    if (!player) return;
+    if (targetWorld !== 'main' && targetWorld !== 'garden') return;
+
+    player.world = targetWorld;
+    player.x = targetWorld === 'garden' ? 120 : 880;
+    player.yRel = 0;
+
+    io.emit('playerWorldSwitched', { id: socket.id, world: player.world, x: player.x, yRel: player.yRel });
   });
 
   // Collect coin
@@ -201,7 +213,7 @@ io.on('connection', (socket) => {
     }, 15000);
   });
 
-  // Buy item from physical shop stall
+  // Buy item from shop
   socket.on('buyStallItem', (itemId) => {
     const player = players[socket.id];
     const item = SHOP_ITEMS[itemId];
@@ -224,7 +236,7 @@ io.on('connection', (socket) => {
     socket.emit('itemPurchased', { item, coins: player.coins, inventory: player.inventory });
   });
 
-  // Equip hat from inventory
+  // Equip hat
   socket.on('equipItem', (hatId) => {
     const player = players[socket.id];
     if (!player) return;
@@ -234,15 +246,24 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Plant a crop/tree into dirt bed
+  // Plant a crop/tree (restricted strictly to garden world & soil bed x: 200..750)
   socket.on('plant', (data) => {
     const player = players[socket.id];
     if (!player || !data) return;
-    
+
+    // Strict Garden World & Soil Bed Constraint
+    if (player.world !== 'garden') {
+      socket.emit('notice', { text: 'You can only plant in the Garden World! 🌻' });
+      return;
+    }
+    if (data.x < 180 || data.x > 780 || Math.abs(data.yRel) > 40) {
+      socket.emit('notice', { text: 'Must plant inside the tilled soil bed! 🌾' });
+      return;
+    }
+
     const plantType = data.type || 'crop';
     const config = SEED_CONFIG[plantType] || SEED_CONFIG.crop;
 
-    // Check if player has seed item or enough coins
     const seedItemId = `${plantType}_seed`;
     const seedIdx = player.inventory.indexOf(seedItemId);
 
@@ -280,7 +301,7 @@ io.on('connection', (socket) => {
     if (!player || !plant) return;
 
     const config = SEED_CONFIG[plant.type] || SEED_CONFIG.crop;
-    if (plant.stage < plant.maxStage) return; // Must be fully grown
+    if (plant.stage < plant.maxStage) return;
 
     delete plants[plantId];
     player.coins += config.yield;
@@ -294,11 +315,11 @@ io.on('connection', (socket) => {
     atomicSaveState();
   });
 
-  // Drop item onto ground (Animal Crossing style)
+  // Drop item
   socket.on('dropItem', (data) => {
     const player = players[socket.id];
     if (!player || !data) return;
-    
+
     let dropLabel = 'Gift';
     if (data.type === 'coin') {
       if (player.coins < 1) return;
@@ -315,6 +336,7 @@ io.on('connection', (socket) => {
     const id = `drop_${droppedItemIdCounter++}`;
     droppedItems[id] = {
       id,
+      world: player.world,
       x: player.x,
       yRel: player.yRel,
       type: data.type,
@@ -326,7 +348,7 @@ io.on('connection', (socket) => {
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
   });
 
-  // Pickup dropped item
+  // Pickup item
   socket.on('pickupItem', (dropId) => {
     const player = players[socket.id];
     const drop = droppedItems[dropId];
@@ -374,5 +396,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Klipspringer Farmville Server running on http://localhost:${PORT}`);
+  console.log(`Klipspringer Farmville Multi-World Server running on http://localhost:${PORT}`);
 });

@@ -20,6 +20,20 @@
       </form>
     </div>
 
+    <!-- Shop Catalog Popup Modal -->
+    <div id="shopModal" class="modal hidden">
+      <div class="shop-box">
+        <div class="shop-header">
+          <h2>🛍️ Klipspringer Shop & Seeds</h2>
+          <button type="button" id="btnCloseShop" class="close-btn">✕</button>
+        </div>
+        <div class="shop-balance">Your Balance: <span id="shopCoinsText">0</span> 🪙</div>
+        <div id="shopGrid" class="shop-grid">
+          <!-- Populated dynamically by game.js -->
+        </div>
+      </div>
+    </div>
+
     <!-- Minimal Chat Bar -->
     <div id="chatBar" class="chat-bar hidden">
       <div id="chatMessages" class="chat-log"></div>

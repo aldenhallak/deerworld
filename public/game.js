@@ -1,4 +1,4 @@
-// Klipspringer Platformer — Diegetic Physical Shop Stall, Garden Soil Beds, Wearables & Audio
+// Klipspringer Platformer — Multi-World (Main vs Garden), Soil-Bed Planting Constraint & Shop Modal
 (function() {
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
@@ -11,6 +11,12 @@
   const chatInput = document.getElementById('chatInput');
   const btnJump = document.getElementById('btnJump');
 
+  // Shop Modal elements
+  const shopModal = document.getElementById('shopModal');
+  const shopGrid = document.getElementById('shopGrid');
+  const shopCoinsText = document.getElementById('shopCoinsText');
+  const btnCloseShop = document.getElementById('btnCloseShop');
+
   let socket = null;
   let selfId = null;
   let players = {};
@@ -19,16 +25,17 @@
   let particles = [];
   let stepTimer = 0;
 
-  // World state
+  // World & Inventory State
+  let myWorld = 'main'; // 'main' or 'garden'
   let coins = {};        // { id: {id, x, yRel} }
   let plants = {};       // { id: {id, type, x, yRel, stage, maxStage, ownerName} }
-  let droppedItems = {}; // { id: {id, type, x, yRel, label} }
+  let droppedItems = {}; // { id: {id, world, type, x, yRel, label} }
   let shopCatalog = {};
   let myCoins = 5;
   let myInventory = [];
   let myEquippedHat = null;
 
-  // ---- Web Audio API Sound Synthesizer ----
+  // ---- Web Audio API Synthesizer ----
   let audioCtx = null;
   function getAudioContext() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -54,8 +61,7 @@
   function playKissSound() {
     try {
       const actx = getAudioContext();
-      const osc1 = actx.createOscillator();
-      const osc2 = actx.createOscillator();
+      const osc1 = actx.createOscillator(); const osc2 = actx.createOscillator();
       const gain = actx.createGain();
       osc1.type = 'sine'; osc2.type = 'sine';
       osc1.frequency.setValueAtTime(523.25, actx.currentTime);
@@ -73,8 +79,7 @@
   function playCoinSound() {
     try {
       const actx = getAudioContext();
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
+      const osc = actx.createOscillator(); const gain = actx.createGain();
       osc.type = 'square';
       osc.frequency.setValueAtTime(988, actx.currentTime);
       osc.frequency.setValueAtTime(1319, actx.currentTime + 0.06);
@@ -88,8 +93,7 @@
   function playPlantSound() {
     try {
       const actx = getAudioContext();
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
+      const osc = actx.createOscillator(); const gain = actx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(220, actx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(440, actx.currentTime + 0.1);
@@ -104,15 +108,13 @@
     try {
       const actx = getAudioContext();
       [0, 0.07, 0.14].forEach((t, i) => {
-        const osc = actx.createOscillator();
-        const gain = actx.createGain();
+        const osc = actx.createOscillator(); const gain = actx.createGain();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime([523.25, 659.25, 783.99][i], actx.currentTime + t);
         gain.gain.setValueAtTime(0.12, actx.currentTime + t);
         gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + t + 0.14);
         osc.connect(gain); gain.connect(actx.destination);
-        osc.start(actx.currentTime + t);
-        osc.stop(actx.currentTime + t + 0.14);
+        osc.start(actx.currentTime + t); osc.stop(actx.currentTime + t + 0.14);
       });
     } catch(e) {}
   }
@@ -120,8 +122,7 @@
   function playShopSound() {
     try {
       const actx = getAudioContext();
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
+      const osc = actx.createOscillator(); const gain = actx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(587.33, actx.currentTime);
       osc.frequency.setValueAtTime(880, actx.currentTime + 0.08);
@@ -151,9 +152,13 @@
     return canvas.height - 40;
   }
 
-  // ---- Platforms ----
+  // ---- Platforms (Main World Only) ----
   function getPlatforms() {
     const groundY = getGroundY();
+    if (myWorld === 'garden') {
+      // Flat ground layout for Garden World
+      return [{ x: 0, y: groundY, w: canvas.width, h: 40 }];
+    }
     return [
       { x: 0,   y: groundY,       w: canvas.width, h: 40  },
       { x: 80,  y: groundY - 110, w: 200, h: 16 },
@@ -182,6 +187,7 @@
         const absY = groundY + (p.yRel !== undefined ? p.yRel : 0);
         players[id] = {
           ...p,
+          world: p.world || 'main',
           renderX: Number(p.x) || 300,
           renderY: absY,
           y: absY,
@@ -196,6 +202,7 @@
       
       const me = data.players[selfId];
       if (me) {
+        myWorld = me.world || 'main';
         myCoins = me.coins !== undefined ? me.coins : 5;
         myInventory = me.inventory || [];
         myEquippedHat = me.equippedHat || null;
@@ -203,12 +210,13 @@
 
       joinModal.classList.add('hidden');
       chatBar.classList.remove('hidden');
+      renderShopGrid();
     });
 
     socket.on('playerJoined', (p) => {
       const groundY = getGroundY();
       const absY = groundY + (p.yRel !== undefined ? p.yRel : 0);
-      players[p.id] = { ...p, renderX: p.x || 300, renderY: absY, y: absY, vx: 0, vy: 0, coyoteTimer: 0, jumpBufferTimer: 0 };
+      players[p.id] = { ...p, world: p.world || 'main', renderX: p.x || 300, renderY: absY, y: absY, vx: 0, vy: 0, coyoteTimer: 0, jumpBufferTimer: 0 };
     });
 
     socket.on('playerMoved', (data) => {
@@ -221,10 +229,24 @@
       p.facing = data.facing; p.isMoving = data.isMoving;
       p.isJumping = data.isJumping; p.isGrounded = data.isGrounded;
       p.equippedHat = data.equippedHat;
+      if (data.world) p.world = data.world;
+    });
+
+    socket.on('playerWorldSwitched', (data) => {
+      if (players[data.id]) {
+        players[data.id].world = data.world;
+        players[data.id].x = data.x;
+        const groundY = getGroundY();
+        players[data.id].y = groundY + data.yRel;
+        if (data.id === selfId) {
+          myWorld = data.world;
+          spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${data.world === 'garden' ? 'Garden World 🌻' : 'Main World 🏰'}!`, '#00e676');
+        }
+      }
     });
 
     socket.on('playerKissed', (data) => {
-      if (players[data.id]) {
+      if (players[data.id] && players[data.id].world === myWorld) {
         spawnHeartParticles(players[data.id].x, players[data.id].y - 30);
         if (data.targetId && players[data.targetId])
           spawnHeartParticles(players[data.targetId].x, players[data.targetId].y - 30);
@@ -239,6 +261,7 @@
           myEquippedHat = data.equippedHat;
           myCoins = data.coins;
           myInventory = data.inventory || [];
+          updateShopBalance();
         }
       }
     });
@@ -253,6 +276,8 @@
       myCoins = data.coins;
       myInventory = data.inventory;
       playShopSound();
+      updateShopBalance();
+      renderShopGrid();
       if (selfId && players[selfId]) {
         spawnFloatText(players[selfId].x, players[selfId].y - 40, `Bought ${data.item.name}! 🛍️`, '#76ff03');
       }
@@ -276,6 +301,7 @@
       if (data.playerId === selfId) {
         myCoins = data.coins;
         playCoinSound();
+        updateShopBalance();
         spawnFloatText(players[selfId].x, players[selfId].y - 40, '+1 🪙', '#ffd700');
       }
     });
@@ -287,12 +313,13 @@
     socket.on('coinsUpdated', (data) => {
       myCoins = data.coins;
       if (data.inventory) myInventory = data.inventory;
+      updateShopBalance();
     });
 
     // Plant events
     socket.on('plantCreated', (plant) => {
       plants[plant.id] = plant;
-      playPlantSound();
+      if (myWorld === 'garden') playPlantSound();
     });
 
     socket.on('plantUpdated', (data) => {
@@ -304,6 +331,7 @@
       if (data.playerId === selfId) {
         myCoins = data.coins;
         playHarvestSound();
+        updateShopBalance();
         const icon = data.plantType === 'tree' ? '🍎' : '🌾';
         spawnFloatText(players[selfId].x, players[selfId].y - 40, `+${data.reward} 🪙 ${icon}`, '#76ff03');
       }
@@ -320,9 +348,59 @@
         myCoins = data.coins;
         if (data.inventory) myInventory = data.inventory;
         playCoinSound();
+        updateShopBalance();
         spawnFloatText(players[selfId].x, players[selfId].y - 40, `Picked up item! 🎁`, '#ffd700');
       }
     });
+  }
+
+  // ---- Shop Popup Modal Logic ----
+  function updateShopBalance() {
+    if (shopCoinsText) shopCoinsText.innerText = myCoins;
+  }
+
+  function renderShopGrid() {
+    if (!shopGrid || !shopCatalog) return;
+    shopGrid.innerHTML = '';
+
+    Object.values(shopCatalog).forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+      const icon = item.type === 'hat' ? '👒' : '🌱';
+      const canAfford = myCoins >= item.cost;
+
+      card.innerHTML = `
+        <div>
+          <div class="item-name">${icon} ${escapeHTML(item.name)}</div>
+          <div class="item-desc">${escapeHTML(item.desc || '')}</div>
+        </div>
+        <div class="item-footer">
+          <span class="item-cost">${item.cost} 🪙</span>
+          <button type="button" class="buy-btn" ${canAfford ? '' : 'disabled'}>BUY</button>
+        </div>
+      `;
+
+      const buyBtn = card.querySelector('.buy-btn');
+      buyBtn.addEventListener('click', () => {
+        if (socket) socket.emit('buyStallItem', item.id);
+      });
+
+      shopGrid.appendChild(card);
+    });
+  }
+
+  function openShopModal() {
+    updateShopBalance();
+    renderShopGrid();
+    shopModal.classList.remove('hidden');
+  }
+
+  function closeShopModal() {
+    shopModal.classList.add('hidden');
+  }
+
+  if (btnCloseShop) {
+    btnCloseShop.addEventListener('click', closeShopModal);
   }
 
   // ---- Particles & Text ----
@@ -347,14 +425,14 @@
     floatTexts.push({ x, y, text, color, alpha: 1, vy: -50, life: 1.2 });
   }
 
-  // ---- Diegetic Interactivity Actions ----
+  // ---- Actions & Interactions ----
   function tryKiss() {
     getAudioContext();
     if (!selfId || !players[selfId]) return;
     const me = players[selfId];
     let nearestPartner = null, minDist = 80;
     Object.values(players).forEach(other => {
-      if (other.id !== selfId) {
+      if (other.id !== selfId && other.world === myWorld) {
         const d = Math.hypot(me.x - other.x, me.y - other.y);
         if (d < minDist) { minDist = d; nearestPartner = other; }
       }
@@ -370,40 +448,47 @@
     const me = players[selfId];
     const groundY = getGroundY();
 
-    // 1. Check Shop Stall Proximity (x: 850..990 on ground floor)
-    if (Math.abs(me.x - 920) < 70 && Math.abs(me.y - groundY) < 30) {
-      // Open / Buy default item: Straw Hat (5 coins) or first seed
-      if (myCoins >= 5 && !myInventory.includes('straw_hat')) {
-        socket.emit('buyStallItem', 'straw_hat');
-      } else if (myCoins >= 2) {
-        socket.emit('buyStallItem', 'carrot_seed');
-      } else {
-        spawnFloatText(me.x, me.y - 40, 'Need more coins for Shop Stall!', '#ff5252');
-      }
+    // 1. World Portal / Doorway Interaction
+    if (myWorld === 'main' && Math.abs(me.x - 880) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'garden');
+      return;
+    }
+    if (myWorld === 'garden' && Math.abs(me.x - 100) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'main');
       return;
     }
 
-    // 2. Check Harvestable Plants nearby
-    let harvestTarget = null, minDist = 70;
-    Object.values(plants).forEach(plant => {
-      const plantAbsY = groundY + plant.yRel;
-      if (plant.stage >= plant.maxStage) {
-        const d = Math.hypot(me.x - plant.x, me.y - plantAbsY);
-        if (d < minDist) { minDist = d; harvestTarget = plant; }
-      }
-    });
-
-    if (harvestTarget) {
-      socket.emit('harvest', harvestTarget.id);
+    // 2. Open Shop Popup Modal (when near Shop Stall at x: 850 in Garden World)
+    if (myWorld === 'garden' && Math.abs(me.x - 850) < 70 && Math.abs(me.y - groundY) < 30) {
+      openShopModal();
       return;
     }
 
-    // 3. Check Dropped Items nearby
+    // 3. Harvestable Plants nearby (Garden World only)
+    if (myWorld === 'garden') {
+      let harvestTarget = null, minDist = 70;
+      Object.values(plants).forEach(plant => {
+        const plantAbsY = groundY + plant.yRel;
+        if (plant.stage >= plant.maxStage) {
+          const d = Math.hypot(me.x - plant.x, me.y - plantAbsY);
+          if (d < minDist) { minDist = d; harvestTarget = plant; }
+        }
+      });
+
+      if (harvestTarget) {
+        socket.emit('harvest', harvestTarget.id);
+        return;
+      }
+    }
+
+    // 4. Dropped Items nearby
     let dropTarget = null, dropDist = 60;
     Object.values(droppedItems).forEach(drop => {
-      const dropAbsY = groundY + drop.yRel;
-      const d = Math.hypot(me.x - drop.x, me.y - dropAbsY);
-      if (d < dropDist) { dropDist = d; dropTarget = drop; }
+      if ((drop.world || 'main') === myWorld) {
+        const dropAbsY = groundY + drop.yRel;
+        const d = Math.hypot(me.x - drop.x, me.y - dropAbsY);
+        if (d < dropDist) { dropDist = d; dropTarget = drop; }
+      }
     });
 
     if (dropTarget) {
@@ -411,12 +496,23 @@
       return;
     }
 
-    // 4. Default: Plant Crop/Seed in Garden Soil
+    // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..780)
+    if (myWorld !== 'garden') {
+      spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant! 🌻', '#ffab40');
+      return;
+    }
+    if (me.x < 180 || me.x > 780 || Math.abs(me.y - groundY) > 20) {
+      spawnFloatText(me.x, me.y - 40, 'Must plant inside the tilled soil bed! 🌾', '#ff5252');
+      return;
+    }
+
     const yRel = me.y - groundY;
     if (myInventory.includes('carrot_seed')) {
       socket.emit('plant', { type: 'carrot', x: me.x, yRel });
     } else if (myInventory.includes('strawberry_seed')) {
       socket.emit('plant', { type: 'strawberry', x: me.x, yRel });
+    } else if (myInventory.includes('flower_seed')) {
+      socket.emit('plant', { type: 'flower', x: me.x, yRel });
     } else if (myCoins >= 1) {
       socket.emit('plant', { type: 'crop', x: me.x, yRel });
     } else {
@@ -427,7 +523,7 @@
   function cycleEquippedHat() {
     if (!selfId || !players[selfId]) return;
     const hats = myInventory.filter(id => shopCatalog[id] && shopCatalog[id].type === 'hat');
-    hats.unshift(null); // Allow barehead
+    hats.unshift(null);
 
     const currentIdx = hats.indexOf(myEquippedHat);
     const nextIdx = (currentIdx + 1) % hats.length;
@@ -450,10 +546,12 @@
     socket.emit('dropItem', { type: 'coin', x: me.x, yRel: me.y - groundY });
   }
 
-  // ---- Keybind Inputs ----
+  // ---- Inputs ----
   window.addEventListener('keydown', (e) => {
     getAudioContext();
     if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
+
+    if (e.code === 'Escape') closeShopModal();
 
     if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
       keysPressed[e.code] = true;
@@ -461,14 +559,8 @@
     if (e.code === 'KeyK') tryKiss();
     if (e.code === 'KeyE') tryInteract();
     if (e.code === 'KeyH') cycleEquippedHat();
+    if (e.code === 'KeyS') openShopModal(); // Hotkey to open shop popup!
     if (e.code === 'KeyD' && !keysPressed['KeyA'] && !keysPressed['ArrowRight']) dropCoinOnGround();
-
-    // Hotkeys 1-5 for Shop Stall Quick Buy
-    if (e.code === 'Digit1') socket.emit('buyStallItem', 'straw_hat');
-    if (e.code === 'Digit2') socket.emit('buyStallItem', 'flower_crown');
-    if (e.code === 'Digit3') socket.emit('buyStallItem', 'cute_bow');
-    if (e.code === 'Digit4') socket.emit('buyStallItem', 'carrot_seed');
-    if (e.code === 'Digit5') socket.emit('buyStallItem', 'strawberry_seed');
 
     if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
       players[selfId].jumpBufferTimer = 0.15;
@@ -544,108 +636,108 @@
     ctx.restore();
   }
 
-  // --- DIEGETIC PHYSICAL WORLD OBJECTS ---
+  // --- RENDERING SCENERY & WORLDS ---
 
-  // 1. Physical Shop Stall & Shopkeeper NPC
-  function drawPhysicalShopStall(groundY, t) {
-    const sx = 920;
+  // Portal / Doorway Archway
+  function drawPortal(x, groundY, label, color = '#76ff03') {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+
+    // Stone Archway
+    ctx.fillStyle = '#424242';
+    ctx.fillRect(x - 22, groundY - 50, 8, 50);
+    ctx.fillRect(x + 14, groundY - 50, 8, 50);
+    ctx.fillRect(x - 22, groundY - 58, 44, 10);
+
+    // Glowing Archway Portal Door
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.8;
+    ctx.fillRect(x - 14, groundY - 48, 28, 48);
+    ctx.globalAlpha = 1.0;
+
+    // Label prompt
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(label, x, groundY - 64);
+
+    ctx.restore();
+  }
+
+  // Physical Shop Building (Garden World)
+  function drawShopBuilding(groundY) {
+    const sx = 850;
     const sy = groundY;
 
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    // Wooden Counter Base
+    // Wooden Building Wall
     ctx.fillStyle = '#4e342e';
-    ctx.fillRect(sx - 35, sy - 28, 70, 28);
-    ctx.fillStyle = '#3e2723';
-    ctx.fillRect(sx - 33, sy - 26, 66, 6);
+    ctx.fillRect(sx - 45, sy - 60, 90, 60);
 
     // Counter Top
     ctx.fillStyle = '#8d6e63';
-    ctx.fillRect(sx - 40, sy - 32, 80, 5);
+    ctx.fillRect(sx - 50, sy - 30, 100, 6);
 
-    // Wooden Canopy Support Poles
-    ctx.fillStyle = '#5d4037';
-    ctx.fillRect(sx - 36, sy - 75, 4, 43);
-    ctx.fillRect(sx + 32, sy - 75, 4, 43);
+    // Roof Awning
+    ctx.fillStyle = '#e53935';
+    ctx.fillRect(sx - 52, sy - 72, 104, 14);
 
-    // Striped Canvas Canopy Roof
-    const roofY = sy - 85;
-    const stripeColors = ['#e53935', '#ffffff', '#e53935', '#ffffff', '#e53935', '#ffffff', '#e53935'];
-    ctx.fillStyle = '#212121';
-    ctx.fillRect(sx - 44, roofY - 2, 88, 16);
-    stripeColors.forEach((color, i) => {
-      ctx.fillStyle = color;
-      ctx.fillRect(sx - 42 + i * 12, roofY, 12, 14);
-    });
-
-    // Cute Shopkeeper Bunny / Klipspringer NPC standing behind counter
-    const npcX = sx;
-    const npcY = sy - 32;
-    const bob = Math.sin(t * 3) * 2;
-
-    // NPC Body
+    // Shopkeeper Bunny NPC
     ctx.fillStyle = '#d7ccc8';
-    ctx.fillRect(npcX - 10, npcY - 20 + bob, 20, 20);
-    // Ears
-    ctx.fillStyle = '#b0bec5';
-    ctx.fillRect(npcX - 8, npcY - 32 + bob, 4, 12);
-    ctx.fillRect(npcX + 4, npcY - 32 + bob, 4, 12);
-    // Inner Ear
-    ctx.fillStyle = '#ff80ab';
-    ctx.fillRect(npcX - 7, npcY - 30 + bob, 2, 8);
-    ctx.fillRect(npcX + 5, npcY - 30 + bob, 2, 8);
-    // Eyes & Apron
+    ctx.fillRect(sx - 8, sy - 48, 16, 18);
     ctx.fillStyle = '#000';
-    ctx.fillRect(npcX - 5, npcY - 16 + bob, 3, 3);
-    ctx.fillRect(npcX + 2, npcY - 16 + bob, 3, 3);
-    ctx.fillStyle = '#00e676';
-    ctx.fillRect(npcX - 8, npcY - 10 + bob, 16, 10);
+    ctx.fillRect(sx - 4, sy - 44, 3, 3);
+    ctx.fillRect(sx + 2, sy - 44, 3, 3);
 
-    // Wooden Sign: "SHOP & OUTFITS"
+    // Shop Sign
     ctx.fillStyle = '#795548';
-    ctx.fillRect(sx - 36, roofY - 16, 72, 14);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 9px monospace';
+    ctx.fillRect(sx - 40, sy - 90, 80, 16);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 10px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('🛍️ SHOP & OUTFITS', sx, roofY - 5);
+    ctx.fillText('🛍️ FARM SHOP', sx, sy - 78);
 
-    // Diegetic Floating Prompt when Player walks nearby
+    // Diegetic Prompt
     if (selfId && players[selfId]) {
       const me = players[selfId];
-      if (Math.abs(me.x - sx) < 80 && Math.abs(me.y - groundY) < 30) {
+      if (Math.abs(me.x - sx) < 70) {
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(sx - 110, sy - 110, 220, 26);
-        ctx.strokeStyle = '#ffd700';
-        ctx.strokeRect(sx - 110, sy - 110, 220, 26);
-
-        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(sx - 80, sy - 115, 160, 20);
+        ctx.fillStyle = '#76ff03';
         ctx.font = 'bold 10px monospace';
-        ctx.fillText('PRESS [1-3] BUY HATS | [4-5] BUY SEEDS', sx, sy - 93);
+        ctx.fillText('PRESS [E] OPEN SHOP', sx, sy - 101);
       }
     }
 
     ctx.restore();
   }
 
-  // 2. Physical Garden Soil Bed (tilled earth)
-  function drawPhysicalGardenBed(groundY) {
-    const gx = 350;
-    const gw = 350;
+  // Physical Garden Soil Bed (Garden World Only)
+  function drawGardenSoilBed(groundY) {
+    const gx = 180;
+    const gw = 600;
     const gy = groundY;
 
     ctx.save();
-    // Fence Posts
+    // Wooden Fence Posts
     ctx.fillStyle = '#8d6e63';
-    ctx.fillRect(gx - 8, gy - 20, 6, 20);
-    ctx.fillRect(gx + gw + 2, gy - 20, 6, 20);
-    ctx.fillRect(gx - 8, gy - 16, gw + 16, 4);
+    ctx.fillRect(gx - 10, gy - 24, 8, 24);
+    ctx.fillRect(gx + gw + 2, gy - 24, 8, 24);
+    ctx.fillRect(gx - 10, gy - 18, gw + 20, 4);
 
-    // Dark Tilled Soil Patch
+    // Tilled Earth Soil Beds
     ctx.fillStyle = '#3e2723';
-    ctx.fillRect(gx, gy - 6, gw, 6);
+    ctx.fillRect(gx, gy - 8, gw, 8);
     ctx.fillStyle = '#4e342e';
-    ctx.fillRect(gx + 2, gy - 4, gw - 4, 3);
+    ctx.fillRect(gx + 2, gy - 6, gw - 4, 4);
+
+    ctx.font = 'bold 11px monospace';
+    ctx.fillStyle = '#a1887f';
+    ctx.textAlign = 'center';
+    ctx.fillText('🌾 TILLED GARDEN SOIL BED (PLANT HERE)', gx + gw / 2, gy - 16);
+
     ctx.restore();
   }
 
@@ -657,27 +749,22 @@
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    // Outer pixel ring
     ctx.fillStyle = '#111111';
     ctx.fillRect(x - 6, cy - 7, 12, 14);
     ctx.fillRect(x - 7, cy - 6, 14, 12);
 
-    // Coin face
     ctx.fillStyle = '#ffd700';
     ctx.fillRect(x - 5, cy - 5, 10, 10);
 
-    // Coin shine highlight
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x - 3, cy - 4, 3, 3);
 
-    // Inner detail
     ctx.fillStyle = '#d4af37';
     ctx.fillRect(x - 1, cy - 2, 3, 5);
 
     ctx.restore();
   }
 
-  // Soil plot tile under plant
   function drawSoilPlot(x, y) {
     ctx.save();
     ctx.fillStyle = '#4a2e18';
@@ -687,7 +774,6 @@
     ctx.restore();
   }
 
-  // Custom Pixel Art Renderer for Crops, Trees, Carrots, Strawberries & Flowers
   function drawPixelPlant(plant, absY, t) {
     drawSoilPlot(plant.x, absY);
 
@@ -704,7 +790,6 @@
       } else if (plant.stage === 1) {
         ctx.fillStyle = '#388e3c'; ctx.fillRect(px - 4, py - 10, 8, 10);
       } else {
-        // Harvestable Carrot (Orange pixel top peeking out)
         ctx.fillStyle = '#2e7d32'; ctx.fillRect(px - 6, py - 16, 12, 12);
         ctx.fillStyle = '#ff6d00'; ctx.fillRect(px - 4, py - 6, 8, 6);
         ctx.fillStyle = '#ff9100'; ctx.fillRect(px - 2, py - 4, 4, 4);
@@ -715,7 +800,6 @@
       } else if (plant.stage === 1) {
         ctx.fillStyle = '#43a047'; ctx.fillRect(px - 6, py - 10, 12, 10);
       } else {
-        // Harvestable Strawberry Bush
         ctx.fillStyle = '#1b5e20'; ctx.fillRect(px - 8, py - 16, 16, 14);
         ctx.fillStyle = '#d50000';
         ctx.fillRect(px - 5, py - 12, 4, 5);
@@ -727,13 +811,11 @@
       } else if (plant.stage === 1) {
         ctx.fillStyle = '#43a047'; ctx.fillRect(px - 2, py - 12, 4, 12);
       } else {
-        // Harvestable Golden Flower
         ctx.fillStyle = '#2e7d32'; ctx.fillRect(px - 2, py - 18, 4, 18);
         ctx.fillStyle = '#ffeb3b'; ctx.fillRect(px - 8, py - 24, 16, 12);
         ctx.fillStyle = '#ff6f00'; ctx.fillRect(px - 4, py - 20, 8, 6);
       }
     } else {
-      // Standard Crop / Tree fallback
       if (plant.stage === 0) {
         ctx.fillStyle = '#4caf50'; ctx.fillRect(px - 1, py - 6, 2, 6);
       } else if (plant.stage === 1) {
@@ -743,7 +825,6 @@
       }
     }
 
-    // Interactive Floating Harvest Tag
     if (plant.stage >= plant.maxStage) {
       ctx.font = 'bold 10px monospace';
       ctx.fillStyle = '#76ff03';
@@ -754,7 +835,6 @@
     ctx.restore();
   }
 
-  // --- ON-SPRITE WEARABLES RENDERER ---
   function drawWearableHat(px, py, hatId, facing, approxH) {
     if (!hatId) return;
     ctx.save();
@@ -764,30 +844,26 @@
     const headX = px;
 
     if (hatId === 'straw_hat') {
-      // Farmer Straw Hat
       ctx.fillStyle = '#fbc02d';
-      ctx.fillRect(headX - 16, headY - 4, 32, 5); // Brim
-      ctx.fillRect(headX - 10, headY - 12, 20, 9); // Crown
+      ctx.fillRect(headX - 16, headY - 4, 32, 5);
+      ctx.fillRect(headX - 10, headY - 12, 20, 9);
       ctx.fillStyle = '#d50000';
-      ctx.fillRect(headX - 10, headY - 6, 20, 2); // Red Ribbon Band
+      ctx.fillRect(headX - 10, headY - 6, 20, 2);
     } else if (hatId === 'flower_crown') {
-      // Flower Crown
       ctx.fillStyle = '#4caf50';
-      ctx.fillRect(headX - 12, headY - 4, 24, 3); // Leaf base
+      ctx.fillRect(headX - 12, headY - 4, 24, 3);
       const colors = ['#ff4081', '#ffeb3b', '#00e676', '#ff4081'];
       colors.forEach((c, i) => {
         ctx.fillStyle = c;
         ctx.fillRect(headX - 10 + i * 6, headY - 8, 4, 5);
       });
     } else if (hatId === 'cute_bow') {
-      // Pink Bow on ear
       const earX = facing === 'right' ? headX - 8 : headX + 4;
       ctx.fillStyle = '#ff4081';
       ctx.fillRect(earX - 6, headY - 6, 12, 8);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(earX - 2, headY - 4, 4, 4);
     } else if (hatId === 'party_hat') {
-      // Striped Party Cone
       ctx.fillStyle = '#ab47bc';
       ctx.beginPath();
       ctx.moveTo(headX, headY - 18);
@@ -796,9 +872,8 @@
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#ffeb3b';
-      ctx.fillRect(headX - 2, headY - 20, 4, 4); // Pom pom
+      ctx.fillRect(headX - 2, headY - 20, 4, 4);
     } else if (hatId === 'cool_shades') {
-      // Retro Sunglasses
       const eyeX = facing === 'right' ? headX + 2 : headX - 8;
       ctx.fillStyle = '#212121';
       ctx.fillRect(eyeX - 4, headY + 2, 14, 5);
@@ -815,22 +890,20 @@
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffd700';
-    ctx.fillText(`🪙 COINS: ${myCoins}`, 14, 26);
+    ctx.fillText(`🪙 COINS: ${myCoins} | 🌍 WORLD: ${myWorld === 'garden' ? 'GARDEN & SHOP 🌻' : 'PLATFORMER 🏰'}`, 14, 26);
 
     const hatName = myEquippedHat && shopCatalog[myEquippedHat] ? shopCatalog[myEquippedHat].name : 'None';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`👒 HAT: ${hatName} [H to Swap]`, 14, 48);
+    ctx.fillText(`👒 HAT: ${hatName} [H to Swap] | [S] Open Shop Modal`, 14, 48);
 
-    // Direct Diegetic Hotkeys Banner
     ctx.font = '11px sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText('[E] Interact / Plant | [K] Kiss | [D] Drop 1 Coin | [1-5] Shop Hotkeys', 14, 68);
+    ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [D] Drop Coin', 14, 68);
     ctx.restore();
   }
 
-  // ---- Generous Coin & Dropped Item Pickup Check ----
   function checkCoinPickup() {
-    if (!selfId || !players[selfId]) return;
+    if (!selfId || !players[selfId] || myWorld !== 'main') return;
     const me = players[selfId];
     const groundY = getGroundY();
 
@@ -881,7 +954,6 @@
       me.isMoving = false;
     }
 
-    // Footstep audio
     if (me.isGrounded && me.isMoving && Math.abs(me.vx) > 30) {
       stepTimer += dt;
       if (stepTimer >= 0.22) { playFootstepSound(); stepTimer = 0; }
@@ -920,7 +992,8 @@
         yRel: Math.round((me.y - groundY) * 10) / 10,
         vx: Math.round(me.vx), vy: Math.round(me.vy),
         facing: me.facing, isMoving: me.isMoving,
-        isJumping: !me.isGrounded, isGrounded: me.isGrounded
+        isJumping: !me.isGrounded, isGrounded: me.isGrounded,
+        world: myWorld
       });
       lastEmitTime = now;
     }
@@ -940,56 +1013,71 @@
 
     ctx.imageSmoothingEnabled = false;
 
-    // Background
-    ctx.fillStyle = '#22382b';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
     const groundY = getGroundY();
 
-    // Platforms
-    getPlatforms().forEach(plat => {
-      ctx.fillStyle = '#1b2e23';
-      ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-      ctx.fillStyle = '#2e6b45';
-      ctx.fillRect(plat.x, plat.y, plat.w, 4);
-    });
+    // Background color per world
+    if (myWorld === 'garden') {
+      ctx.fillStyle = '#1e3323';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Garden Soil Bed
+      drawGardenSoilBed(groundY);
+      // Shop Building
+      drawShopBuilding(groundY);
+      // Portal to Main World
+      drawPortal(100, groundY, '[E] RETURN TO PLATFORMER 🏰', '#00e676');
+    } else {
+      // Main Platformer World
+      ctx.fillStyle = '#22382b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw Physical Soil Garden Beds
-    drawPhysicalGardenBed(groundY);
+      // Platforms
+      getPlatforms().forEach(plat => {
+        ctx.fillStyle = '#1b2e23';
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        ctx.fillStyle = '#2e6b45';
+        ctx.fillRect(plat.x, plat.y, plat.w, 4);
+      });
 
-    // Draw Physical Shop Stall & Shopkeeper
-    drawPhysicalShopStall(groundY, animTime);
+      // Portal to Garden World
+      drawPortal(880, groundY, '[E] ENTER GARDEN WORLD 🌻', '#ffd700');
 
-    // Draw Coins with crisp Pixel Art & floating bob
-    Object.values(coins).forEach(coin => {
-      const yRel = coin.yRel !== undefined ? Number(coin.yRel) : (coin.y !== undefined ? Number(coin.y) - groundY : -20);
-      const coinAbsY = groundY + yRel;
-      const coinX = Number(coin.x) || 100;
-      drawPixelCoin(coinX, coinAbsY, animTime);
-    });
+      // Draw Coins (Main World Only)
+      Object.values(coins).forEach(coin => {
+        const yRel = coin.yRel !== undefined ? Number(coin.yRel) : (coin.y !== undefined ? Number(coin.y) - groundY : -20);
+        const coinAbsY = groundY + yRel;
+        const coinX = Number(coin.x) || 100;
+        drawPixelCoin(coinX, coinAbsY, animTime);
+      });
+    }
 
-    // Draw Plants & Trees with Pixel Art
-    Object.values(plants).forEach(plant => {
-      const plantAbsY = groundY + plant.yRel;
-      drawPixelPlant(plant, plantAbsY, animTime);
-    });
+    // Draw Plants & Trees (Garden World Only)
+    if (myWorld === 'garden') {
+      Object.values(plants).forEach(plant => {
+        const plantAbsY = groundY + plant.yRel;
+        drawPixelPlant(plant, plantAbsY, animTime);
+      });
+    }
 
-    // Draw Dropped Items on Ground
+    // Draw Dropped Items on Ground (World Filtered)
     Object.values(droppedItems).forEach(drop => {
-      const dropAbsY = groundY + drop.yRel;
-      const bob = Math.sin(animTime * 5 + drop.x) * 3;
-      ctx.save();
-      ctx.font = '14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(drop.type === 'coin' ? '🪙' : '🎁', drop.x, dropAbsY + bob - 4);
-      ctx.font = '10px monospace';
-      ctx.fillStyle = '#ffd700';
-      ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 18);
-      ctx.restore();
+      if ((drop.world || 'main') === myWorld) {
+        const dropAbsY = groundY + drop.yRel;
+        const bob = Math.sin(animTime * 5 + drop.x) * 3;
+        ctx.save();
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(drop.type === 'coin' ? '🪙' : '🎁', drop.x, dropAbsY + bob - 4);
+        ctx.font = '10px monospace';
+        ctx.fillStyle = '#ffd700';
+        ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 18);
+        ctx.restore();
+      }
     });
 
-    // Draw Players & Wearables
+    // Draw Players (Filter by same world)
     Object.values(players).forEach(p => {
+      if ((p.world || 'main') !== myWorld) return;
+
       if (isNaN(p.renderX)) p.renderX = p.x || 300;
       if (isNaN(p.renderY)) p.renderY = p.y || 400;
 
@@ -1029,7 +1117,7 @@
         ctx.restore();
       }
 
-      // Draw Wearable Hat on player head
+      // Draw Wearable Hat
       const currentHat = p.id === selfId ? myEquippedHat : p.equippedHat;
       drawWearableHat(px, py, currentHat, p.facing, approxH);
 
