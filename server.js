@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -12,11 +13,73 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
-const players = {};
+// Ensure data directory exists
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+const SAVE_PATH = path.join(DATA_DIR, 'save.json');
+const SAVE_TMP_PATH = path.join(DATA_DIR, 'save.json.tmp');
 
-// --- Coin State ---
+// --- In-Memory State (Single Threaded, Zero Race Conditions) ---
+const players = {};
 let coinIdCounter = 0;
 const coins = {};
+let plantIdCounter = 0;
+const plants = {};
+let droppedItemIdCounter = 0;
+const droppedItems = {}; // ground items: { id, type, x, yRel, label, value }
+
+// --- Catalog & Configs ---
+const SHOP_ITEMS = {
+  straw_hat: { id: 'straw_hat', name: 'Farmer Straw Hat', type: 'hat', cost: 5, color: '#e5c158' },
+  flower_crown: { id: 'flower_crown', name: 'Flower Crown', type: 'hat', cost: 8, color: '#ff77aa' },
+  cute_bow: { id: 'cute_bow', name: 'Cute Pink Bow', type: 'hat', cost: 4, color: '#ff5599' },
+  party_hat: { id: 'party_hat', name: 'Party Cone Hat', type: 'hat', cost: 10, color: '#aa33ff' },
+  cool_shades: { id: 'cool_shades', name: 'Cool Sunglasses', type: 'hat', cost: 6, color: '#222222' },
+  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 2 },
+  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 3 },
+  flower_seed: { id: 'flower_seed', name: 'Golden Flower Seed', type: 'seed', seedType: 'flower', cost: 4 }
+};
+
+const SEED_CONFIG = {
+  carrot: { name: 'Carrot', cost: 2, yield: 6, maxStage: 2, stageTime: 7000 },
+  strawberry: { name: 'Strawberry', cost: 3, yield: 9, maxStage: 2, stageTime: 9000 },
+  flower: { name: 'Golden Flower', cost: 4, yield: 14, maxStage: 3, stageTime: 10000 },
+  crop: { name: 'Wheat Crop', cost: 1, yield: 4, maxStage: 2, stageTime: 6000 },
+  tree: { name: 'Apple Tree', cost: 2, yield: 10, maxStage: 3, stageTime: 12000 }
+};
+
+// --- Atomic File Writer to prevent race conditions ---
+let isSaving = false;
+async function atomicSaveState() {
+  if (isSaving) return;
+  isSaving = true;
+  try {
+    const dataToSave = JSON.stringify({
+      plants,
+      coins,
+      timestamp: Date.now()
+    }, null, 2);
+    await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
+    await fs.promises.rename(SAVE_TMP_PATH, SAVE_PATH);
+  } catch (err) {
+    console.error('Atomic save error:', err);
+  } finally {
+    isSaving = false;
+  }
+}
+
+// Load initial state if present
+try {
+  if (fs.existsSync(SAVE_PATH)) {
+    const raw = fs.readFileSync(SAVE_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed.plants) Object.assign(plants, parsed.plants);
+  }
+} catch (e) {
+  console.log('No prior save file loaded.');
+}
 
 function spawnCoin(x, yRel) {
   const id = `coin_${coinIdCounter++}`;
@@ -25,62 +88,40 @@ function spawnCoin(x, yRel) {
 }
 
 function initCoins() {
-  // Coins spread across platforms using relative ground offsets (yRel)
-  // yRel values: 0 = ground floor, -110 = plat1, -200 = plat2, -130 = plat3, -290 = plat4, -370 = plat5, -260 = plat6
+  if (Object.keys(coins).length > 0) return;
   const coinPositions = [
-    // Ground floor
     { x: 150, yRel: -20 }, { x: 300, yRel: -20 }, { x: 500, yRel: -20 },
     { x: 700, yRel: -20 }, { x: 900, yRel: -20 }, { x: 1050, yRel: -20 },
-    // Platform 1 (yRel: -110)
     { x: 130, yRel: -130 }, { x: 200, yRel: -130 },
-    // Platform 2 (yRel: -200)
     { x: 390, yRel: -220 }, { x: 470, yRel: -220 },
-    // Platform 3 (yRel: -130)
     { x: 690, yRel: -150 }, { x: 770, yRel: -150 },
-    // Platform 4 (yRel: -290)
     { x: 230, yRel: -310 }, { x: 300, yRel: -310 },
-    // Platform 5 (yRel: -370)
     { x: 540, yRel: -390 }, { x: 620, yRel: -390 },
-    // Platform 6 (yRel: -260)
     { x: 850, yRel: -280 }, { x: 930, yRel: -280 },
   ];
   coinPositions.forEach(pos => spawnCoin(pos.x, pos.yRel));
 }
 initCoins();
 
-// --- Crop & Tree State ---
-let plantIdCounter = 0;
-const plants = {}; // { id, type ('crop'|'tree'), x, yRel, ownerId, ownerName, stage, maxStage, plantedAt }
-
-// Growth timing thresholds (ms per stage)
-const PLANT_CONFIG = {
-  crop: {
-    cost: 1,
-    yield: 4,
-    maxStage: 2, // 0: sprout, 1: growing crop, 2: harvestable wheat
-    stageTime: 8000 // 8s per stage (16s total)
-  },
-  tree: {
-    cost: 2,
-    yield: 10,
-    maxStage: 3, // 0: sapling, 1: small tree, 2: full tree, 3: fruit-bearing tree
-    stageTime: 12000 // 12s per stage (36s total)
-  }
-};
-
+// --- Growth Loop ---
 setInterval(() => {
   const now = Date.now();
+  let updated = false;
   Object.values(plants).forEach(plant => {
-    const config = PLANT_CONFIG[plant.type] || PLANT_CONFIG.crop;
+    const config = SEED_CONFIG[plant.type] || SEED_CONFIG.crop;
     if (plant.stage < plant.maxStage) {
       const elapsed = now - plant.plantedAt;
       const targetStage = Math.min(plant.maxStage, Math.floor(elapsed / config.stageTime));
       if (targetStage > plant.stage) {
         plant.stage = targetStage;
+        updated = true;
         io.emit('plantUpdated', { id: plant.id, stage: plant.stage });
       }
     }
   });
+  if (updated) {
+    atomicSaveState();
+  }
 }, 1000);
 
 io.on('connection', (socket) => {
@@ -100,15 +141,18 @@ io.on('connection', (socket) => {
       vx: 0, vy: 0,
       facing: 'right',
       isMoving: false, isJumping: false, isGrounded: true,
-      coins: 3 // Start with 3 coins!
+      coins: 5, // Start with 5 coins!
+      equippedHat: null,
+      inventory: ['carrot_seed'] // Free starter seed!
     };
 
-    // Send world state to new player
     socket.emit('init', {
       selfId: socket.id,
       players,
       coins,
-      plants
+      plants,
+      droppedItems,
+      shopCatalog: SHOP_ITEMS
     });
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
@@ -133,18 +177,19 @@ io.on('connection', (socket) => {
       facing: player.facing,
       isMoving: player.isMoving,
       isJumping: player.isJumping,
-      isGrounded: player.isGrounded
+      isGrounded: player.isGrounded,
+      equippedHat: player.equippedHat
     });
   });
 
-  // Collect a coin
+  // Collect coin
   socket.on('collectCoin', (coinId) => {
     if (!players[socket.id] || !coins[coinId]) return;
     delete coins[coinId];
     players[socket.id].coins += 1;
-    // Broadcast collection
     io.emit('coinCollected', { coinId, playerId: socket.id, coins: players[socket.id].coins });
-    // Respawn coin elsewhere after 15 seconds
+    atomicSaveState();
+
     setTimeout(() => {
       if (Object.keys(coins).length < 24) {
         const x = 80 + Math.random() * 900;
@@ -156,51 +201,146 @@ io.on('connection', (socket) => {
     }, 15000);
   });
 
-  // Plant a crop or tree
+  // Buy item from physical shop stall
+  socket.on('buyStallItem', (itemId) => {
+    const player = players[socket.id];
+    const item = SHOP_ITEMS[itemId];
+    if (!player || !item) return;
+
+    if (player.coins < item.cost) {
+      socket.emit('notice', { text: `Need ${item.cost} coins for ${item.name}!` });
+      return;
+    }
+
+    player.coins -= item.cost;
+    if (item.type === 'hat') {
+      player.equippedHat = item.id;
+      if (!player.inventory.includes(item.id)) player.inventory.push(item.id);
+    } else {
+      player.inventory.push(item.id);
+    }
+
+    io.emit('playerEquipUpdated', { id: socket.id, equippedHat: player.equippedHat, coins: player.coins, inventory: player.inventory });
+    socket.emit('itemPurchased', { item, coins: player.coins, inventory: player.inventory });
+  });
+
+  // Equip hat from inventory
+  socket.on('equipItem', (hatId) => {
+    const player = players[socket.id];
+    if (!player) return;
+    if (hatId === null || player.inventory.includes(hatId)) {
+      player.equippedHat = hatId;
+      io.emit('playerEquipUpdated', { id: socket.id, equippedHat: player.equippedHat, coins: player.coins, inventory: player.inventory });
+    }
+  });
+
+  // Plant a crop/tree into dirt bed
   socket.on('plant', (data) => {
-    if (!players[socket.id] || !data) return;
-    const plantType = data.type === 'tree' ? 'tree' : 'crop';
-    const config = PLANT_CONFIG[plantType];
-
-    if (players[socket.id].coins < config.cost) return;
-
-    players[socket.id].coins -= config.cost;
-    const id = `plant_${plantIdCounter++}`;
+    const player = players[socket.id];
+    if (!player || !data) return;
     
+    const plantType = data.type || 'crop';
+    const config = SEED_CONFIG[plantType] || SEED_CONFIG.crop;
+
+    // Check if player has seed item or enough coins
+    const seedItemId = `${plantType}_seed`;
+    const seedIdx = player.inventory.indexOf(seedItemId);
+
+    if (seedIdx !== -1) {
+      player.inventory.splice(seedIdx, 1);
+    } else if (player.coins >= config.cost) {
+      player.coins -= config.cost;
+    } else {
+      socket.emit('notice', { text: `Need seed or ${config.cost} coins to plant!` });
+      return;
+    }
+
+    const id = `plant_${plantIdCounter++}`;
     plants[id] = {
       id,
       type: plantType,
       x: data.x,
       yRel: data.yRel,
       ownerId: socket.id,
-      ownerName: players[socket.id].name,
+      ownerName: player.name,
       stage: 0,
       maxStage: config.maxStage,
       plantedAt: Date.now()
     };
 
-    socket.emit('coinsUpdated', { coins: players[socket.id].coins });
+    socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
     io.emit('plantCreated', plants[id]);
+    atomicSaveState();
   });
 
-  // Harvest a plant (crop or tree)
+  // Harvest plant
   socket.on('harvest', (plantId) => {
-    if (!players[socket.id]) return;
+    const player = players[socket.id];
     const plant = plants[plantId];
-    if (!plant) return;
+    if (!player || !plant) return;
 
-    const config = PLANT_CONFIG[plant.type] || PLANT_CONFIG.crop;
+    const config = SEED_CONFIG[plant.type] || SEED_CONFIG.crop;
     if (plant.stage < plant.maxStage) return; // Must be fully grown
 
     delete plants[plantId];
-    players[socket.id].coins += config.yield;
+    player.coins += config.yield;
     io.emit('plantHarvested', {
       plantId,
       playerId: socket.id,
-      coins: players[socket.id].coins,
+      coins: player.coins,
       reward: config.yield,
       plantType: plant.type
     });
+    atomicSaveState();
+  });
+
+  // Drop item onto ground (Animal Crossing style)
+  socket.on('dropItem', (data) => {
+    const player = players[socket.id];
+    if (!player || !data) return;
+    
+    let dropLabel = 'Gift';
+    if (data.type === 'coin') {
+      if (player.coins < 1) return;
+      player.coins -= 1;
+      dropLabel = '1 Coin 🪙';
+    } else if (data.type === 'item') {
+      const idx = player.inventory.indexOf(data.itemId);
+      if (idx === -1) return;
+      const itemId = player.inventory.splice(idx, 1)[0];
+      const itemInfo = SHOP_ITEMS[itemId];
+      dropLabel = itemInfo ? itemInfo.name : itemId;
+    }
+
+    const id = `drop_${droppedItemIdCounter++}`;
+    droppedItems[id] = {
+      id,
+      x: player.x,
+      yRel: player.yRel,
+      type: data.type,
+      itemId: data.itemId,
+      label: dropLabel
+    };
+
+    io.emit('itemDropped', droppedItems[id]);
+    socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
+  });
+
+  // Pickup dropped item
+  socket.on('pickupItem', (dropId) => {
+    const player = players[socket.id];
+    const drop = droppedItems[dropId];
+    if (!player || !drop) return;
+
+    delete droppedItems[dropId];
+    if (drop.type === 'coin') {
+      player.coins += 1;
+    } else if (drop.itemId) {
+      player.inventory.push(drop.itemId);
+    }
+
+    io.emit('itemPickedUp', { dropId, playerId: socket.id, coins: player.coins, inventory: player.inventory });
+    socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
   });
 
   // Kiss
@@ -234,5 +374,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Klipspringer Server running on http://localhost:${PORT}`);
+  console.log(`Klipspringer Farmville Server running on http://localhost:${PORT}`);
 });
