@@ -547,11 +547,35 @@
   }
 
   // ---- Inputs ----
+  function openChatInput() {
+    chatForm.classList.add('active');
+    chatInput.focus();
+  }
+
+  function closeChatInput() {
+    chatForm.classList.remove('active');
+    chatInput.value = '';
+    chatInput.blur();
+  }
+
   window.addEventListener('keydown', (e) => {
     getAudioContext();
-    if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
 
-    if (e.code === 'Escape') closeShopModal();
+    if (e.code === 'Escape') {
+      closeChatInput();
+      closeShopModal();
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      if (document.activeElement !== chatInput) {
+        openChatInput();
+        e.preventDefault();
+        return;
+      }
+    }
+
+    if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
 
     if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
       keysPressed[e.code] = true;
@@ -563,8 +587,6 @@
 
     if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
       players[selfId].jumpBufferTimer = 0.15;
-
-    if (e.key === 'Enter') chatInput.focus();
   });
 
   window.addEventListener('keyup', (e) => {
@@ -586,7 +608,18 @@
     e.preventDefault();
     getAudioContext();
     const text = chatInput.value.trim();
-    if (text && socket) { socket.emit('sendChat', text); chatInput.value = ''; chatInput.blur(); }
+    if (text && socket) {
+      socket.emit('sendChat', text);
+    }
+    closeChatInput();
+  });
+
+  chatInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (document.activeElement !== chatInput) {
+        chatForm.classList.remove('active');
+      }
+    }, 150);
   });
 
   joinForm.addEventListener('submit', (e) => {
@@ -605,6 +638,14 @@
       : `<span class="sender">${escapeHTML(msg.sender)}:</span> ${escapeHTML(msg.text)}`;
     chatMessagesEl.appendChild(div);
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+
+    // Auto fade-out chat message after 7 seconds so screen stays clean
+    setTimeout(() => {
+      div.style.opacity = '0';
+      setTimeout(() => {
+        if (div.parentNode) div.parentNode.removeChild(div);
+      }, 500);
+    }, 7000);
   }
 
   function escapeHTML(s) {

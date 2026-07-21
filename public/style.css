@@ -181,69 +181,94 @@ body, html {
   opacity: 0.6;
 }
 
-/* Minimal Chat Bar at Bottom */
+/* Zero-Background Unobtrusive Floating Chat */
 .chat-bar {
   position: absolute;
   bottom: 10px;
   left: 10px;
-  width: 340px;
+  width: 360px;
   max-width: calc(100vw - 20px);
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  pointer-events: none;
 }
 
 .chat-bar.hidden {
-  display: none;
+  display: none !important;
 }
 
+/* Chat Log: Zero background, pure floating text */
 .chat-log {
-  height: 80px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #666;
-  overflow-y: auto;
-  padding: 4px 6px;
-  font-size: 0.8rem;
+  height: 110px;
+  background: transparent !important;
+  border: none !important;
+  overflow: hidden;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: flex-end;
+  gap: 4px;
+  pointer-events: none;
 }
 
 .chat-msg {
+  color: #ffffff;
+  font-size: 0.88rem;
+  line-height: 1.25;
   word-break: break-word;
+  text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
+  transition: opacity 0.5s ease;
 }
 
 .chat-msg .sender {
   font-weight: bold;
-  color: #006;
+  color: #ffd700;
+  text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
 }
 
 .chat-msg.system {
-  color: #666;
+  color: #b0bec5;
   font-style: italic;
 }
 
+/* Chat Input Bar: Only visible when actively typing */
 .chat-inputs {
-  display: flex;
+  display: none; /* Hidden by default! Enabled when typing */
   gap: 4px;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #777;
+}
+
+.chat-inputs.active {
+  display: flex !important;
 }
 
 .chat-inputs input {
   flex: 1;
-  padding: 6px;
+  padding: 6px 8px;
   font-size: 0.9rem;
-  border: 1px solid #666;
+  border: 1px solid #555;
+  background: #111;
+  color: #fff;
+  border-radius: 3px;
+  outline: none;
 }
 
 .chat-inputs button {
   padding: 6px 12px;
   font-size: 0.9rem;
   cursor: pointer;
-  border: 1px solid #666;
-  background: #ddd;
+  border: 1px solid #555;
+  background: #333;
+  color: #fff;
+  border-radius: 3px;
 }
 
-.chat-inputs button:active {
-  background: #ccc;
+.chat-inputs button:hover {
+  background: #444;
 }
