@@ -1178,8 +1178,9 @@ function render(now) {
   });
 
   // Draw Players (Filter by same world)
-  Object.values(players).forEach(p => {
-    if ((p.world || 'main') !== myWorld) return;
+  if (myWorld !== 'frogger') {
+    Object.values(players).forEach(p => {
+      if ((p.world || 'main') !== myWorld) return;
 
     if (isNaN(p.renderX)) p.renderX = p.x || 300;
     if (isNaN(p.renderY)) p.renderY = p.y || 400;
@@ -1234,6 +1235,7 @@ function render(now) {
       drawNameTag(px, py - approxH + textYOffset, p.name);
     }
   });
+  }
 
   // Render loop heart particle drawing
   for (let i = particles.length - 1; i >= 0; i--) {
