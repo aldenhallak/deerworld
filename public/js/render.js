@@ -337,74 +337,104 @@ function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
   // 1 pixel art block of Pip's body = 3.5px on screen (16.4 blocks total across sw)
   const b = sw / 16.4;
 
-  function drawBlock(gx, gy, bw, bh, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(sx + gx * b, sy + gy * b, bw * b, bh * b);
+  function drawPixelBlocks(ancGx, ancGy, blocks) {
+    const bs = Math.ceil(b);
+    const startX = sx + ancGx * b;
+    const startY = sy + ancGy * b;
+    blocks.forEach(function(bl) {
+      ctx.fillStyle = bl.c;
+      ctx.fillRect(startX + bl.dx * b, startY + bl.dy * b, bs, bs);
+    });
   }
 
+  // 1. SUNGLASSES (Exact PNG: 7 blocks top bar, frame sides below)
   if (hatId === 'cool_shades' || hatId === 'sunglasses') {
-    // Spec Sunglasses: Solid black bar across both eyes with white glare pixel
-    drawBlock(0.8, 3.8, 5.8, 1.2, '#080808'); // Main black bar
-    drawBlock(1.4, 4.0, 0.8, 0.6, '#ffffff'); // Glare highlight
+    drawPixelBlocks(0.5, 3.6, [
+      // Row 0: 7 black blocks
+      {dx:0, dy:0, c:'#080808'}, {dx:1, dy:0, c:'#080808'}, {dx:2, dy:0, c:'#080808'}, {dx:3, dy:0, c:'#080808'}, {dx:4, dy:0, c:'#080808'}, {dx:5, dy:0, c:'#080808'}, {dx:6, dy:0, c:'#080808'},
+      // Row 1: frame sides (█.██.██)
+      {dx:0, dy:1, c:'#080808'}, {dx:2, dy:1, c:'#080808'}, {dx:3, dy:1, c:'#080808'}, {dx:5, dy:1, c:'#080808'}, {dx:6, dy:1, c:'#080808'}
+    ]);
+
+  // 2. BEANIE (Exact PNG: trapezoid dome cap 2 top, 4 brim)
   } else if (hatId === 'beanie') {
-    // Spec Lime Green Beanie: Cap on top of forehead/brow
-    drawBlock(1.8, 1.2, 3.4, 1.0, '#a8e61d'); // Lime green dome
-    drawBlock(1.2, 2.2, 4.4, 0.8, '#76cc03'); // Brim
-    drawBlock(3.0, 0.4, 1.0, 0.8, '#d4ff55'); // Top pom-pom
+    drawPixelBlocks(1.6, 1.2, [
+      {dx:1, dy:0, c:'#a8e61d'}, {dx:2, dy:0, c:'#a8e61d'},
+      {dx:0, dy:1, c:'#a8e61d'}, {dx:1, dy:1, c:'#a8e61d'}, {dx:2, dy:1, c:'#a8e61d'}, {dx:3, dy:1, c:'#a8e61d'}
+    ]);
+
+  // 3. COWBOY HAT (Exact PNG: 2 top bumps, crown 5 wide, brim 9 wide with dark accents)
   } else if (hatId === 'cowboy_hat') {
-    // Spec Cowboy Hat: Brown hat sitting on head with wide brim and indented crown
-    drawBlock(0.2, 1.8, 6.8, 0.8, '#633623'); // Brim base band
-    drawBlock(0.0, 1.2, 0.8, 0.8, '#9c5a3c'); // Left brim curl
-    drawBlock(6.4, 1.2, 0.8, 0.8, '#9c5a3c'); // Right brim curl
-    drawBlock(1.8, -0.4, 3.6, 1.4, '#9c5a3c'); // Crown main
-    drawBlock(3.0, -0.6, 1.2, 0.6, '#633623'); // Crown dent center
+    drawPixelBlocks(-0.6, -1.2, [
+      // Row 0: Two top bumps
+      {dx:2, dy:0, c:'#9c5a3c'}, {dx:3, dy:0, c:'#9c5a3c'}, {dx:5, dy:0, c:'#9c5a3c'}, {dx:6, dy:0, c:'#9c5a3c'},
+      // Row 1: Crown body
+      {dx:2, dy:1, c:'#9c5a3c'}, {dx:3, dy:1, c:'#9c5a3c'}, {dx:4, dy:1, c:'#9c5a3c'}, {dx:5, dy:1, c:'#9c5a3c'}, {dx:6, dy:1, c:'#9c5a3c'},
+      // Row 2: Brim top with dark brown accents
+      {dx:0, dy:2, c:'#9c5a3c'}, {dx:1, dy:2, c:'#633623'}, {dx:2, dy:2, c:'#9c5a3c'}, {dx:3, dy:2, c:'#9c5a3c'}, {dx:4, dy:2, c:'#9c5a3c'}, {dx:5, dy:2, c:'#9c5a3c'}, {dx:6, dy:2, c:'#9c5a3c'}, {dx:7, dy:2, c:'#633623'}, {dx:8, dy:2, c:'#9c5a3c'},
+      // Row 3: Brim base
+      {dx:0, dy:3, c:'#9c5a3c'}, {dx:1, dy:3, c:'#9c5a3c'}, {dx:2, dy:3, c:'#9c5a3c'}, {dx:3, dy:3, c:'#9c5a3c'}, {dx:4, dy:3, c:'#9c5a3c'}, {dx:5, dy:3, c:'#9c5a3c'}, {dx:6, dy:3, c:'#9c5a3c'}, {dx:7, dy:3, c:'#9c5a3c'}, {dx:8, dy:3, c:'#9c5a3c'}
+    ]);
+
+  // 4. RAINBOOTS (Exact PNG: two L-shaped periwinkle blue boots)
   } else if (hatId === 'rainboots') {
-    // Spec Blue Rainboots: Blue periwinkle boots fitted over all 4 hooves
-    // Front hooves
-    drawBlock(4.6, 11.8, 1.2, 2.6, '#4d6df3');
-    drawBlock(6.0, 11.8, 1.2, 2.6, '#4d6df3');
-    drawBlock(4.6, 13.6, 2.6, 0.8, '#4d6df3'); // Front boot foot
-    drawBlock(4.6, 11.4, 2.6, 0.4, '#859dff'); // Front boot cuff
-    // Back hooves
-    drawBlock(12.8, 11.8, 1.2, 2.6, '#4d6df3');
-    drawBlock(14.2, 11.8, 1.2, 2.6, '#4d6df3');
-    drawBlock(12.8, 13.6, 2.6, 0.8, '#4d6df3'); // Back boot foot
-    drawBlock(12.8, 11.4, 2.6, 0.4, '#859dff'); // Back boot cuff
+    drawPixelBlocks(4.2, 11.6, [
+      // Front boot pair:
+      {dx:0, dy:0, c:'#4d6df3'}, {dx:2, dy:0, c:'#4d6df3'},
+      {dx:0, dy:1, c:'#4d6df3'}, {dx:2, dy:1, c:'#4d6df3'}, {dx:3, dy:1, c:'#4d6df3'},
+      {dx:0, dy:2, c:'#4d6df3'}, {dx:1, dy:2, c:'#4d6df3'},
+      // Back boot pair:
+      {dx:8, dy:0, c:'#4d6df3'}, {dx:10, dy:0, c:'#4d6df3'},
+      {dx:8, dy:1, c:'#4d6df3'}, {dx:10, dy:1, c:'#4d6df3'}, {dx:11, dy:1, c:'#4d6df3'},
+      {dx:8, dy:2, c:'#4d6df3'}, {dx:9, dy:2, c:'#4d6df3'}
+    ]);
+
+  // 5. RED ASCOT (Exact PNG: diagonal red scarf pattern with knot and tail)
   } else if (hatId === 'ascot') {
-    // Spec Red Ascot: Red scarf wrapped around neck with tail
-    drawBlock(4.4, 5.0, 2.4, 1.0, '#ed1c24'); // Neck wrap
-    drawBlock(5.6, 6.0, 1.2, 2.0, '#ed1c24'); // Scarf knot & tail
+    drawPixelBlocks(4.2, 5.2, [
+      {dx:1, dy:0, c:'#ed1c24'},
+      {dx:2, dy:1, c:'#ed1c24'}, {dx:3, dy:1, c:'#ed1c24'},
+      {dx:4, dy:2, c:'#ed1c24'},
+      {dx:3, dy:3, c:'#ed1c24'}, {dx:5, dy:3, c:'#ed1c24'}
+    ]);
+
+  // 6. WIRE GLASSES (Exact PNG)
   } else if (hatId === 'glasses') {
-    // Wire Glasses
-    drawBlock(1.0, 3.8, 2.0, 1.2, '#464646');
-    drawBlock(3.6, 3.8, 2.0, 1.2, '#464646');
-    drawBlock(3.0, 4.0, 0.6, 0.4, '#464646');
+    drawPixelBlocks(1.0, 3.6, [
+      {dx:0, dy:0, c:'#464646'}, {dx:1, dy:0, c:'#464646'}, {dx:2, dy:0, c:'#464646'}, {dx:3, dy:0, c:'#464646'}, {dx:4, dy:0, c:'#464646'},
+      {dx:0, dy:1, c:'#464646'}, {dx:4, dy:1, c:'#464646'},
+      {dx:0, dy:2, c:'#464646'}, {dx:2, dy:2, c:'#464646'}, {dx:3, dy:2, c:'#464646'}, {dx:4, dy:2, c:'#464646'}, {dx:6, dy:2, c:'#464646'},
+      {dx:1, dy:3, c:'#464646'}, {dx:5, dy:3, c:'#464646'}
+    ]);
+
+  // 7. HEADPHONES (Exact PNG)
   } else if (hatId === 'headphones') {
-    // Headphones
-    drawBlock(1.6, 0.4, 4.0, 0.5, '#464646'); // Headband
-    drawBlock(1.2, 0.9, 1.0, 2.2, '#464646'); // Left ear pad
-    drawBlock(4.8, 0.9, 1.0, 2.2, '#464646'); // Right ear pad
+    drawPixelBlocks(1.0, 0.4, [
+      {dx:0, dy:0, c:'#464646'}, {dx:1, dy:0, c:'#464646'}, {dx:2, dy:0, c:'#464646'}, {dx:3, dy:0, c:'#464646'}, {dx:4, dy:0, c:'#464646'},
+      {dx:0, dy:1, c:'#464646'}, {dx:5, dy:1, c:'#464646'},
+      {dx:1, dy:2, c:'#464646'}, {dx:2, dy:2, c:'#464646'}, {dx:5, dy:2, c:'#464646'}, {dx:7, dy:2, c:'#464646'},
+      {dx:0, dy:3, c:'#464646'}, {dx:6, dy:3, c:'#464646'}, {dx:7, dy:3, c:'#464646'}
+    ]);
+
+  // Other hats fallback
   } else if (hatId === 'straw_hat') {
-    drawBlock(0.8, 1.6, 5.6, 0.8, '#fbc02d');
-    drawBlock(1.8, 0.4, 3.6, 1.2, '#fbc02d');
-    drawBlock(1.8, 1.4, 3.6, 0.3, '#d50000');
+    drawPixelBlocks(0.8, 1.6, [
+      {dx:0, dy:0, c:'#fbc02d'}, {dx:1, dy:0, c:'#fbc02d'}, {dx:2, dy:0, c:'#fbc02d'}, {dx:3, dy:0, c:'#fbc02d'}, {dx:4, dy:0, c:'#fbc02d'}, {dx:5, dy:0, c:'#fbc02d'}
+    ]);
   } else if (hatId === 'flower_crown') {
-    drawBlock(1.2, 1.8, 4.8, 0.6, '#4caf50');
-    drawBlock(1.6, 1.0, 0.8, 0.8, '#ff4081');
-    drawBlock(2.8, 1.0, 0.8, 0.8, '#ffeb3b');
-    drawBlock(4.0, 1.0, 0.8, 0.8, '#00e676');
+    drawPixelBlocks(1.2, 1.8, [
+      {dx:0, dy:0, c:'#4caf50'}, {dx:1, dy:0, c:'#ff4081'}, {dx:2, dy:0, c:'#ffeb3b'}, {dx:3, dy:0, c:'#00e676'}, {dx:4, dy:0, c:'#4caf50'}
+    ]);
   } else if (hatId === 'cute_bow') {
-    drawBlock(2.2, 1.0, 2.0, 1.4, '#ff4081');
-    drawBlock(2.8, 1.4, 0.8, 0.6, '#ffffff');
+    drawPixelBlocks(2.2, 1.0, [
+      {dx:0, dy:0, c:'#ff4081'}, {dx:1, dy:0, c:'#ffffff'}, {dx:2, dy:0, c:'#ff4081'}
+    ]);
   } else if (hatId === 'party_hat') {
-    ctx.fillStyle = '#ab47bc';
-    ctx.beginPath();
-    ctx.moveTo(sx + 3.2 * b, sy - 0.5 * b);
-    ctx.lineTo(sx + 1.8 * b, sy + 2.0 * b);
-    ctx.lineTo(sx + 4.6 * b, sy + 2.0 * b);
-    ctx.closePath();
-    ctx.fill();
-    drawBlock(2.8, -1.0, 0.8, 0.8, '#ffeb3b');
+    drawPixelBlocks(2.0, -0.5, [
+      {dx:1, dy:0, c:'#ffeb3b'},
+      {dx:1, dy:1, c:'#ab47bc'},
+      {dx:0, dy:2, c:'#ab47bc'}, {dx:1, dy:2, c:'#ab47bc'}, {dx:2, dy:2, c:'#ab47bc'}
+    ]);
   }
 
   ctx.restore();
