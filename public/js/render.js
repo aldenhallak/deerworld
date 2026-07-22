@@ -311,81 +311,82 @@ function drawWearableHat(px, py, hatId, facing, approxH) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
 
-  const headY = py - approxH + 22;
-  const headX = px;
+  ctx.translate(px, py);
+  if (facing === 'right') {
+    ctx.scale(-1, 1);
+  }
+
+  // Sprite dimensions: sw = 57.4px, sh = 51.8px (approxH default 51.8)
+  const sh = (approxH && approxH > 20) ? approxH : 51.8;
+  const sw = sh * (164 / 148);
+  const sx = -sw / 2;
+  const sy = -sh + 4;
 
   if (hatId === 'straw_hat') {
     ctx.fillStyle = '#fbc02d';
-    ctx.fillRect(headX - 16, headY - 4, 32, 5);
-    ctx.fillRect(headX - 10, headY - 12, 20, 9);
+    ctx.fillRect(sx + 6, sy + 12, 30, 4);
+    ctx.fillRect(sx + 14, sy + 3, 18, 9);
     ctx.fillStyle = '#d50000';
-    ctx.fillRect(headX - 10, headY - 6, 20, 2);
+    ctx.fillRect(sx + 14, sy + 10, 18, 2);
   } else if (hatId === 'flower_crown') {
     ctx.fillStyle = '#4caf50';
-    ctx.fillRect(headX - 12, headY - 4, 24, 3);
+    ctx.fillRect(sx + 10, sy + 12, 24, 3);
     const colors = ['#ff4081', '#ffeb3b', '#00e676', '#ff4081'];
     colors.forEach((c, i) => {
       ctx.fillStyle = c;
-      ctx.fillRect(headX - 10 + i * 6, headY - 8, 4, 5);
+      ctx.fillRect(sx + 12 + i * 5, sy + 8, 4, 5);
     });
   } else if (hatId === 'cute_bow') {
-    const earX = facing === 'right' ? headX - 8 : headX + 4;
     ctx.fillStyle = '#ff4081';
-    ctx.fillRect(earX - 6, headY - 6, 12, 8);
+    ctx.fillRect(sx + 22, sy + 8, 12, 8);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(earX - 2, headY - 4, 4, 4);
+    ctx.fillRect(sx + 26, sy + 10, 4, 4);
   } else if (hatId === 'party_hat') {
     ctx.fillStyle = '#ab47bc';
     ctx.beginPath();
-    ctx.moveTo(headX, headY - 18);
-    ctx.lineTo(headX - 8, headY - 2);
-    ctx.lineTo(headX + 8, headY - 2);
+    ctx.moveTo(sx + 22, sy - 6);
+    ctx.lineTo(sx + 14, sy + 10);
+    ctx.lineTo(sx + 30, sy + 10);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = '#ffeb3b';
-    ctx.fillRect(headX - 2, headY - 20, 4, 4);
+    ctx.fillRect(sx + 20, sy - 9, 4, 4);
   } else if (hatId === 'cool_shades' || hatId === 'sunglasses') {
-    const eyeX = facing === 'right' ? headX + 2 : headX - 8;
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(eyeX - 4, headY + 1, 14, 6);
+    // Cool sunglasses over the eyes
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(sx + 7, sy + 13, 15, 7);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(eyeX - 2, headY + 2, 3, 2);
+    ctx.fillRect(sx + 10, sy + 14, 3, 2);
   } else if (hatId === 'rainboots') {
-    const bootY = py - 7;
-    const leg1 = facing === 'right' ? px + 8 : px - 12;
-    const leg2 = facing === 'right' ? px + 2 : px - 6;
-    const leg3 = facing === 'right' ? px - 8 : px + 4;
-    const leg4 = facing === 'right' ? px - 14 : px + 10;
+    // Bright blue boots on front and back pairs of legs
     ctx.fillStyle = '#3b82f6';
-    [leg1, leg2, leg3, leg4].forEach(lx => {
-      ctx.fillRect(lx - 2, bootY, 6, 8);
-    });
+    ctx.fillRect(sx + 16, sy + 38, 12, 11); // Front legs boot
+    ctx.fillRect(sx + 36, sy + 38, 12, 11); // Back legs boot
     ctx.fillStyle = '#60a5fa';
-    [leg1, leg2, leg3, leg4].forEach(lx => {
-      ctx.fillRect(lx - 2, bootY - 1, 6, 2);
-    });
+    ctx.fillRect(sx + 16, sy + 36, 12, 2);  // Front boot cuff
+    ctx.fillRect(sx + 36, sy + 36, 12, 2);  // Back boot cuff
   } else if (hatId === 'cowboy_hat') {
+    // Wide brim brown cowboy hat
     ctx.fillStyle = '#78350f';
-    ctx.fillRect(headX - 16, headY - 6, 32, 4);
-    ctx.fillRect(headX - 18, headY - 8, 4, 3);
-    ctx.fillRect(headX + 14, headY - 8, 4, 3);
-    ctx.fillRect(headX - 10, headY - 16, 20, 10);
+    ctx.fillRect(sx + 4, sy + 10, 32, 4);
+    ctx.fillRect(sx + 2, sy + 7, 4, 4);
+    ctx.fillRect(sx + 32, sy + 7, 4, 4);
+    ctx.fillRect(sx + 12, sy + 1, 16, 10);
     ctx.fillStyle = '#451a03';
-    ctx.fillRect(headX - 10, headY - 8, 20, 2);
+    ctx.fillRect(sx + 12, sy + 9, 16, 2);
   } else if (hatId === 'ascot') {
-    const neckX = facing === 'right' ? headX - 1 : headX - 5;
-    const neckY = headY + 11;
+    // Red neck scarf / ascot wrapped around neck
     ctx.fillStyle = '#dc2626';
-    ctx.fillRect(neckX - 4, neckY, 12, 5);
-    const tailX = facing === 'right' ? neckX + 6 : neckX - 4;
-    ctx.fillRect(tailX, neckY + 4, 4, 7);
+    ctx.fillRect(sx + 20, sy + 23, 12, 5); // Neck wrap
+    ctx.fillRect(sx + 16, sy + 27, 5, 8);  // Ascot knot hanging down
   } else if (hatId === 'beanie') {
+    // Lime green beanie cap
     ctx.fillStyle = '#84cc16';
-    ctx.fillRect(headX - 10, headY - 12, 20, 8);
+    ctx.fillRect(sx + 14, sy + 4, 18, 9);
     ctx.fillStyle = '#65a30d';
-    ctx.fillRect(headX - 12, headY - 5, 24, 3);
+    ctx.fillRect(sx + 12, sy + 11, 22, 3);
     ctx.fillStyle = '#a3e635';
-    ctx.fillRect(headX - 2, headY - 15, 4, 4);
+    ctx.fillRect(sx + 20, sy + 0, 5, 5);
   }
 
   ctx.restore();
