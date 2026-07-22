@@ -131,11 +131,13 @@ function updatePhysics(dt) {
       }
     }
 
-    // Vertical Top Landing
-    if (me.vy >= 0 && me.y <= plat.y + 6 && nextY >= plat.y) {
-      if (finalX >= plat.x - 14 && finalX <= plat.x + plat.w + 14) {
-        me.y = plat.y; me.vy = 0;
-        landed = true; me.isGrounded = true; me.isJumping = false;
+    // Vertical Top Landing (skip for gate/lock walls — those are vertical barriers, not floors)
+    if (!plat.isGate && !plat.isLock) {
+      if (me.vy >= 0 && me.y <= plat.y + 6 && nextY >= plat.y) {
+        if (finalX >= plat.x - 14 && finalX <= plat.x + plat.w + 14) {
+          me.y = plat.y; me.vy = 0;
+          landed = true; me.isGrounded = true; me.isJumping = false;
+        }
       }
     }
   });

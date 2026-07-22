@@ -31,7 +31,8 @@ function getPlatforms() {
     const plats = COOP_LEVEL_1.platforms.map(p => ({ x: p.x, y: p.y + offsetY, w: p.w, h: p.h }));
     COOP_LEVEL_1.locks.forEach(l => {
       if (!l.isOpen) {
-        plats.push({ x: l.x, y: l.y + offsetY, w: l.w, h: l.h });
+        // isLock:true flags this as a vertical wall barrier for AABB side collision
+        plats.push({ x: l.x, y: l.y + offsetY, w: l.w, h: l.h, isLock: true });
       }
     });
     return plats;
