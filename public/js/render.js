@@ -306,7 +306,7 @@ function drawPixelPlant(plant, absY, t) {
   ctx.restore();
 }
 
-function drawWearableHat(px, py, hatId, facing, approxH) {
+function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
   if (!hatId) return;
   ctx.save();
   ctx.imageSmoothingEnabled = false;
@@ -316,77 +316,102 @@ function drawWearableHat(px, py, hatId, facing, approxH) {
     ctx.scale(-1, 1);
   }
 
-  // Sprite dimensions: sw = 57.4px, sh = 51.8px (approxH default 51.8)
-  const sh = (approxH && approxH > 20) ? approxH : 51.8;
-  const sw = sh * (164 / 148);
+  // Calculate actual active sprite bounds and scale
+  const scale = 0.35;
+  let sprW = 164;
+  let sprH = 148;
+
+  if (activeSpriteOrH && typeof activeSpriteOrH === 'object' && activeSpriteOrH.height) {
+    sprW = activeSpriteOrH.width || 164;
+    sprH = activeSpriteOrH.height || 148;
+  } else if (typeof activeSpriteOrH === 'number' && activeSpriteOrH > 0) {
+    sprH = activeSpriteOrH / scale;
+    sprW = sprH * (164 / 148);
+  }
+
+  const sw = sprW * scale;
+  const sh = sprH * scale;
   const sx = -sw / 2;
   const sy = -sh + 4;
 
   if (hatId === 'straw_hat') {
     ctx.fillStyle = '#fbc02d';
-    ctx.fillRect(sx + 6, sy + 12, 30, 4);
-    ctx.fillRect(sx + 14, sy + 3, 18, 9);
+    ctx.fillRect(sx + sw * 0.10, sy + sh * 0.18, sw * 0.52, 4);
+    ctx.fillRect(sx + sw * 0.22, sy + sh * 0.05, sw * 0.32, 9);
     ctx.fillStyle = '#d50000';
-    ctx.fillRect(sx + 14, sy + 10, 18, 2);
+    ctx.fillRect(sx + sw * 0.22, sy + sh * 0.16, sw * 0.32, 2);
   } else if (hatId === 'flower_crown') {
     ctx.fillStyle = '#4caf50';
-    ctx.fillRect(sx + 10, sy + 12, 24, 3);
+    ctx.fillRect(sx + sw * 0.15, sy + sh * 0.18, sw * 0.45, 3);
     const colors = ['#ff4081', '#ffeb3b', '#00e676', '#ff4081'];
     colors.forEach((c, i) => {
       ctx.fillStyle = c;
-      ctx.fillRect(sx + 12 + i * 5, sy + 8, 4, 5);
+      ctx.fillRect(sx + sw * 0.18 + i * 6, sy + sh * 0.12, 4, 5);
     });
   } else if (hatId === 'cute_bow') {
     ctx.fillStyle = '#ff4081';
-    ctx.fillRect(sx + 22, sy + 8, 12, 8);
+    ctx.fillRect(sx + sw * 0.38, sy + sh * 0.14, 12, 8);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(sx + 26, sy + 10, 4, 4);
+    ctx.fillRect(sx + sw * 0.44, sy + sh * 0.18, 4, 4);
   } else if (hatId === 'party_hat') {
     ctx.fillStyle = '#ab47bc';
     ctx.beginPath();
-    ctx.moveTo(sx + 22, sy - 6);
-    ctx.lineTo(sx + 14, sy + 10);
-    ctx.lineTo(sx + 30, sy + 10);
+    ctx.moveTo(sx + sw * 0.38, sy - 6);
+    ctx.lineTo(sx + sw * 0.24, sy + sh * 0.15);
+    ctx.lineTo(sx + sw * 0.52, sy + sh * 0.15);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = '#ffeb3b';
-    ctx.fillRect(sx + 20, sy - 9, 4, 4);
+    ctx.fillRect(sx + sw * 0.35, sy - 9, 4, 4);
   } else if (hatId === 'cool_shades' || hatId === 'sunglasses') {
-    // Cool sunglasses over the eyes
+    // Spec Sheet Sunglasses: Black bar over eye
     ctx.fillStyle = '#000000';
-    ctx.fillRect(sx + 7, sy + 13, 15, 7);
+    ctx.fillRect(sx + sw * 0.10, sy + sh * 0.18, sw * 0.30, sh * 0.08);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(sx + 10, sy + 14, 3, 2);
+    ctx.fillRect(sx + sw * 0.14, sy + sh * 0.20, 3, 2);
   } else if (hatId === 'rainboots') {
-    // Bright blue boots on front and back pairs of legs
-    ctx.fillStyle = '#3b82f6';
-    ctx.fillRect(sx + 16, sy + 38, 12, 11); // Front legs boot
-    ctx.fillRect(sx + 36, sy + 38, 12, 11); // Back legs boot
-    ctx.fillStyle = '#60a5fa';
-    ctx.fillRect(sx + 16, sy + 36, 12, 2);  // Front boot cuff
-    ctx.fillRect(sx + 36, sy + 36, 12, 2);  // Back boot cuff
+    // Spec Sheet Rainboots: Blue periwinkle boots on feet
+    ctx.fillStyle = '#4d5ec1'; // Spec sheet blue
+    const bootW = sw * 0.22;
+    const bootH = sh * 0.22;
+    // Front legs boot
+    ctx.fillRect(sx + sw * 0.26, sy + sh - bootH, bootW, bootH);
+    // Back legs boot
+    ctx.fillRect(sx + sw * 0.64, sy + sh - bootH, bootW, bootH);
+    // Boot cuff trim
+    ctx.fillStyle = '#7986cb';
+    ctx.fillRect(sx + sw * 0.26, sy + sh - bootH, bootW, 2);
+    ctx.fillRect(sx + sw * 0.64, sy + sh - bootH, bootW, 2);
   } else if (hatId === 'cowboy_hat') {
-    // Wide brim brown cowboy hat
-    ctx.fillStyle = '#78350f';
-    ctx.fillRect(sx + 4, sy + 10, 32, 4);
-    ctx.fillRect(sx + 2, sy + 7, 4, 4);
-    ctx.fillRect(sx + 32, sy + 7, 4, 4);
-    ctx.fillRect(sx + 12, sy + 1, 16, 10);
+    // Spec Sheet Cowboy Hat: Brown hat
+    ctx.fillStyle = '#8d5524'; // Spec sheet brown
+    const brimW = sw * 0.55;
+    const brimX = sx + sw * 0.06;
+    const hatY = sy + sh * 0.08;
+    ctx.fillRect(brimX, hatY + 6, brimW, 4);
+    ctx.fillRect(brimX - 2, hatY + 3, 4, 4);
+    ctx.fillRect(brimX + brimW - 2, hatY + 3, 4, 4);
+    // Crown
+    ctx.fillRect(sx + sw * 0.20, hatY - 4, sw * 0.28, 10);
     ctx.fillStyle = '#451a03';
-    ctx.fillRect(sx + 12, sy + 9, 16, 2);
+    ctx.fillRect(sx + sw * 0.20, hatY + 4, sw * 0.28, 2);
   } else if (hatId === 'ascot') {
-    // Red neck scarf / ascot wrapped around neck
-    ctx.fillStyle = '#dc2626';
-    ctx.fillRect(sx + 20, sy + 23, 12, 5); // Neck wrap
-    ctx.fillRect(sx + 16, sy + 27, 5, 8);  // Ascot knot hanging down
+    // Spec Sheet Red Ascot: Red neck scarf wrapped around neck
+    ctx.fillStyle = '#dc2626'; // Spec sheet red
+    const neckX = sx + sw * 0.32;
+    const neckY = sy + sh * 0.34;
+    ctx.fillRect(neckX, neckY, sw * 0.24, 6); // Scarf band
+    ctx.fillRect(neckX - 4, neckY + 4, 5, 9); // Scarf tail hanging down
   } else if (hatId === 'beanie') {
-    // Lime green beanie cap
-    ctx.fillStyle = '#84cc16';
-    ctx.fillRect(sx + 14, sy + 4, 18, 9);
+    // Spec Sheet Lime Green Beanie
+    ctx.fillStyle = '#76ff03'; // Spec sheet lime green
+    const capX = sx + sw * 0.22;
+    const capY = sy + sh * 0.06;
+    ctx.fillRect(capX, capY, sw * 0.32, 9);
     ctx.fillStyle = '#65a30d';
-    ctx.fillRect(sx + 12, sy + 11, 22, 3);
+    ctx.fillRect(capX - 3, capY + 8, sw * 0.38, 3);
     ctx.fillStyle = '#a3e635';
-    ctx.fillRect(sx + 20, sy + 0, 5, 5);
+    ctx.fillRect(capX + sw * 0.12, capY - 4, 5, 5);
   }
 
   ctx.restore();

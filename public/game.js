@@ -1223,7 +1223,7 @@ function render(now) {
 
     // Draw Wearable Hat
     const currentHat = p.id === selfId ? myEquippedHat : p.equippedHat;
-    drawWearableHat(px, py, currentHat, p.facing, approxH);
+    drawWearableHat(px, py, currentHat, p.facing, activeSprite);
 
     // Name / speech bubble offset higher if wearing a hat
     const textYOffset = currentHat ? -18 : -4;
