@@ -306,18 +306,6 @@ function drawPixelPlant(plant, absY, t) {
   ctx.restore();
 }
 
-const loadedAccImages = {};
-function getAccImage(hatId) {
-  if (!hatId) return null;
-  const key = hatId === 'cool_shades' ? 'sunglasses' : hatId;
-  if (!loadedAccImages[key]) {
-    const img = new Image();
-    img.src = `acc/${key}.png`;
-    loadedAccImages[key] = img;
-  }
-  return loadedAccImages[key];
-}
-
 function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
   if (!hatId) return;
   ctx.save();
@@ -328,6 +316,7 @@ function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
     ctx.scale(-1, 1);
   }
 
+  // Calculate rendered sprite bounds
   const scale = 0.35;
   let sprW = 164;
   let sprH = 148;
@@ -345,10 +334,119 @@ function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
   const sx = -sw / 2;
   const sy = -sh + 4;
 
-  const accImg = getAccImage(hatId);
-  if (accImg && accImg.complete && accImg.width > 0) {
-    // Render 100% faithful PNG spec overlay aligned 1:1 to sprite_f box
-    ctx.drawImage(accImg, sx, sy, sw, sh);
+  // Sprite_f anatomy (164x148, pixel-art blocks ~10px each):
+  // - Head top: y=0, horns at x=10-20 and x=40-72
+  // - Eyes (black): x=10-19 and x=31-40, y=35-50 (two eye blocks)
+  // - Snout/nose: x=0-10, y=50-60
+  // - Neck: x=50-70, y=50-60
+  // - Body: x=60-164, y=60-130
+  // - Front hooves: x=51-81, y=134-148
+  // - Back hooves: x=133-163, y=134-148
+
+  if (hatId === 'cool_shades' || hatId === 'sunglasses') {
+    // Black bar across both eyes: x=10-40, y=35-45 in sprite coords
+    // Proportions: x 0.06-0.24, y 0.24-0.30
+    ctx.fillStyle = '#080808';
+    ctx.fillRect(sx + sw * 0.06, sy + sh * 0.24, sw * 0.19, sh * 0.07);
+  } else if (hatId === 'ascot') {
+    // Red scarf at neck-body junction
+    // Reference shows diagonal red marks around x=73-77, y=25-28 in spec grid
+    // On sprite: neck area x=55-80, y=50-65
+    // Proportions: x 0.34-0.49, y 0.34-0.44
+    ctx.fillStyle = '#ed1c24';
+    // Diagonal scarf: two small blocks offset
+    ctx.fillRect(sx + sw * 0.40, sy + sh * 0.34, sw * 0.06, sh * 0.05);
+    ctx.fillRect(sx + sw * 0.43, sy + sh * 0.38, sw * 0.10, sh * 0.05);
+    ctx.fillRect(sx + sw * 0.48, sy + sh * 0.42, sw * 0.06, sh * 0.05);
+    ctx.fillRect(sx + sw * 0.43, sy + sh * 0.43, sw * 0.06, sh * 0.07);
+  } else if (hatId === 'beanie') {
+    // Tiny lime green cap on top of head between horns
+    // Reference shows it at x=75-76, y=41 (just 2 blocks wide, 1-2 tall)
+    // On sprite: head top around x=20-50, y=0-10
+    // Proportions: x 0.15-0.30, y 0.0-0.06
+    ctx.fillStyle = '#a8e61d';
+    ctx.fillRect(sx + sw * 0.18, sy + sh * 0.0, sw * 0.12, sh * 0.05);
+  } else if (hatId === 'rainboots') {
+    // Blue boots on all four hooves
+    // Front hooves: x=51-81, y=124-148 -> proportions 0.31-0.49, 0.84-1.0
+    // Back hooves: x=133-163, y=124-148 -> proportions 0.81-0.99, 0.84-1.0
+    ctx.fillStyle = '#4d6df3';
+    // Front pair of hooves
+    ctx.fillRect(sx + sw * 0.31, sy + sh * 0.87, sw * 0.06, sh * 0.13);
+    ctx.fillRect(sx + sw * 0.39, sy + sh * 0.87, sw * 0.06, sh * 0.13);
+    ctx.fillRect(sx + sw * 0.31, sy + sh * 0.92, sw * 0.14, sh * 0.04);
+    // Back pair of hooves
+    ctx.fillRect(sx + sw * 0.81, sy + sh * 0.87, sw * 0.06, sh * 0.13);
+    ctx.fillRect(sx + sw * 0.90, sy + sh * 0.87, sw * 0.06, sh * 0.13);
+    ctx.fillRect(sx + sw * 0.81, sy + sh * 0.92, sw * 0.15, sh * 0.04);
+  } else if (hatId === 'cowboy_hat') {
+    // Brown cowboy hat on head
+    // Reference shows brim wider than head, crown above
+    // Crown: x=34-38, y=57 -> proportions: sits on head around x 0.13-0.28, y 0.0-0.06
+    // Brim: x=32-40, y=59 -> proportions: x 0.06-0.34, y 0.06-0.09
+    ctx.fillStyle = '#9c5a3c';
+    // Crown (two bumps with dip in middle)
+    ctx.fillRect(sx + sw * 0.12, sy + sh * 0.0, sw * 0.06, sh * 0.06);
+    ctx.fillRect(sx + sw * 0.22, sy + sh * 0.0, sw * 0.06, sh * 0.06);
+    // Crown bridge
+    ctx.fillRect(sx + sw * 0.17, sy + sh * 0.02, sw * 0.06, sh * 0.04);
+    // Brim (wider bar below crown)
+    ctx.fillStyle = '#63361f';
+    ctx.fillRect(sx + sw * 0.06, sy + sh * 0.06, sw * 0.28, sh * 0.04);
+    // Brim ends curl up
+    ctx.fillStyle = '#9c5a3c';
+    ctx.fillRect(sx + sw * 0.04, sy + sh * 0.04, sw * 0.04, sh * 0.04);
+    ctx.fillRect(sx + sw * 0.32, sy + sh * 0.04, sw * 0.04, sh * 0.04);
+  } else if (hatId === 'glasses') {
+    // Wire-frame glasses (gray)
+    // Two round frames connected by bridge
+    ctx.strokeStyle = '#464646';
+    ctx.lineWidth = 1;
+    // Left lens
+    ctx.strokeRect(sx + sw * 0.06, sy + sh * 0.24, sw * 0.08, sh * 0.07);
+    // Right lens
+    ctx.strokeRect(sx + sw * 0.16, sy + sh * 0.24, sw * 0.08, sh * 0.07);
+    // Bridge
+    ctx.fillStyle = '#464646';
+    ctx.fillRect(sx + sw * 0.14, sy + sh * 0.26, sw * 0.02, sh * 0.02);
+  } else if (hatId === 'headphones') {
+    // Headphones (gray arced band over head with ear cups)
+    ctx.fillStyle = '#464646';
+    // Band over head
+    ctx.fillRect(sx + sw * 0.10, sy + sh * 0.0, sw * 0.20, sh * 0.03);
+    // Left ear cup
+    ctx.fillRect(sx + sw * 0.08, sy + sh * 0.02, sw * 0.05, sh * 0.08);
+    // Right ear cup
+    ctx.fillRect(sx + sw * 0.27, sy + sh * 0.02, sw * 0.05, sh * 0.08);
+  } else if (hatId === 'straw_hat') {
+    ctx.fillStyle = '#fbc02d';
+    ctx.fillRect(sx + sw * 0.04, sy + sh * 0.06, sw * 0.30, sh * 0.04);
+    ctx.fillRect(sx + sw * 0.10, sy + sh * 0.0, sw * 0.18, sh * 0.07);
+    ctx.fillStyle = '#d50000';
+    ctx.fillRect(sx + sw * 0.10, sy + sh * 0.05, sw * 0.18, sh * 0.02);
+  } else if (hatId === 'flower_crown') {
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(sx + sw * 0.08, sy + sh * 0.06, sw * 0.22, sh * 0.03);
+    const colors = ['#ff4081', '#ffeb3b', '#00e676', '#ff4081'];
+    colors.forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(sx + sw * (0.09 + i * 0.05), sy + sh * 0.03, sw * 0.04, sh * 0.04);
+    });
+  } else if (hatId === 'cute_bow') {
+    ctx.fillStyle = '#ff4081';
+    ctx.fillRect(sx + sw * 0.15, sy + sh * 0.03, sw * 0.10, sh * 0.06);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(sx + sw * 0.19, sy + sh * 0.05, sw * 0.03, sh * 0.02);
+  } else if (hatId === 'party_hat') {
+    ctx.fillStyle = '#ab47bc';
+    ctx.beginPath();
+    ctx.moveTo(sx + sw * 0.20, sy - sh * 0.04);
+    ctx.lineTo(sx + sw * 0.13, sy + sh * 0.08);
+    ctx.lineTo(sx + sw * 0.27, sy + sh * 0.08);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffeb3b';
+    ctx.fillRect(sx + sw * 0.18, sy - sh * 0.06, sw * 0.04, sh * 0.03);
   }
 
   ctx.restore();
