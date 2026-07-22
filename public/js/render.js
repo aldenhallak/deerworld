@@ -99,11 +99,12 @@ function drawLever(x, groundY, isActivated, isPowered) {
 function drawGateDoor(x, groundY, isOpen) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
-  const gw = 20, gh = 160;
-  const gy = groundY - gh;
+  const gw = 20;
+  const gh = groundY;
+  const gy = 0;
 
   if (isOpen) {
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(x, gy, gw, gh);
@@ -115,9 +116,9 @@ function drawGateDoor(x, groundY, isOpen) {
     ctx.fillRect(x, gy, 4, gh);
     ctx.fillRect(x + gw - 4, gy, 4, gh);
     ctx.fillStyle = '#f8fafc';
-    ctx.font = 'bold 12px monospace';
+    ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('🔒', x + gw / 2, gy + gh / 2);
+    ctx.fillText('🔒', x + gw / 2, groundY - 80);
   }
   ctx.restore();
 }

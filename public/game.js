@@ -385,19 +385,11 @@ function tryInteract() {
       return;
     }
     if (Math.abs(me.x - 650) < 60 && Math.abs(me.y - groundY) < 30) {
-      if (selectPlatePressed) {
-        if (socket) socket.emit('flipSelectLever');
-      } else {
-        spawnFloatText(me.x, me.y - 40, 'Partner must stand on pressure plate first!', '#ffab40');
-      }
+      if (socket) socket.emit('flipSelectLever');
       return;
     }
     if (Math.abs(me.x - 850) < 60 && Math.abs(me.y - groundY) < 30) {
-      if (selectLeverExpiresAt > Date.now()) {
-        socket.emit('switchWorld', 'coop1');
-      } else {
-        spawnFloatText(me.x, me.y - 40, 'Portal is locked! Solve switch puzzle to enter.', '#ff5252');
-      }
+      socket.emit('switchWorld', 'coop1');
       return;
     }
   }
@@ -862,38 +854,36 @@ function render(now) {
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
     drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
 
+    const isLeverActive = selectLeverExpiresAt > Date.now();
+    const isGate1Open = selectPlatePressed || isLeverActive;
+    const isGate2Open = isLeverActive;
+
     // Connecting Wires along ground
     ctx.save();
     ctx.lineWidth = 3;
     // Wire from Pressure Plate (350) to Gate Door 1 (500)
-    ctx.strokeStyle = selectPlatePressed ? '#10b981' : '#475569';
+    ctx.strokeStyle = isGate1Open ? '#10b981' : '#475569';
     ctx.beginPath(); ctx.moveTo(350, groundY - 2); ctx.lineTo(500, groundY - 2); ctx.stroke();
 
     // Wire from Lever (650) to Gate Door 2 (750)
-    const isLeverUnlocked = selectLeverExpiresAt > Date.now();
-    ctx.strokeStyle = isLeverUnlocked ? '#38bdf8' : '#475569';
+    ctx.strokeStyle = isGate2Open ? '#38bdf8' : '#475569';
     ctx.beginPath(); ctx.moveTo(650, groundY - 2); ctx.lineTo(750, groundY - 2); ctx.stroke();
     ctx.restore();
 
     // Pressure Plate at x: 350 (No text label)
     drawSelectPlate(350, groundY, selectPlatePressed);
 
-    // Gate Door 1 at x: 500 (Opened by Pressure Plate at x: 350)
-    drawGateDoor(500, groundY, selectPlatePressed);
+    // Gate Door 1 at x: 500 (Opened by Pressure Plate at x: 350 OR active lever)
+    drawGateDoor(500, groundY, isGate1Open);
 
     // Lever Switch at x: 650 (No text label)
-    drawLever(650, groundY, isLeverUnlocked, selectPlatePressed);
+    drawLever(650, groundY, isLeverActive, selectPlatePressed);
 
     // Gate Door 2 at x: 750 (Opened by Lever at x: 650 for 5s)
-    drawGateDoor(750, groundY, isLeverUnlocked);
+    drawGateDoor(750, groundY, isGate2Open);
 
-    // Anonymous Portal at x: 850 (NO NAME ON IT!)
-    if (isLeverUnlocked) {
-      const remainingSec = Math.ceil((selectLeverExpiresAt - Date.now()) / 1000);
-      drawPortal(850, groundY, `[E] ENTER PORTAL (${remainingSec}s)`, '#38bdf8');
-    } else {
-      drawPortal(850, groundY, '[E] ???', '#334155');
-    }
+    // Anonymous Portal at x: 850 (ALWAYS ACTIVE! NO NAME ON IT!)
+    drawPortal(850, groundY, '[E] ???', '#38bdf8');
   } else if (myWorld === 'coop1') {
     const offsetY = canvas.height - COOP_LEVEL_1.height;
 

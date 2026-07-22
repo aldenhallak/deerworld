@@ -106,9 +106,34 @@ function updatePhysics(dt) {
   const nextY = me.y + me.vy * dt;
 
   let landed = false;
+  let finalX = nextX;
+
   getPlatforms().forEach(plat => {
+    // Horizontal AABB Wall Collision for Gate Walls / Solid Barriers
+    if (plat.isGate || plat.isLock) {
+      const playerTop = me.y - 40;
+      const playerBottom = me.y;
+      const platTop = plat.y;
+      const platBottom = plat.y + plat.h;
+
+      // Check vertical overlap
+      if (playerBottom > platTop + 2 && playerTop < platBottom - 2) {
+        // Moving Right into Left side of wall
+        if (me.x + 14 <= plat.x && finalX + 14 >= plat.x) {
+          finalX = plat.x - 14;
+          me.vx = 0;
+        }
+        // Moving Left into Right side of wall
+        else if (me.x - 14 >= plat.x + plat.w && finalX - 14 <= plat.x + plat.w) {
+          finalX = plat.x + plat.w + 14;
+          me.vx = 0;
+        }
+      }
+    }
+
+    // Vertical Top Landing
     if (me.vy >= 0 && me.y <= plat.y + 6 && nextY >= plat.y) {
-      if (nextX >= plat.x - 14 && nextX <= plat.x + plat.w + 14) {
+      if (finalX >= plat.x - 14 && finalX <= plat.x + plat.w + 14) {
         me.y = plat.y; me.vy = 0;
         landed = true; me.isGrounded = true; me.isJumping = false;
       }
@@ -116,8 +141,8 @@ function updatePhysics(dt) {
   });
 
   if (!landed) { me.y = nextY; me.isGrounded = false; }
-  const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'coop1' ? 2400 : canvas.width);
-  me.x = Math.max(20, Math.min(maxWorldX - 20, nextX));
+  const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'coop1' ? 2400 : (myWorld === 'select' ? 1400 : canvas.width));
+  me.x = Math.max(20, Math.min(maxWorldX - 20, finalX));
 
   // Fall off screen in Obstacle Courses = teleport to start
   if ((myWorld === 'course' || myWorld === 'course2' || myWorld === 'coop1') && me.y > canvas.height + 60) {

@@ -20,7 +20,7 @@
       "equippedHat": null
     },
     "Pip": {
-      "coins": 3,
+      "coins": 4,
       "inventory": [],
       "equippedHat": null
     },
@@ -106,5 +106,5 @@
       "date": "7/21/2026"
     }
   ],
-  "timestamp": 1784690096339
+  "timestamp": 1784690183530
 }

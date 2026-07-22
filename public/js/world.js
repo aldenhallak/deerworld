@@ -16,13 +16,14 @@ function getPlatforms() {
       { x: 0, y: groundY, w: selectWidth, h: 40 },
       { x: 200, y: groundY - 110, w: 300, h: 16 }
     ];
-    // Gate 1 at x: 500 (opened by pressure plate at x: 350)
-    if (!selectPlatePressed) {
-      plats.push({ x: 500, y: groundY - 160, w: 20, h: 160, isGate: true });
+    const isLeverActive = selectLeverExpiresAt > Date.now();
+    // Gate 1 at x: 500 (Full height; opened by pressure plate at x: 350 OR active lever)
+    if (!selectPlatePressed && !isLeverActive) {
+      plats.push({ x: 500, y: 0, w: 20, h: groundY, isGate: true });
     }
-    // Gate 2 at x: 750 (opened by lever at x: 650 for 5s)
-    if (!(selectLeverExpiresAt > Date.now())) {
-      plats.push({ x: 750, y: groundY - 160, w: 20, h: 160, isGate: true });
+    // Gate 2 at x: 750 (Full height; opened by lever at x: 650 for 5s)
+    if (!isLeverActive) {
+      plats.push({ x: 750, y: 0, w: 20, h: groundY, isGate: true });
     }
     return plats;
   }
