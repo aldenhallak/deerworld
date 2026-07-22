@@ -1,18 +1,69 @@
-// ---- Dedicated Classic Top-Down Frogger Engine ----
+// ---- Dedicated Classic 8-Bit Top-Down Frogger Engine ----
+function draw8BitFrog(ctx, x, y, facing) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+
+  const px = Math.round(x);
+  const py = Math.round(y);
+
+  // Frog Body (Bright retro green)
+  ctx.fillStyle = '#00e600';
+  ctx.fillRect(px - 10, py - 10, 20, 20);
+
+  // Dark Green Back stripe
+  ctx.fillStyle = '#009900';
+  ctx.fillRect(px - 6, py - 6, 12, 12);
+
+  // Eyes & Pupils
+  ctx.fillStyle = '#ffffff';
+  if (facing === 'down') {
+    ctx.fillRect(px - 9, py + 6, 6, 6);
+    ctx.fillRect(px + 3, py + 6, 6, 6);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(px - 7, py + 8, 3, 3);
+    ctx.fillRect(px + 4, py + 8, 3, 3);
+  } else if (facing === 'left') {
+    ctx.fillRect(px - 12, py - 9, 6, 6);
+    ctx.fillRect(px - 12, py + 3, 6, 6);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(px - 11, py - 7, 3, 3);
+    ctx.fillRect(px - 11, py + 4, 3, 3);
+  } else if (facing === 'right') {
+    ctx.fillRect(px + 6, py - 9, 6, 6);
+    ctx.fillRect(px + 6, py + 3, 6, 6);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(px + 8, py - 7, 3, 3);
+    ctx.fillRect(px + 8, py + 4, 3, 3);
+  } else { // 'up' default
+    ctx.fillRect(px - 9, py - 12, 6, 6);
+    ctx.fillRect(px + 3, py - 12, 6, 6);
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(px - 7, py - 11, 3, 3);
+    ctx.fillRect(px + 4, py - 11, 3, 3);
+  }
+
+  // 4 Corner Limbs
+  ctx.fillStyle = '#00cc00';
+  ctx.fillRect(px - 13, py - 9, 4, 5);
+  ctx.fillRect(px + 9, py - 9, 4, 5);
+  ctx.fillRect(px - 13, py + 4, 4, 5);
+  ctx.fillRect(px + 9, py + 4, 4, 5);
+
+  ctx.restore();
+}
+
 const FroggerMode = {
   active: false,
   cols: 14,
   rows: 13,
   tileSize: 48,
-  
+
   // State
   player: {
     gridX: 6,
     gridY: 12,
     x: 0,
     y: 0,
-    targetX: 0,
-    targetY: 0,
     facing: 'up',
     deaths: 0,
     score: 0,
@@ -31,15 +82,14 @@ const FroggerMode = {
     { row: 4, type: 'river', speed: 100,  itemType: 'turtle', itemW: 90,  spacing: 210 },
     { row: 5, type: 'river', speed: -80,  itemType: 'log_short', itemW: 80, spacing: 160 },
     { row: 6, type: 'safe' },
-    { row: 7, type: 'road', speed: 190,  carType: 'racecar',  carW: 55, carColor: '#ef4444', spacing: 220 },
-    { row: 8, type: 'road', speed: -130, carType: 'truck',    carW: 95, carColor: '#3b82f6', spacing: 290 },
-    { row: 9, type: 'road', speed: 220,  carType: 'taxi',     carW: 50, carColor: '#eab308', spacing: 210 },
-    { row: 10, type: 'road', speed: -170, carType: 'sports',   carW: 65, carColor: '#ec4899', spacing: 240 },
-    { row: 11, type: 'road', speed: 140,  carType: 'sedan',    carW: 55, carColor: '#10b981', spacing: 220 },
+    { row: 7, type: 'road', speed: 190,  carType: 'racecar',  carW: 55, carColor: '#dc2626', spacing: 220 },
+    { row: 8, type: 'road', speed: -130, carType: 'truck',    carW: 95, carColor: '#2563eb', spacing: 290 },
+    { row: 9, type: 'road', speed: 220,  carType: 'taxi',     carW: 50, carColor: '#ca8a04', spacing: 210 },
+    { row: 10, type: 'road', speed: -170, carType: 'sports',   carW: 65, carColor: '#db2777', spacing: 240 },
+    { row: 11, type: 'road', speed: 140,  carType: 'sedan',    carW: 55, carColor: '#059669', spacing: 220 },
     { row: 12, type: 'safe' }
   ],
 
-  // Home alcove column positions in Row 0
   homeCols: [1, 4, 7, 10, 13],
 
   init() {
@@ -62,19 +112,22 @@ const FroggerMode = {
     const board = this.getBoardBounds();
     this.player.x = board.startX + this.player.gridX * this.tileSize + this.tileSize / 2;
     this.player.y = board.startY + this.player.gridY * this.tileSize + this.tileSize / 2;
-    this.player.targetX = this.player.x;
-    this.player.targetY = this.player.y;
   },
 
   getBoardBounds() {
     const boardW = this.cols * this.tileSize; // 672px
     const boardH = this.rows * this.tileSize; // 624px
     const startX = Math.max(100, (canvas.width - boardW) / 2);
-    const startY = Math.max(80, (canvas.height - boardH) / 2);
+    const startY = Math.max(60, (canvas.height - boardH) / 2);
     return { boardW, boardH, startX, startY };
   },
 
   handleKeyDown(code) {
+    if (code === 'Escape' || code === 'KeyE') {
+      if (socket) socket.emit('switchWorld', 'select');
+      return;
+    }
+
     if (this.finished) return;
 
     let nextGX = this.player.gridX;
@@ -92,12 +145,10 @@ const FroggerMode = {
       return;
     }
 
-    // Boundary check
     if (nextGX >= 0 && nextGX < this.cols && nextGY >= 0 && nextGY < this.rows) {
       this.player.gridX = nextGX;
       this.player.gridY = nextGY;
 
-      // Start timer on first hop upwards
       if (this.startTime === 0 && nextGY < 12) {
         this.startTime = Date.now();
       }
@@ -112,7 +163,6 @@ const FroggerMode = {
     const targetX = board.startX + this.player.gridX * this.tileSize + this.tileSize / 2;
     const targetY = board.startY + this.player.gridY * this.tileSize + this.tileSize / 2;
 
-    // Smooth movement interpolation toward target grid spot
     this.player.x += (targetX - this.player.x) * Math.min(1, 20 * dt);
     this.player.y += (targetY - this.player.y) * Math.min(1, 20 * dt);
 
@@ -134,13 +184,11 @@ const FroggerMode = {
       }
 
       if (hitHomeIndex !== -1 && !this.player.homesFilled[hitHomeIndex]) {
-        // Filled a home!
         this.player.homesFilled[hitHomeIndex] = true;
         this.player.score += 500;
         playHarvestSound();
         spawnFloatText(this.player.x, this.player.y - 30, '+500', '#ffd700');
 
-        // Check if all 5 homes are filled
         if (this.player.homesFilled.every(f => f)) {
           const elapsedMs = Date.now() - this.startTime;
           this.finished = true;
@@ -151,7 +199,6 @@ const FroggerMode = {
           this.resetPlayer();
         }
       } else {
-        // Hit wall in row 0 outside home alcove
         playHonkSound();
         this.player.deaths++;
         spawnFloatText(this.player.x, this.player.y - 30, 'SPLAT!', '#ff1744');
@@ -173,12 +220,10 @@ const FroggerMode = {
       }
 
       if (standingOnLog) {
-        // Ride log horizontally!
         const dx = lane.speed * dt;
         this.player.x += dx;
         this.player.gridX = Math.max(0, Math.min(this.cols - 1, (this.player.x - board.startX - this.tileSize / 2) / this.tileSize));
 
-        // Check side board boundaries
         if (this.player.x < board.startX || this.player.x > board.startX + board.boardW) {
           playSplashSound();
           this.player.deaths++;
@@ -186,7 +231,6 @@ const FroggerMode = {
           this.resetPlayer();
         }
       } else {
-        // Fell in water!
         playSplashSound();
         this.player.deaths++;
         spawnFloatText(this.player.x, this.player.y - 30, 'SPLASH!', '#00e5ff');
@@ -264,19 +308,19 @@ const FroggerMode = {
 
     ctx.save();
 
-    // Board Backdrop & Border
-    ctx.fillStyle = '#09090b';
-    ctx.fillRect(board.startX - 8, board.startY - 8, board.boardW + 16, board.boardH + 16);
-    ctx.strokeStyle = '#27272a';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(board.startX - 8, board.startY - 8, board.boardW + 16, board.boardH + 16);
+    // 8-Bit Outer Arcade Border
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(board.startX - 6, board.startY - 6, board.boardW + 12, board.boardH + 12);
+    ctx.strokeStyle = '#15803d';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(board.startX - 6, board.startY - 6, board.boardW + 12, board.boardH + 12);
 
-    // 2. Render Board Rows
+    // Render Board Rows
     this.lanes.forEach(lane => {
       const ry = board.startY + lane.row * ts;
 
       if (lane.type === 'goal') {
-        // Goal bank
+        // Goal bank (8-bit green grass with alcoves)
         ctx.fillStyle = '#15803d';
         ctx.fillRect(board.startX, ry, board.boardW, ts);
 
@@ -285,16 +329,14 @@ const FroggerMode = {
           const hx = board.startX + col * ts;
           const isFilled = this.player.homesFilled[idx];
 
-          ctx.fillStyle = isFilled ? '#facc15' : '#0284c7';
+          ctx.fillStyle = isFilled ? '#1e3a8a' : '#0284c7';
           ctx.fillRect(hx, ry + 4, ts, ts - 8);
           ctx.strokeStyle = '#4ade80';
           ctx.lineWidth = 2;
           ctx.strokeRect(hx, ry + 4, ts, ts - 8);
 
           if (isFilled) {
-            ctx.font = '24px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('🐸', hx + ts / 2, ry + ts - 10);
+            draw8BitFrog(ctx, hx + ts / 2, ry + ts / 2, 'up');
           }
         });
       } else if (lane.type === 'river') {
@@ -303,7 +345,7 @@ const FroggerMode = {
         ctx.fillRect(board.startX, ry, board.boardW, ts);
 
         // Waves
-        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
         for (let wx = 0; wx < board.boardW; wx += 60) {
           const waveShift = Math.sin(animTime * 4 + lane.row + wx) * 8;
           ctx.fillRect(board.startX + ((wx + waveShift + 600) % board.boardW), ry + 16, 28, 3);
@@ -314,13 +356,9 @@ const FroggerMode = {
         logs.forEach(log => {
           if (log.type === 'lilypad') {
             ctx.fillStyle = '#16a34a';
-            ctx.beginPath();
-            ctx.ellipse(log.x + log.w / 2, log.y + log.h / 2, log.w / 2, log.h / 2, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(log.x, log.y, log.w, log.h);
             ctx.fillStyle = '#86efac';
-            ctx.beginPath();
-            ctx.ellipse(log.x + log.w / 2, log.y + log.h / 2, log.w / 3, log.h / 3, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(log.x + 4, log.y + 4, log.w - 8, log.h - 8);
           } else if (log.type === 'turtle') {
             ctx.fillStyle = '#15803d';
             ctx.fillRect(log.x, log.y + 2, log.w, log.h - 4);
@@ -330,7 +368,7 @@ const FroggerMode = {
             ctx.fillStyle = '#78350f';
             ctx.fillRect(log.x, log.y, log.w, log.h);
             ctx.fillStyle = '#b45309';
-            ctx.fillRect(log.x + 3, log.y + 3, log.w - 6, log.h - 6);
+            ctx.fillRect(log.x + 4, log.y + 4, log.w - 8, log.h - 8);
           }
         });
       } else if (lane.type === 'safe') {
@@ -352,36 +390,38 @@ const FroggerMode = {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Vehicles
+        // 8-Bit Vehicles
         const cars = this.getCarsInLane(lane, board, animTime);
         cars.forEach(car => {
           ctx.fillStyle = car.color;
           ctx.fillRect(car.x, car.y, car.w, car.h);
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(car.x + 6, car.y + 4, car.w - 12, car.h - 8);
+          ctx.fillStyle = '#fef08a';
+          if (car.speed > 0) {
+            ctx.fillRect(car.x + car.w - 4, car.y + 4, 3, 3);
+            ctx.fillRect(car.x + car.w - 4, car.y + car.h - 7, 3, 3);
+          } else {
+            ctx.fillRect(car.x + 1, car.y + 4, 3, 3);
+            ctx.fillRect(car.x + 1, car.y + car.h - 7, 3, 3);
+          }
         });
       }
     });
 
-    // Top-Down Frog Player
-    ctx.save();
-    ctx.font = '28px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🐸', this.player.x, this.player.y);
-    ctx.restore();
+    // Draw 8-Bit Player Frog
+    draw8BitFrog(ctx, this.player.x, this.player.y, this.player.facing);
 
-    // Clean Stats Line
-    ctx.font = '12px monospace';
+    // 8-Bit Clean Retro HUD
+    ctx.font = 'bold 12px "Courier New", monospace';
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillText(`SCORE: ${this.player.score}`, board.startX, board.startY + board.boardH + 20);
+    ctx.fillStyle = '#00e676';
+    ctx.fillText('[ESC / E] EXIT TO HALL', board.startX, board.startY + board.boardH + 20);
 
-    if (this.startTime > 0 && !this.finished) {
-      const elapsedSec = ((Date.now() - this.startTime) / 1000).toFixed(2);
-      ctx.textAlign = 'right';
-      ctx.fillText(`TIME: ${elapsedSec}s`, board.startX + board.boardW, board.startY + board.boardH + 20);
-    }
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffd700';
+    let timeStr = this.startTime > 0 && !this.finished ? `${((Date.now() - this.startTime) / 1000).toFixed(2)}s` : '0.00s';
+    ctx.fillText(`SCORE: ${this.player.score}  TIME: ${timeStr}`, board.startX + board.boardW, board.startY + board.boardH + 20);
 
     ctx.restore();
   }

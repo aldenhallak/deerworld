@@ -584,8 +584,15 @@ window.addEventListener('keydown', (e) => {
 
   if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
 
-  if (myWorld === 'frogger' && typeof FroggerMode !== 'undefined') {
-    FroggerMode.handleKeyDown(e.code);
+  if (myWorld === 'frogger') {
+    if (e.code === 'Escape' || e.code === 'KeyE') {
+      if (socket) socket.emit('switchWorld', 'select');
+      return;
+    }
+    if (typeof FroggerMode !== 'undefined') {
+      FroggerMode.handleKeyDown(e.code);
+    }
+    return;
   }
 
   if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
