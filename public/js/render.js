@@ -328,7 +328,6 @@ function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
     ctx.scale(-1, 1);
   }
 
-  // Calculate actual active sprite bounds and scale
   const scale = 0.35;
   let sprW = 164;
   let sprH = 148;
@@ -348,37 +347,8 @@ function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
 
   const accImg = getAccImage(hatId);
   if (accImg && accImg.complete && accImg.width > 0) {
-    // Render 100% faithful PNG spec sheet overlay
+    // Render 100% faithful PNG spec overlay aligned 1:1 to sprite_f box
     ctx.drawImage(accImg, sx, sy, sw, sh);
-  } else if (hatId === 'straw_hat') {
-    ctx.fillStyle = '#fbc02d';
-    ctx.fillRect(sx + sw * 0.10, sy + sh * 0.18, sw * 0.52, 4);
-    ctx.fillRect(sx + sw * 0.22, sy + sh * 0.05, sw * 0.32, 9);
-    ctx.fillStyle = '#d50000';
-    ctx.fillRect(sx + sw * 0.22, sy + sh * 0.16, sw * 0.32, 2);
-  } else if (hatId === 'flower_crown') {
-    ctx.fillStyle = '#4caf50';
-    ctx.fillRect(sx + sw * 0.15, sy + sh * 0.18, sw * 0.45, 3);
-    const colors = ['#ff4081', '#ffeb3b', '#00e676', '#ff4081'];
-    colors.forEach((c, i) => {
-      ctx.fillStyle = c;
-      ctx.fillRect(sx + sw * 0.18 + i * 6, sy + sh * 0.12, 4, 5);
-    });
-  } else if (hatId === 'cute_bow') {
-    ctx.fillStyle = '#ff4081';
-    ctx.fillRect(sx + sw * 0.38, sy + sh * 0.14, 12, 8);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(sx + sw * 0.44, sy + sh * 0.18, 4, 4);
-  } else if (hatId === 'party_hat') {
-    ctx.fillStyle = '#ab47bc';
-    ctx.beginPath();
-    ctx.moveTo(sx + sw * 0.38, sy - 6);
-    ctx.lineTo(sx + sw * 0.24, sy + sh * 0.15);
-    ctx.lineTo(sx + sw * 0.52, sy + sh * 0.15);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#ffeb3b';
-    ctx.fillRect(sx + sw * 0.35, sy - 9, 4, 4);
   }
 
   ctx.restore();
