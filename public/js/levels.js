@@ -82,3 +82,31 @@ const COOP_LEVEL_1 = {
   ],
   goal: { x: 2220, y: 650, w: 150, h: 110 }
 };
+
+// ---- Frogger Highway & River Level ----
+const FROGGER_LEVEL = {
+  name: "Frogger Highway & River",
+  width: 2200,
+  startIsland: { x: 0, w: 240 },
+  roadZone: { x: 240, w: 800 },
+  middleIsland: { x: 1040, w: 160 },
+  riverZone: { x: 1200, w: 640 },
+  finishIsland: { x: 1840, w: 360 },
+
+  // Traffic lanes driving across the highway (y coordinates relative to groundY)
+  cars: [
+    { id: 'c1', laneYRel: -20, speed: 220, w: 60, h: 26, color: '#ef4444', label: 'Racecar', initialOffsets: [0, 260, 520] },
+    { id: 'c2', laneYRel: -60, speed: -160, w: 90, h: 30, color: '#3b82f6', label: 'Semi Truck', initialOffsets: [50, 420] },
+    { id: 'c3', laneYRel: -110, speed: 260, w: 55, h: 24, color: '#eab308', label: 'Taxi', initialOffsets: [0, 240, 480] },
+    { id: 'c4', laneYRel: -160, speed: -200, w: 65, h: 26, color: '#ec4899', label: 'Sports Car', initialOffsets: [100, 380, 660] }
+  ],
+
+  // Floating logs and lilypads floating across the river
+  logs: [
+    { id: 'l1', yRel: -20,  speed: 90,   w: 140, h: 16, type: 'log',    offsets: [0, 280, 560] },
+    { id: 'l2', yRel: -80,  speed: -130, w: 75,  h: 16, type: 'lilypad', offsets: [40, 220, 400, 580] },
+    { id: 'l3', yRel: -150, speed: 110,  w: 170, h: 16, type: 'log',    offsets: [0, 320] },
+    { id: 'l4', yRel: -220, speed: -100, w: 95,  h: 16, type: 'turtle', offsets: [80, 300, 520] },
+    { id: 'l5', yRel: -290, speed: 140,  w: 80,  h: 16, type: 'lilypad', offsets: [0, 220, 440] }
+  ]
+};

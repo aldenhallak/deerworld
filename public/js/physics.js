@@ -156,18 +156,21 @@ function updatePhysics(dt) {
         if (finalX >= plat.x - 14 && finalX <= plat.x + plat.w + 14) {
           me.y = plat.y; me.vy = 0;
           landed = true; me.isGrounded = true; me.isJumping = false;
+          if (plat.isLog) {
+            finalX += plat.vx * dt; // Ride log momentum!
+          }
         }
       }
     }
   });
 
   if (!landed) { me.y = nextY; me.isGrounded = false; }
-  const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'coop1' ? 2400 : (myWorld === 'select' ? 1400 : canvas.width));
+  const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'frogger' ? 2200 : (myWorld === 'coop1' ? 2400 : (myWorld === 'select' ? 1400 : canvas.width)));
   me.x = Math.max(20, Math.min(maxWorldX - 20, finalX));
 
   // Fall off screen in Obstacle Courses = teleport to start
-  if ((myWorld === 'course' || myWorld === 'course2' || myWorld === 'coop1') && me.y > canvas.height + 60) {
-    me.x = myWorld === 'coop1' ? 100 : 120;
+  if ((myWorld === 'course' || myWorld === 'course2' || myWorld === 'coop1' || myWorld === 'frogger') && me.y > canvas.height + 60) {
+    me.x = (myWorld === 'coop1' || myWorld === 'frogger') ? 100 : 120;
     me.y = getGroundY();
     me.vx = 0; me.vy = 0; me.isGrounded = true;
     if (myWorld === 'course' || myWorld === 'course2') {
@@ -175,6 +178,9 @@ function updatePhysics(dt) {
     }
     if (myWorld === 'coop1') {
       coopStartTime = 0; coopFinished = false;
+    }
+    if (myWorld === 'frogger') {
+      froggerRunStartTime = 0; froggerRunFinished = false;
     }
     spawnFloatText(me.x, me.y - 40, 'FELL! Back to start...', '#e94560');
   }
@@ -325,6 +331,56 @@ function updatePhysics(dt) {
     if (me.x < 120) {
       coopStartTime = 0;
       coopFinished = false;
+    }
+  }
+
+  // Frogger Highway & River Level Physics Checks
+  if (myWorld === 'frogger' && selfId && players[selfId]) {
+    const me = players[selfId];
+    const groundY = getGroundY();
+
+    // 1. Car Traffic Collision Check
+    const cars = getFroggerCars(groundY);
+    for (let car of cars) {
+      if (me.x + 12 > car.x && me.x - 12 < car.x + car.w &&
+          me.y > car.y && me.y - 32 < car.y + car.h) {
+        playHonkSound();
+        me.x = 100;
+        me.y = groundY;
+        me.vx = 0; me.vy = 0; me.isGrounded = true;
+        froggerRunStartTime = 0; froggerRunFinished = false;
+        spawnFloatText(me.x, me.y - 40, 'SPLAT! Hit by traffic!', '#ff1744');
+        break;
+      }
+    }
+
+    // 2. River Water Pit Fall Check (x: 1200..1840)
+    // If player is over river water zone and falls into water (below groundY - 5 and not grounded on log)
+    if (me.x > 1200 && me.x < 1840 && me.y >= groundY - 5 && !me.isGrounded) {
+      playSplashSound();
+      me.x = 1040; // Teleport back to Middle Safe Island
+      me.y = groundY;
+      me.vx = 0; me.vy = 0; me.isGrounded = true;
+      spawnFloatText(me.x, me.y - 40, 'SPLASH! Fell in water!', '#00e5ff');
+    }
+
+    // 3. Frogger Speedrun Timer (Start Line x: 200, Finish Line x: 1880)
+    if (me.x >= 200 && me.x < 240 && froggerRunStartTime === 0 && !froggerRunFinished) {
+      froggerRunStartTime = Date.now();
+      spawnFloatText(me.x, me.y - 40, 'FROGGER TIMER STARTED! GO!', '#00e676');
+    }
+    if (me.x < 180) {
+      froggerRunStartTime = 0;
+      froggerRunFinished = false;
+    }
+    if (me.x >= 1880 && froggerRunStartTime > 0 && !froggerRunFinished) {
+      const elapsedMs = Date.now() - froggerRunStartTime;
+      froggerRunFinished = true;
+      froggerRunStartTime = 0;
+      playHarvestSound();
+      const sec = (elapsedMs / 1000).toFixed(2);
+      spawnFloatText(me.x, me.y - 40, `FROGGER CLEARED! ${sec}s`, '#00e676');
+      if (socket) socket.emit('submitFroggerTime', { timeMs: elapsedMs });
     }
   }
 

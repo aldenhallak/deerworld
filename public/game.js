@@ -33,10 +33,13 @@ let shopCatalog = {};
 let courseLeaderboard = [];
 let megaCourseLeaderboard = [];
 let coopLeaderboard = [];
+let froggerLeaderboard = [];
 let courseRunStartTime = 0;
 let courseRunFinished = false;
 let coopStartTime = 0;
 let coopFinished = false;
+let froggerRunStartTime = 0;
+let froggerRunFinished = false;
 let myCoins = 0;
 let myInventory = [];
 let myEquippedHat = null;
@@ -88,6 +91,7 @@ function connectSocket(username) {
     if (Array.isArray(data.courseLeaderboard)) courseLeaderboard = data.courseLeaderboard;
     if (Array.isArray(data.megaCourseLeaderboard)) megaCourseLeaderboard = data.megaCourseLeaderboard;
     if (Array.isArray(data.coopLeaderboard)) coopLeaderboard = data.coopLeaderboard;
+    if (Array.isArray(data.froggerLeaderboard)) froggerLeaderboard = data.froggerLeaderboard;
     
     const me = data.players[selfId];
     if (me) {
@@ -138,12 +142,15 @@ function connectSocket(username) {
         courseRunFinished = false;
         coopStartTime = 0;
         coopFinished = false;
+        froggerRunStartTime = 0;
+        froggerRunFinished = false;
         let wName = 'Main World';
         if (data.world === 'garden') wName = 'Garden World';
         else if (data.world === 'select') wName = 'Level Selection';
         else if (data.world === 'course') wName = 'Obstacle Course 1';
         else if (data.world === 'course2') wName = 'MEGA Obstacle Course';
         else if (data.world === 'coop1') wName = 'Co-op Puzzle 1';
+        else if (data.world === 'frogger') wName = 'Frogger Highway';
         spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${wName}!`, '#00e676');
       }
     }
@@ -266,6 +273,10 @@ function connectSocket(username) {
 
   socket.on('coopLeaderboardUpdated', (lb) => {
     coopLeaderboard = lb || [];
+  });
+
+  socket.on('froggerLeaderboardUpdated', (lb) => {
+    froggerLeaderboard = lb || [];
   });
 
   socket.on('coopLevelReset', () => {
@@ -401,6 +412,10 @@ function tryInteract() {
       socket.emit('switchWorld', 'course');
       return;
     }
+    if (Math.abs(me.x - 450) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'frogger');
+      return;
+    }
     if (Math.abs(me.x - 650) < 60 && Math.abs(me.y - groundY) < 30) {
       if (socket) socket.emit('flipSelectLever');
       return;
@@ -428,6 +443,10 @@ function tryInteract() {
     return;
   }
   if (myWorld === 'coop1' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'select');
+    return;
+  }
+  if (myWorld === 'frogger' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
     socket.emit('switchWorld', 'select');
     return;
   }
@@ -633,6 +652,8 @@ function render(now) {
   let cameraX = 0;
   if (myWorld === 'course2') {
     cameraX = Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2));
+  } else if (myWorld === 'frogger') {
+    cameraX = Math.max(0, Math.min(2200 - canvas.width, meX - canvas.width / 2));
   } else if (myWorld === 'coop1') {
     cameraX = Math.max(0, Math.min(2400 - canvas.width, meX - canvas.width / 2));
   }
@@ -651,6 +672,9 @@ function render(now) {
       ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
     }
   } else if (myWorld === 'coop1') {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (myWorld === 'frogger') {
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else if (myWorld === 'course') {
@@ -686,6 +710,8 @@ function render(now) {
     drawShopBuilding(groundY);
     // Portal to Main World (far left in Garden World)
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
+  } else if (myWorld === 'frogger') {
+    drawFroggerEnvironment(groundY, animTime);
   } else if (myWorld === 'course') {
     // Obstacle Course World
     getPlatforms().forEach(plat => {
@@ -894,6 +920,7 @@ function render(now) {
     // Portals & Mechanisms
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
     drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
+    drawPortal(450, groundY, '[E] FROGGER HIGHWAY', '#00e676');
 
     const isLeverActive = selectLeverExpiresAt > Date.now();
     const isGate1Open = selectPlatePressed || isLeverActive;

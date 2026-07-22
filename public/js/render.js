@@ -368,6 +368,7 @@ function drawHUD() {
   else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE 1';
   else if (myWorld === 'course2') worldLabel = 'MEGA COURSE (STAGE 2)';
   else if (myWorld === 'coop1') worldLabel = 'CO-OP PUZZLE 1';
+  else if (myWorld === 'frogger') worldLabel = 'FROGGER HIGHWAY & RIVER';
 
   ctx.fillText(`COINS: ${myCoins} | WORLD: ${worldLabel}`, 14, 26);
 
@@ -379,19 +380,193 @@ function drawHUD() {
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin', 14, 68);
 
-  // Live Obstacle Course Stopwatch Header
+  // Live Obstacle Course & Frogger Stopwatch Header
+  let activeRunStartTime = 0;
+  let activeColor = '#76ff03';
   if ((myWorld === 'course' || myWorld === 'course2') && courseRunStartTime > 0) {
-    const elapsedSec = ((Date.now() - courseRunStartTime) / 1000).toFixed(2);
+    activeRunStartTime = courseRunStartTime;
+    activeColor = myWorld === 'course2' ? '#ff007f' : '#76ff03';
+  } else if (myWorld === 'frogger' && typeof froggerRunStartTime !== 'undefined' && froggerRunStartTime > 0) {
+    activeRunStartTime = froggerRunStartTime;
+    activeColor = '#00e676';
+  }
+
+  if (activeRunStartTime > 0) {
+    const elapsedSec = ((Date.now() - activeRunStartTime) / 1000).toFixed(2);
     ctx.fillStyle = 'rgba(0,0,0,0.85)';
     ctx.fillRect(canvas.width / 2 - 80, 10, 160, 32);
-    ctx.strokeStyle = myWorld === 'course2' ? '#ff007f' : '#76ff03';
+    ctx.strokeStyle = activeColor;
     ctx.lineWidth = 2;
     ctx.strokeRect(canvas.width / 2 - 80, 10, 160, 32);
-    ctx.fillStyle = myWorld === 'course2' ? '#ff007f' : '#76ff03';
+    ctx.fillStyle = activeColor;
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(`RUN TIME: ${elapsedSec}s`, canvas.width / 2, 32);
   }
+
+  ctx.restore();
+}
+
+function drawFroggerEnvironment(groundY, animTime) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+
+  // 1. Asphalt Road Zone (x: 240..1040)
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(240, 0, 800, canvas.height);
+
+  // Yellow Lane Dividers
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([12, 12]);
+  [-45, -95, -145].forEach(yOffset => {
+    ctx.beginPath();
+    ctx.moveTo(240, groundY + yOffset);
+    ctx.lineTo(1040, groundY + yOffset);
+    ctx.stroke();
+  });
+  ctx.setLineDash([]);
+
+  // Road Curbs
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(240, groundY - 180, 800, 4);
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillRect(240, groundY + 4, 800, 4);
+
+  // 2. Animated River Water Pit (x: 1200..1840)
+  ctx.fillStyle = '#0284c7';
+  ctx.fillRect(1200, 0, 640, canvas.height);
+
+  // Water Waves effect
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+  for (let wy = 50; wy < canvas.height; wy += 40) {
+    const waveOffset = Math.sin(animTime * 3 + wy * 0.05) * 12;
+    ctx.fillRect(1200 + ((waveOffset + 200) % 640), wy, 80, 4);
+    ctx.fillRect(1200 + ((waveOffset + 450) % 640), wy + 20, 60, 4);
+  }
+
+  // 3. Floating Logs & Lilypads & Turtles
+  const logs = getFroggerLogs(groundY);
+  logs.forEach(log => {
+    if (log.type === 'lilypad') {
+      ctx.fillStyle = '#15803d';
+      ctx.beginPath();
+      ctx.ellipse(log.x + log.w / 2, log.y + log.h / 2, log.w / 2, log.h / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath();
+      ctx.ellipse(log.x + log.w / 2, log.y + log.h / 2, log.w / 3, log.h / 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (log.type === 'turtle') {
+      ctx.fillStyle = '#166534';
+      const numTurtles = Math.floor(log.w / 30);
+      for (let t = 0; t < numTurtles; t++) {
+        const tx = log.x + 15 + t * 30;
+        ctx.fillRect(tx - 12, log.y + 2, 24, log.h - 2);
+        ctx.fillStyle = '#22c55e';
+        ctx.fillRect(tx - 8, log.y, 16, log.h - 4);
+        ctx.fillStyle = '#166534';
+      }
+    } else { // Log
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(log.x, log.y, log.w, log.h);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(log.x + 2, log.y + 2, log.w - 4, log.h - 6);
+      // Wood grain lines
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(log.x + 10, log.y + 5, log.w / 2, 2);
+    }
+  });
+
+  // 4. Moving Vehicles on Highway
+  const cars = getFroggerCars(groundY);
+  cars.forEach(car => {
+    ctx.fillStyle = car.color;
+    ctx.fillRect(car.x, car.y, car.w, car.h);
+
+    // Car Roof / Cabin
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(car.x + 8, car.y + 4, car.w - 16, car.h - 8);
+
+    // Wheels
+    ctx.fillStyle = '#000';
+    ctx.fillRect(car.x + 4, car.y - 2, 8, 4);
+    ctx.fillRect(car.x + car.w - 12, car.y - 2, 8, 4);
+    ctx.fillRect(car.x + 4, car.y + car.h - 2, 8, 4);
+    ctx.fillRect(car.x + car.w - 12, car.y + car.h - 2, 8, 4);
+
+    // Headlights
+    ctx.fillStyle = '#fef08a';
+    if (car.speed > 0) {
+      ctx.fillRect(car.x + car.w - 4, car.y + 2, 4, 4);
+      ctx.fillRect(car.x + car.w - 4, car.y + car.h - 6, 4, 4);
+    } else {
+      ctx.fillRect(car.x, car.y + 2, 4, 4);
+      ctx.fillRect(car.x, car.y + car.h - 6, 4, 4);
+    }
+  });
+
+  // 5. Start Line Archway (x: 200) & Finish Line Archway (x: 1880)
+  ctx.strokeStyle = '#00e676';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(200, groundY); ctx.lineTo(200, groundY - 80);
+  ctx.lineTo(240, groundY - 80); ctx.lineTo(240, groundY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#00e676';
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('FROGGER START', 220, groundY - 86);
+
+  // Finish Archway
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(1880, groundY); ctx.lineTo(1880, groundY - 80);
+  ctx.lineTo(1920, groundY - 80); ctx.lineTo(1920, groundY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#ffd700';
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('FROGGER FINISH', 1900, groundY - 86);
+
+  // 6. Frogger Leaderboard Billboard at x: 1960
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillRect(1940, groundY - 200, 160, 140);
+  ctx.strokeStyle = '#00e676';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1940, groundY - 200, 160, 140);
+  ctx.fillStyle = '#00e676';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('FROGGER RECORDS', 2020, groundY - 183);
+
+  ctx.strokeStyle = 'rgba(0,230,118,0.5)';
+  ctx.beginPath(); ctx.moveTo(1945, groundY - 174); ctx.lineTo(2095, groundY - 174); ctx.stroke();
+
+  ctx.font = '10px monospace';
+  const topRuns = (typeof froggerLeaderboard !== 'undefined' ? froggerLeaderboard : []).slice(0, 8);
+  topRuns.forEach((entry, i) => {
+    const sec = (entry.timeMs / 1000).toFixed(2);
+    const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.fillText(`${i + 1}. ${entry.name}`, 1948, groundY - 160 + i * 15);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${sec}s`, 2094, groundY - 160 + i * 15);
+  });
+  if (topRuns.length === 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.textAlign = 'center';
+    ctx.fillText('No frogger runs yet!', 2020, groundY - 145);
+  }
+
+  // Return Portal (far left in Frogger World)
+  drawPortal(80, groundY, '[E] RETURN TO SELECT', '#00e676');
 
   ctx.restore();
 }

@@ -110,3 +110,33 @@ function playHopSound() {
     osc.start(); osc.stop(actx.currentTime + 0.1);
   } catch(e) {}
 }
+
+function playSplashSound() {
+  try {
+    const actx = getAudioContext();
+    const osc = actx.createOscillator(); const gain = actx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, actx.currentTime + 0.25);
+    gain.gain.setValueAtTime(0.2, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.25);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(); osc.stop(actx.currentTime + 0.25);
+  } catch(e) {}
+}
+
+function playHonkSound() {
+  try {
+    const actx = getAudioContext();
+    const osc1 = actx.createOscillator(); const osc2 = actx.createOscillator();
+    const gain = actx.createGain();
+    osc1.type = 'sawtooth'; osc2.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(180, actx.currentTime);
+    osc2.frequency.setValueAtTime(220, actx.currentTime);
+    gain.gain.setValueAtTime(0.15, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.2);
+    osc1.connect(gain); osc2.connect(gain); gain.connect(actx.destination);
+    osc1.start(); osc2.start();
+    osc1.stop(actx.currentTime + 0.2); osc2.stop(actx.currentTime + 0.2);
+  } catch(e) {}
+}

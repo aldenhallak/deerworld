@@ -90,6 +90,17 @@ function getPlatforms() {
       // Finish Island (x: 3770..4200)
       { x: 3770, y: groundY,       w: 400, h: 40 }
     ];
+  if (myWorld === 'frogger') {
+    // Frogger Highway & River World Layout
+    const plats = [
+      { x: 0,    y: groundY, w: 240, h: 40 }, // Start Bank
+      { x: 240,  y: groundY, w: 800, h: 40 }, // Highway Road Surface
+      { x: 1040, y: groundY, w: 160, h: 40 }, // Middle Bank
+      { x: 1840, y: groundY, w: 360, h: 40 }  // Finish Bank
+    ];
+    // Dynamic floating log platforms in river area
+    const floatingLogs = getFroggerLogs(groundY);
+    return plats.concat(floatingLogs);
   }
   return [
     { x: 0,   y: groundY,       w: canvas.width, h: 40  },
@@ -100,4 +111,58 @@ function getPlatforms() {
     { x: 480, y: groundY - 370, w: 220, h: 16 },
     { x: 800, y: groundY - 260, w: 180, h: 16 }
   ];
+}
+
+function getFroggerLogs(groundY) {
+  const logs = [];
+  if (typeof FROGGER_LEVEL === 'undefined') return logs;
+  const nowSec = (typeof animTime !== 'undefined' ? animTime : Date.now() / 1000);
+  const riverMinX = FROGGER_LEVEL.riverZone.x;
+  const riverW = FROGGER_LEVEL.riverZone.w;
+
+  FROGGER_LEVEL.logs.forEach(lane => {
+    lane.offsets.forEach(offset => {
+      let logX = (offset + lane.speed * nowSec) % riverW;
+      if (logX < 0) logX += riverW;
+      logX += riverMinX;
+
+      logs.push({
+        x: logX,
+        y: groundY + lane.yRel,
+        w: lane.w,
+        h: lane.h,
+        isLog: true,
+        vx: lane.speed,
+        type: lane.type
+      });
+    });
+  });
+  return logs;
+}
+
+function getFroggerCars(groundY) {
+  const cars = [];
+  if (typeof FROGGER_LEVEL === 'undefined') return cars;
+  const nowSec = (typeof animTime !== 'undefined' ? animTime : Date.now() / 1000);
+  const roadMinX = FROGGER_LEVEL.roadZone.x;
+  const roadW = FROGGER_LEVEL.roadZone.w;
+
+  FROGGER_LEVEL.cars.forEach(lane => {
+    lane.initialOffsets.forEach(offset => {
+      let carX = (offset + lane.speed * nowSec) % roadW;
+      if (carX < 0) carX += roadW;
+      carX += roadMinX;
+
+      cars.push({
+        x: carX,
+        y: groundY + lane.laneYRel - lane.h,
+        w: lane.w,
+        h: lane.h,
+        speed: lane.speed,
+        color: lane.color,
+        label: lane.label
+      });
+    });
+  });
+  return cars;
 }

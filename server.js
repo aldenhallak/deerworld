@@ -30,6 +30,7 @@ const chatHistory = [];   // Array of persistent chat message objects
 const courseLeaderboard = []; // Array of top speedrun records: [{ name, timeMs, formattedTime }]
 const megaCourseLeaderboard = []; // Array of mega speedrun records: [{ name, timeMs, formattedTime }]
 const coopLeaderboard = []; // Co-op completion records: [{ names, timeMs, formattedTime, date }]
+const froggerLeaderboard = []; // Frogger speedrun records: [{ name, timeMs, formattedTime }]
 const CHAT_LOG_FILE = path.join(DATA_DIR, 'chat_history.log');
 let plantIdCounter = 0;
 let coinIdCounter = 0;
@@ -89,6 +90,7 @@ async function atomicSaveState() {
       courseLeaderboard: courseLeaderboard.slice(0, 10),
       megaCourseLeaderboard: megaCourseLeaderboard.slice(0, 10),
       coopLeaderboard: coopLeaderboard.slice(0, 10),
+      froggerLeaderboard: froggerLeaderboard.slice(0, 10),
       timestamp: Date.now()
     }, null, 2);
     await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
@@ -110,6 +112,7 @@ try {
     if (Array.isArray(parsed.courseLeaderboard)) courseLeaderboard.push(...parsed.courseLeaderboard);
     if (Array.isArray(parsed.megaCourseLeaderboard)) megaCourseLeaderboard.push(...parsed.megaCourseLeaderboard);
     if (Array.isArray(parsed.coopLeaderboard)) coopLeaderboard.push(...parsed.coopLeaderboard);
+    if (Array.isArray(parsed.froggerLeaderboard)) froggerLeaderboard.push(...parsed.froggerLeaderboard);
   }
 } catch (e) {}
 
@@ -193,7 +196,8 @@ io.on('connection', (socket) => {
       chatHistory,
       courseLeaderboard,
       megaCourseLeaderboard,
-      coopLeaderboard
+      coopLeaderboard,
+      froggerLeaderboard
     });
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
@@ -228,16 +232,17 @@ io.on('connection', (socket) => {
   socket.on('switchWorld', (targetWorld) => {
     const player = players[socket.id];
     if (!player) return;
-    const allowed = ['main', 'garden', 'select', 'course', 'course2', 'coop1'];
+    const allowed = ['main', 'garden', 'select', 'course', 'course2', 'coop1', 'frogger'];
     if (!allowed.includes(targetWorld)) return;
 
     const prevWorld = player.world;
     player.world = targetWorld;
     if (targetWorld === 'garden') player.x = 120;
-    else if (targetWorld === 'select') player.x = (prevWorld === 'course' ? 240 : (prevWorld === 'coop1' ? 850 : 120));
+    else if (targetWorld === 'select') player.x = (prevWorld === 'course' ? 240 : (prevWorld === 'frogger' ? 450 : (prevWorld === 'coop1' ? 850 : 120)));
     else if (targetWorld === 'course') player.x = 120;
     else if (targetWorld === 'course2') player.x = 120;
     else if (targetWorld === 'coop1') player.x = 100;
+    else if (targetWorld === 'frogger') player.x = 100;
     else if (prevWorld === 'course2') player.x = 1420;
     else if (prevWorld === 'select') player.x = 1400; // far right in main
     else player.x = 880;
@@ -522,6 +527,27 @@ io.on('connection', (socket) => {
       io.emit('coopLevelReset', {});
     }, 3000);
 
+    atomicSaveState();
+  });
+
+  // Submit Frogger Level completion time
+  socket.on('submitFroggerTime', (payload) => {
+    const player = players[socket.id];
+    let timeMs = typeof payload === 'number' ? payload : (payload ? payload.timeMs : null);
+    if (!player || typeof timeMs !== 'number' || timeMs < 500) return;
+
+    const sec = (timeMs / 1000).toFixed(2);
+    const record = {
+      name: player.name,
+      timeMs: Math.round(timeMs),
+      formattedTime: `${sec}s`,
+      date: new Date().toLocaleDateString()
+    };
+
+    froggerLeaderboard.push(record);
+    froggerLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
+    if (froggerLeaderboard.length > 10) froggerLeaderboard.length = 10;
+    io.emit('froggerLeaderboardUpdated', froggerLeaderboard);
     atomicSaveState();
   });
 
