@@ -100,7 +100,6 @@ const FroggerMode = {
       // Start timer on first hop upwards
       if (this.startTime === 0 && nextGY < 12) {
         this.startTime = Date.now();
-        spawnFloatText(this.player.x, this.player.y - 30, 'FROGGER STARTED!', '#00e676');
       }
 
       playHopSound();
@@ -139,29 +138,29 @@ const FroggerMode = {
         this.player.homesFilled[hitHomeIndex] = true;
         this.player.score += 500;
         playHarvestSound();
-        spawnFloatText(this.player.x, this.player.y - 30, '+500 HOME REACHED!', '#ffd700');
+        spawnFloatText(this.player.x, this.player.y - 30, '+500', '#ffd700');
 
         // Check if all 5 homes are filled
         if (this.player.homesFilled.every(f => f)) {
           const elapsedMs = Date.now() - this.startTime;
           this.finished = true;
           const sec = (elapsedMs / 1000).toFixed(2);
-          spawnFloatText(this.player.x, this.player.y - 40, `VICTORY! ALL HOMES FILLED IN ${sec}s!`, '#00e676');
+          spawnFloatText(this.player.x, this.player.y - 40, `WIN! ${sec}s`, '#00e676');
           if (socket) socket.emit('submitFroggerTime', { timeMs: elapsedMs });
         } else {
           this.resetPlayer();
         }
       } else {
-        // Hit wall in row 0 outside home alcove -> SPLAT
+        // Hit wall in row 0 outside home alcove
         playHonkSound();
         this.player.deaths++;
-        spawnFloatText(this.player.x, this.player.y - 30, 'MISSED HOME ALCOVE!', '#ff1744');
+        spawnFloatText(this.player.x, this.player.y - 30, 'SPLAT!', '#ff1744');
         this.resetPlayer();
       }
       return;
     }
 
-    // 2. River Lanes (Rows 1..5) - Check floating logs & ride log velocity!
+    // 2. River Lanes (Rows 1..5)
     if (lane && lane.type === 'river') {
       const logsInLane = this.getLogsInLane(lane, board, animTime);
       let standingOnLog = null;
@@ -183,20 +182,20 @@ const FroggerMode = {
         if (this.player.x < board.startX || this.player.x > board.startX + board.boardW) {
           playSplashSound();
           this.player.deaths++;
-          spawnFloatText(this.player.x, this.player.y - 30, 'SWEPT OFF BOARD!', '#00e5ff');
+          spawnFloatText(this.player.x, this.player.y - 30, 'SWEPT AWAY!', '#00e5ff');
           this.resetPlayer();
         }
       } else {
         // Fell in water!
         playSplashSound();
         this.player.deaths++;
-        spawnFloatText(this.player.x, this.player.y - 30, 'SPLASH! Fell in water!', '#00e5ff');
+        spawnFloatText(this.player.x, this.player.y - 30, 'SPLASH!', '#00e5ff');
         this.resetPlayer();
       }
       return;
     }
 
-    // 3. Road Lanes (Rows 7..11) - Check car collisions!
+    // 3. Road Lanes (Rows 7..11)
     if (lane && lane.type === 'road') {
       const carsInLane = this.getCarsInLane(lane, board, animTime);
       for (let car of carsInLane) {
@@ -204,7 +203,7 @@ const FroggerMode = {
             Math.abs(this.player.y - (car.y + car.h / 2)) < (car.h / 2 + 14)) {
           playHonkSound();
           this.player.deaths++;
-          spawnFloatText(this.player.x, this.player.y - 30, 'SPLAT! Hit by vehicle!', '#ff1744');
+          spawnFloatText(this.player.x, this.player.y - 30, 'SPLAT!', '#ff1744');
           this.resetPlayer();
           break;
         }
@@ -265,25 +264,19 @@ const FroggerMode = {
 
     ctx.save();
 
-    // 1. Arcade Cabinet Backdrop & Outer Border
+    // Board Backdrop & Border
     ctx.fillStyle = '#09090b';
-    ctx.fillRect(board.startX - 16, board.startY - 50, board.boardW + 32, board.boardH + 70);
-    ctx.strokeStyle = '#00e676';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(board.startX - 16, board.startY - 50, board.boardW + 32, board.boardH + 70);
-
-    // Header Title Banner
-    ctx.fillStyle = '#00e676';
-    ctx.font = 'bold 20px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('🐸 CLASSIC FROGGER 🐸', board.startX + board.boardW / 2, board.startY - 22);
+    ctx.fillRect(board.startX - 8, board.startY - 8, board.boardW + 16, board.boardH + 16);
+    ctx.strokeStyle = '#27272a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(board.startX - 8, board.startY - 8, board.boardW + 16, board.boardH + 16);
 
     // 2. Render Board Rows
     this.lanes.forEach(lane => {
       const ry = board.startY + lane.row * ts;
 
       if (lane.type === 'goal') {
-        // Goal bank (green grass with 5 frog home lilypad alcoves)
+        // Goal bank
         ctx.fillStyle = '#15803d';
         ctx.fillRect(board.startX, ry, board.boardW, ts);
 
@@ -302,20 +295,15 @@ const FroggerMode = {
             ctx.font = '24px sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('🐸', hx + ts / 2, ry + ts - 10);
-          } else {
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.font = '11px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText(`HOME ${idx+1}`, hx + ts / 2, ry + ts / 2 + 4);
           }
         });
       } else if (lane.type === 'river') {
-        // Deep Water
+        // Water
         ctx.fillStyle = '#0284c7';
         ctx.fillRect(board.startX, ry, board.boardW, ts);
 
-        // Animated Waves
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        // Waves
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
         for (let wx = 0; wx < board.boardW; wx += 60) {
           const waveShift = Math.sin(animTime * 4 + lane.row + wx) * 8;
           ctx.fillRect(board.startX + ((wx + waveShift + 600) % board.boardW), ry + 16, 28, 3);
@@ -343,25 +331,21 @@ const FroggerMode = {
             ctx.fillRect(log.x, log.y, log.w, log.h);
             ctx.fillStyle = '#b45309';
             ctx.fillRect(log.x + 3, log.y + 3, log.w - 6, log.h - 6);
-            ctx.fillStyle = '#451a03';
-            ctx.fillRect(log.x + 8, log.y + 8, log.w / 2, 2);
           }
         });
       } else if (lane.type === 'safe') {
         // Grass Bank
         ctx.fillStyle = lane.row === 6 ? '#166534' : '#15803d';
         ctx.fillRect(board.startX, ry, board.boardW, ts);
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        ctx.fillRect(board.startX, ry, board.boardW, 3);
       } else if (lane.type === 'road') {
         // Asphalt Road
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(board.startX, ry, board.boardW, ts);
 
-        // Yellow Lane Stripe
-        ctx.strokeStyle = '#f59e0b';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([12, 12]);
+        // Lane Stripe
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([10, 10]);
         ctx.beginPath();
         ctx.moveTo(board.startX, ry + ts);
         ctx.lineTo(board.startX + board.boardW, ry + ts);
@@ -375,47 +359,27 @@ const FroggerMode = {
           ctx.fillRect(car.x, car.y, car.w, car.h);
           ctx.fillStyle = '#0f172a';
           ctx.fillRect(car.x + 6, car.y + 4, car.w - 12, car.h - 8);
-          ctx.fillStyle = '#fef08a';
-          if (car.speed > 0) {
-            ctx.fillRect(car.x + car.w - 4, car.y + 4, 4, 4);
-            ctx.fillRect(car.x + car.w - 4, car.y + car.h - 8, 4, 4);
-          } else {
-            ctx.fillRect(car.x, car.y + 4, 4, 4);
-            ctx.fillRect(car.x, car.y + car.h - 8, 4, 4);
-          }
         });
       }
     });
 
-    // 3. Render Top-Down Frog Player
+    // Top-Down Frog Player
     ctx.save();
-    const px = this.player.x;
-    const py = this.player.y;
-
     ctx.font = '28px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🐸', px, py);
+    ctx.fillText('🐸', this.player.x, this.player.y);
     ctx.restore();
 
-    // 4. Return Portal Prompt on Row 12 (Start Bank)
-    const portalX = board.startX + 60;
-    const portalY = board.startY + 12 * ts + ts / 2;
-    ctx.font = 'bold 11px monospace';
+    // Clean Stats Line
+    ctx.font = '12px monospace';
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#76ff03';
-    ctx.fillText('← [E] RETURN TO SELECT', board.startX + 10, board.startY + 12 * ts + ts / 2 + 4);
-
-    // 5. Arcade Stats Footer
-    ctx.font = 'bold 13px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffd700';
-    ctx.fillText(`SCORE: ${this.player.score} | SPLATS: ${this.player.deaths}`, board.startX, board.startY + board.boardH + 20);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText(`SCORE: ${this.player.score}`, board.startX, board.startY + board.boardH + 20);
 
     if (this.startTime > 0 && !this.finished) {
       const elapsedSec = ((Date.now() - this.startTime) / 1000).toFixed(2);
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#00e676';
       ctx.fillText(`TIME: ${elapsedSec}s`, board.startX + board.boardW, board.startY + board.boardH + 20);
     }
 
