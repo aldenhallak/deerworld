@@ -329,179 +329,82 @@ function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
     sprW = sprH * (164 / 148);
   }
 
-  const sw = sprW * scale;  // ~57.4
-  const sh = sprH * scale;  // ~51.8
+  const sw = sprW * scale;  // 57.4px
+  const sh = sprH * scale;  // 51.8px
   const sx = -sw / 2;
   const sy = -sh + 4;
 
-  // Each accessory is defined as an array of {dx, dy, color} blocks
-  // drawn relative to an anchor point on the sprite.
-  // Block size = one pixel-art block at the accessory's native resolution.
-  // Tuned so accessories match the reference screenshot sizes.
-  const b = sw / 28;  // ~2.05px per accessory block
+  // 1 pixel art block of Pip's body = 3.5px on screen (16.4 blocks total across sw)
+  const b = sw / 16.4;
 
-  function drawBlocks(anchorX, anchorY, blocks) {
-    const bs = Math.ceil(b);
-    blocks.forEach(function(bl) {
-      ctx.fillStyle = bl.c;
-      ctx.fillRect(anchorX + bl.dx * b, anchorY + bl.dy * b, bs, bs);
-    });
+  function drawBlock(gx, gy, bw, bh, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(sx + gx * b, sy + gy * b, bw * b, bh * b);
   }
 
-  // ── SUNGLASSES ──
-  // Isolated PNG: 7 horizontal black blocks
-  // Reference: thin bar across Pip's face at eye level
   if (hatId === 'cool_shades' || hatId === 'sunglasses') {
-    var ancX = sx + sw * 0.04;
-    var ancY = sy + sh * 0.22;
-    var blocks = [];
-    for (var i = 0; i < 7; i++) {
-      blocks.push({dx: i, dy: 0, c: '#080808'});
-    }
-    drawBlocks(ancX, ancY, blocks);
-
-  // ── ASCOT ──
-  // Isolated PNG: diagonal red pattern
-  //   .#...
-  //   .##..
-  //   ...#.
-  //   ..#.#
-  } else if (hatId === 'ascot') {
-    var ancX = sx + sw * 0.39;
-    var ancY = sy + sh * 0.32;
-    drawBlocks(ancX, ancY, [
-      {dx:0, dy:0, c:'#ed1c24'},
-      {dx:1, dy:1, c:'#ed1c24'}, {dx:2, dy:1, c:'#ed1c24'},
-      {dx:3, dy:2, c:'#ed1c24'},
-      {dx:2, dy:3, c:'#ed1c24'}, {dx:4, dy:3, c:'#ed1c24'}
-    ]);
-
-  // ── BEANIE ──
-  // Isolated PNG: open-bottom rectangle
-  //   .##.
-  //   #..#
+    // Spec Sunglasses: Solid black bar across both eyes with white glare pixel
+    drawBlock(0.8, 3.8, 5.8, 1.2, '#080808'); // Main black bar
+    drawBlock(1.4, 4.0, 0.8, 0.6, '#ffffff'); // Glare highlight
   } else if (hatId === 'beanie') {
-    var ancX = sx + sw * 0.14;
-    var ancY = sy + sh * 0.0;
-    drawBlocks(ancX, ancY, [
-      {dx:1, dy:0, c:'#a8e61d'}, {dx:2, dy:0, c:'#a8e61d'},
-      {dx:0, dy:1, c:'#a8e61d'}, {dx:3, dy:1, c:'#a8e61d'}
-    ]);
-
-  // ── RAINBOOTS ──
-  // Isolated PNG: two pairs of L-shaped boots
-  // Each pair:
-  //   #.#.
-  //   ...#
-  //   .#..
-  } else if (hatId === 'rainboots') {
-    // Front hooves (left legs in sprite)
-    var fX = sx + sw * 0.30;
-    var fY = sy + sh * 0.86;
-    drawBlocks(fX, fY, [
-      {dx:0, dy:0, c:'#4d6df3'}, {dx:2, dy:0, c:'#4d6df3'},
-      {dx:3, dy:1, c:'#4d6df3'},
-      {dx:1, dy:2, c:'#4d6df3'}
-    ]);
-    // Back hooves (right legs in sprite)
-    var bX = sx + sw * 0.80;
-    var bY = sy + sh * 0.86;
-    drawBlocks(bX, bY, [
-      {dx:0, dy:0, c:'#4d6df3'}, {dx:2, dy:0, c:'#4d6df3'},
-      {dx:3, dy:1, c:'#4d6df3'},
-      {dx:1, dy:2, c:'#4d6df3'}
-    ]);
-
-  // ── COWBOY HAT ──
-  // Isolated PNG:
-  //   ..##.##.
-  //   ....#...
-  //   #dd.....d#   (d = darker brown)
+    // Spec Lime Green Beanie: Cap on top of forehead/brow
+    drawBlock(1.8, 1.2, 3.4, 1.0, '#a8e61d'); // Lime green dome
+    drawBlock(1.2, 2.2, 4.4, 0.8, '#76cc03'); // Brim
+    drawBlock(3.0, 0.4, 1.0, 0.8, '#d4ff55'); // Top pom-pom
   } else if (hatId === 'cowboy_hat') {
-    var ancX = sx + sw * 0.04;
-    var ancY = sy - b * 0.5;
-    drawBlocks(ancX, ancY, [
-      {dx:2, dy:0, c:'#9c5a3c'}, {dx:3, dy:0, c:'#9c5a3c'},
-      {dx:5, dy:0, c:'#9c5a3c'}, {dx:6, dy:0, c:'#9c5a3c'},
-      {dx:4, dy:1, c:'#9c5a3c'},
-      {dx:0, dy:2, c:'#9c5a3c'}, {dx:1, dy:2, c:'#633623'}, 
-      {dx:7, dy:2, c:'#633623'}, {dx:8, dy:2, c:'#9c5a3c'}
-    ]);
-
-  // ── GLASSES ──
-  // Isolated PNG: two square frames connected by bridge
-  //   #####
-  //   #...#
-  //   #.###.#
-  //   ..#.#..
+    // Spec Cowboy Hat: Brown hat sitting on head with wide brim and indented crown
+    drawBlock(0.2, 1.8, 6.8, 0.8, '#633623'); // Brim base band
+    drawBlock(0.0, 1.2, 0.8, 0.8, '#9c5a3c'); // Left brim curl
+    drawBlock(6.4, 1.2, 0.8, 0.8, '#9c5a3c'); // Right brim curl
+    drawBlock(1.8, -0.4, 3.6, 1.4, '#9c5a3c'); // Crown main
+    drawBlock(3.0, -0.6, 1.2, 0.6, '#633623'); // Crown dent center
+  } else if (hatId === 'rainboots') {
+    // Spec Blue Rainboots: Blue periwinkle boots fitted over all 4 hooves
+    // Front hooves
+    drawBlock(4.6, 11.8, 1.2, 2.6, '#4d6df3');
+    drawBlock(6.0, 11.8, 1.2, 2.6, '#4d6df3');
+    drawBlock(4.6, 13.6, 2.6, 0.8, '#4d6df3'); // Front boot foot
+    drawBlock(4.6, 11.4, 2.6, 0.4, '#859dff'); // Front boot cuff
+    // Back hooves
+    drawBlock(12.8, 11.8, 1.2, 2.6, '#4d6df3');
+    drawBlock(14.2, 11.8, 1.2, 2.6, '#4d6df3');
+    drawBlock(12.8, 13.6, 2.6, 0.8, '#4d6df3'); // Back boot foot
+    drawBlock(12.8, 11.4, 2.6, 0.4, '#859dff'); // Back boot cuff
+  } else if (hatId === 'ascot') {
+    // Spec Red Ascot: Red scarf wrapped around neck with tail
+    drawBlock(4.4, 5.0, 2.4, 1.0, '#ed1c24'); // Neck wrap
+    drawBlock(5.6, 6.0, 1.2, 2.0, '#ed1c24'); // Scarf knot & tail
   } else if (hatId === 'glasses') {
-    var ancX = sx + sw * 0.02;
-    var ancY = sy + sh * 0.20;
-    drawBlocks(ancX, ancY, [
-      {dx:0, dy:0, c:'#464646'}, {dx:1, dy:0, c:'#464646'}, {dx:2, dy:0, c:'#464646'}, {dx:3, dy:0, c:'#464646'}, {dx:4, dy:0, c:'#464646'},
-      {dx:0, dy:1, c:'#464646'}, {dx:4, dy:1, c:'#464646'},
-      {dx:0, dy:2, c:'#464646'}, {dx:2, dy:2, c:'#464646'}, {dx:3, dy:2, c:'#464646'}, {dx:4, dy:2, c:'#464646'}, {dx:6, dy:2, c:'#464646'},
-      {dx:1, dy:3, c:'#464646'}, {dx:5, dy:3, c:'#464646'}
-    ]);
-
-  // ── HEADPHONES ──
-  // Isolated PNG: band over head + ear cups
-  //   #####.
-  //   #....#
-  //   .##..#.#
-  //   #.....##
-  //   ...###.#
-  //   ##.....#
+    // Wire Glasses
+    drawBlock(1.0, 3.8, 2.0, 1.2, '#464646');
+    drawBlock(3.6, 3.8, 2.0, 1.2, '#464646');
+    drawBlock(3.0, 4.0, 0.6, 0.4, '#464646');
   } else if (hatId === 'headphones') {
-    var ancX = sx + sw * 0.02;
-    var ancY = sy - b * 0.5;
-    drawBlocks(ancX, ancY, [
-      {dx:0, dy:0, c:'#464646'}, {dx:1, dy:0, c:'#464646'}, {dx:2, dy:0, c:'#464646'}, {dx:3, dy:0, c:'#464646'}, {dx:4, dy:0, c:'#464646'},
-      {dx:0, dy:1, c:'#464646'}, {dx:5, dy:1, c:'#464646'},
-      {dx:1, dy:2, c:'#464646'}, {dx:2, dy:2, c:'#464646'}, {dx:5, dy:2, c:'#464646'}, {dx:7, dy:2, c:'#464646'},
-      {dx:0, dy:3, c:'#464646'}, {dx:6, dy:3, c:'#464646'}, {dx:7, dy:3, c:'#464646'}
-    ]);
-
-  // ── STRAW HAT ──
+    // Headphones
+    drawBlock(1.6, 0.4, 4.0, 0.5, '#464646'); // Headband
+    drawBlock(1.2, 0.9, 1.0, 2.2, '#464646'); // Left ear pad
+    drawBlock(4.8, 0.9, 1.0, 2.2, '#464646'); // Right ear pad
   } else if (hatId === 'straw_hat') {
-    var ancX = sx + sw * 0.04;
-    var ancY = sy - b;
-    drawBlocks(ancX, ancY, [
-      {dx:2, dy:0, c:'#fbc02d'}, {dx:3, dy:0, c:'#fbc02d'}, {dx:4, dy:0, c:'#fbc02d'}, {dx:5, dy:0, c:'#fbc02d'},
-      {dx:2, dy:1, c:'#fbc02d'}, {dx:3, dy:1, c:'#d50000'}, {dx:4, dy:1, c:'#d50000'}, {dx:5, dy:1, c:'#fbc02d'},
-      {dx:0, dy:2, c:'#fbc02d'}, {dx:1, dy:2, c:'#fbc02d'}, {dx:2, dy:2, c:'#fbc02d'}, {dx:3, dy:2, c:'#fbc02d'},
-      {dx:4, dy:2, c:'#fbc02d'}, {dx:5, dy:2, c:'#fbc02d'}, {dx:6, dy:2, c:'#fbc02d'}, {dx:7, dy:2, c:'#fbc02d'}
-    ]);
-
-  // ── FLOWER CROWN ──
+    drawBlock(0.8, 1.6, 5.6, 0.8, '#fbc02d');
+    drawBlock(1.8, 0.4, 3.6, 1.2, '#fbc02d');
+    drawBlock(1.8, 1.4, 3.6, 0.3, '#d50000');
   } else if (hatId === 'flower_crown') {
-    var ancX = sx + sw * 0.06;
-    var ancY = sy + sh * 0.01;
-    drawBlocks(ancX, ancY, [
-      {dx:1, dy:0, c:'#ff4081'}, {dx:3, dy:0, c:'#ffeb3b'}, {dx:5, dy:0, c:'#00e676'},
-      {dx:0, dy:1, c:'#4caf50'}, {dx:1, dy:1, c:'#4caf50'}, {dx:2, dy:1, c:'#4caf50'},
-      {dx:3, dy:1, c:'#4caf50'}, {dx:4, dy:1, c:'#4caf50'}, {dx:5, dy:1, c:'#4caf50'}, {dx:6, dy:1, c:'#4caf50'}
-    ]);
-
-  // ── CUTE BOW ──
+    drawBlock(1.2, 1.8, 4.8, 0.6, '#4caf50');
+    drawBlock(1.6, 1.0, 0.8, 0.8, '#ff4081');
+    drawBlock(2.8, 1.0, 0.8, 0.8, '#ffeb3b');
+    drawBlock(4.0, 1.0, 0.8, 0.8, '#00e676');
   } else if (hatId === 'cute_bow') {
-    var ancX = sx + sw * 0.12;
-    var ancY = sy + sh * 0.02;
-    drawBlocks(ancX, ancY, [
-      {dx:0, dy:0, c:'#ff4081'}, {dx:1, dy:0, c:'#ff4081'}, {dx:2, dy:0, c:'#ff4081'},
-      {dx:0, dy:1, c:'#ff4081'}, {dx:1, dy:1, c:'#ffffff'}, {dx:2, dy:1, c:'#ff4081'}
-    ]);
-
-  // ── PARTY HAT ──
+    drawBlock(2.2, 1.0, 2.0, 1.4, '#ff4081');
+    drawBlock(2.8, 1.4, 0.8, 0.6, '#ffffff');
   } else if (hatId === 'party_hat') {
-    var ancX = sx + sw * 0.10;
-    var ancY = sy - b * 2;
-    drawBlocks(ancX, ancY, [
-      {dx:2, dy:0, c:'#ffeb3b'},
-      {dx:2, dy:1, c:'#ab47bc'},
-      {dx:1, dy:2, c:'#ab47bc'}, {dx:2, dy:2, c:'#ab47bc'}, {dx:3, dy:2, c:'#ab47bc'},
-      {dx:0, dy:3, c:'#ab47bc'}, {dx:1, dy:3, c:'#ab47bc'}, {dx:2, dy:3, c:'#ab47bc'}, {dx:3, dy:3, c:'#ab47bc'}, {dx:4, dy:3, c:'#ab47bc'}
-    ]);
+    ctx.fillStyle = '#ab47bc';
+    ctx.beginPath();
+    ctx.moveTo(sx + 3.2 * b, sy - 0.5 * b);
+    ctx.lineTo(sx + 1.8 * b, sy + 2.0 * b);
+    ctx.lineTo(sx + 4.6 * b, sy + 2.0 * b);
+    ctx.closePath();
+    ctx.fill();
+    drawBlock(2.8, -1.0, 0.8, 0.8, '#ffeb3b');
   }
 
   ctx.restore();
