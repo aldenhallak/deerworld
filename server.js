@@ -41,6 +41,11 @@ const droppedItems = {};
 const SHOP_ITEMS = {
   straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', cost: 5 },
   cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', cost: 4 },
+  sunglasses: { id: 'sunglasses', name: 'Sunglasses', type: 'hat', cost: 8 },
+  rainboots: { id: 'rainboots', name: 'Rainboots', type: 'hat', cost: 10 },
+  cowboy_hat: { id: 'cowboy_hat', name: 'Cowboy Hat', type: 'hat', cost: 12 },
+  ascot: { id: 'ascot', name: 'Red Ascot', type: 'hat', cost: 7 },
+  beanie: { id: 'beanie', name: 'Green Beanie', type: 'hat', cost: 6 },
   crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', cost: 1 },
   carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 3 },
   corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', cost: 6 },

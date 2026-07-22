@@ -344,12 +344,48 @@ function drawWearableHat(px, py, hatId, facing, approxH) {
     ctx.fill();
     ctx.fillStyle = '#ffeb3b';
     ctx.fillRect(headX - 2, headY - 20, 4, 4);
-  } else if (hatId === 'cool_shades') {
+  } else if (hatId === 'cool_shades' || hatId === 'sunglasses') {
     const eyeX = facing === 'right' ? headX + 2 : headX - 8;
-    ctx.fillStyle = '#212121';
-    ctx.fillRect(eyeX - 4, headY + 2, 14, 5);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(eyeX - 4, headY + 1, 14, 6);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(eyeX - 2, headY + 3, 2, 2);
+    ctx.fillRect(eyeX - 2, headY + 2, 3, 2);
+  } else if (hatId === 'rainboots') {
+    const bootY = py - 7;
+    const leg1 = facing === 'right' ? px + 8 : px - 12;
+    const leg2 = facing === 'right' ? px + 2 : px - 6;
+    const leg3 = facing === 'right' ? px - 8 : px + 4;
+    const leg4 = facing === 'right' ? px - 14 : px + 10;
+    ctx.fillStyle = '#3b82f6';
+    [leg1, leg2, leg3, leg4].forEach(lx => {
+      ctx.fillRect(lx - 2, bootY, 6, 8);
+    });
+    ctx.fillStyle = '#60a5fa';
+    [leg1, leg2, leg3, leg4].forEach(lx => {
+      ctx.fillRect(lx - 2, bootY - 1, 6, 2);
+    });
+  } else if (hatId === 'cowboy_hat') {
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(headX - 16, headY - 6, 32, 4);
+    ctx.fillRect(headX - 18, headY - 8, 4, 3);
+    ctx.fillRect(headX + 14, headY - 8, 4, 3);
+    ctx.fillRect(headX - 10, headY - 16, 20, 10);
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(headX - 10, headY - 8, 20, 2);
+  } else if (hatId === 'ascot') {
+    const neckX = facing === 'right' ? headX - 1 : headX - 5;
+    const neckY = headY + 11;
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(neckX - 4, neckY, 12, 5);
+    const tailX = facing === 'right' ? neckX + 6 : neckX - 4;
+    ctx.fillRect(tailX, neckY + 4, 4, 7);
+  } else if (hatId === 'beanie') {
+    ctx.fillStyle = '#84cc16';
+    ctx.fillRect(headX - 10, headY - 12, 20, 8);
+    ctx.fillStyle = '#65a30d';
+    ctx.fillRect(headX - 12, headY - 5, 24, 3);
+    ctx.fillStyle = '#a3e635';
+    ctx.fillRect(headX - 2, headY - 15, 4, 4);
   }
 
   ctx.restore();
