@@ -206,16 +206,30 @@ function updatePhysics(dt) {
         const key = COOP_LEVEL_1.keys.find(k => k.targetLockId === lock.id);
         if (key && key.isCollected) lock.isOpen = true;
       } else if (lock.lockType === 'plate') {
-        const plate = COOP_LEVEL_1.plates.find(pl => pl.targetLockId === lock.id);
-        lock.isOpen = plate ? plate.isPressed : false;
+        // Special: lock_4 and lock_4b both require plate_3 AND plate_4 pressed
+        if (lock.id === 'lock_4' || lock.id === 'lock_4b') {
+          const p3 = COOP_LEVEL_1.plates.find(pl => pl.id === 'plate_3');
+          const p4 = COOP_LEVEL_1.plates.find(pl => pl.id === 'plate_4');
+          lock.isOpen = (p3 && p3.isPressed) && (p4 && p4.isPressed);
+        } else {
+          const plate = COOP_LEVEL_1.plates.find(pl => pl.targetLockId === lock.id);
+          lock.isOpen = plate ? plate.isPressed : false;
+        }
       }
     });
 
-    // Goal Collision
+    // Goal Collision — both players must be in goal zone
     const g = COOP_LEVEL_1.goal;
     const gy = g.y + offsetY;
     if (me.x >= g.x && me.x <= g.x + g.w && me.y >= gy && me.y <= gy + g.h) {
-      spawnFloatText(me.x, me.y - 40, 'CO-OP LEVEL SOLVED!', '#10b981');
+      // Check if any other player is also in the goal
+      const others = Object.values(players).filter(p => p.id !== selfId && (p.world || 'main') === 'coop1');
+      const allInGoal = others.some(p => p.x >= g.x && p.x <= g.x + g.w && p.y >= gy && p.y <= gy + g.h);
+      if (allInGoal) {
+        spawnFloatText(me.x, me.y - 40, '🏆 CO-OP LEVEL SOLVED! 🏆', '#10b981');
+      } else {
+        spawnFloatText(me.x, me.y - 40, 'Waiting for partner...', '#38bdf8');
+      }
     }
   }
 

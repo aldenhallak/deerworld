@@ -889,67 +889,119 @@ function render(now) {
   } else if (myWorld === 'coop1') {
     const offsetY = canvas.height - COOP_LEVEL_1.height;
 
-    // Render Co-op Level 1 Platforms
+    // Room Section Labels (behind everything)
+    ctx.save();
+    ctx.font = 'bold 48px monospace';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillText('ROOM 1', 390, groundY - 200);
+    ctx.fillText('ROOM 2', 1210, groundY - 200);
+    ctx.fillText('ROOM 3', 2020, groundY - 200);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    // Render Platforms
     COOP_LEVEL_1.platforms.forEach(plat => {
       const py = plat.y + offsetY;
-      ctx.fillStyle = '#1e293b';
+      // Color code by room
+      const isRoom3 = plat.x >= 1640;
+      const isRoom2 = plat.x >= 820 && plat.x < 1640;
+      ctx.fillStyle = isRoom3 ? '#1a1a3a' : (isRoom2 ? '#0f2236' : '#1e293b');
       ctx.fillRect(plat.x, py, plat.w, plat.h);
-      ctx.fillStyle = '#38bdf8';
+      ctx.fillStyle = isRoom3 ? '#a78bfa' : (isRoom2 ? '#38bdf8' : '#0ea5e9');
       ctx.fillRect(plat.x, py, plat.w, 4);
     });
 
     // Render Springs
     COOP_LEVEL_1.springs.forEach(s => {
       const sy = s.y + offsetY;
-      ctx.fillStyle = '#0284c7';
+      ctx.fillStyle = '#0c4a6e';
       ctx.fillRect(s.x, sy + 6, s.w, s.h - 6);
-      ctx.fillStyle = '#38bdf8';
+      ctx.fillStyle = '#7dd3fc';
       ctx.fillRect(s.x, sy, s.w, 6);
+      // Spring coil lines
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(s.x + 4, sy + 8 + i * 4);
+        ctx.lineTo(s.x + s.w - 4, sy + 8 + i * 4);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SPRING', s.x + s.w / 2, sy - 6);
     });
 
     // Render Pressure Plates
     COOP_LEVEL_1.plates.forEach(p => {
       const py = p.y + offsetY;
       const isDown = p.isPressed;
-      ctx.fillStyle = isDown ? '#15803d' : '#f59e0b';
-      ctx.fillRect(p.x, py + (isDown ? 6 : 0), p.w, p.h - (isDown ? 6 : 0));
+      // Double-plate finale uses purple
+      const isFinale = (p.id === 'plate_3' || p.id === 'plate_4');
+      ctx.fillStyle = isDown ? '#15803d' : (isFinale ? '#7c3aed' : '#d97706');
+      ctx.fillRect(p.x, py + (isDown ? 5 : 0), p.w, p.h - (isDown ? 5 : 0));
       ctx.fillStyle = '#fef08a';
-      ctx.fillRect(p.x + 4, py + (isDown ? 6 : 0), p.w - 8, 2);
+      ctx.fillRect(p.x + 4, py + (isDown ? 5 : 0), p.w - 8, 2);
     });
 
     // Render Keys
     COOP_LEVEL_1.keys.forEach(k => {
       const ky = k.y + offsetY;
       if (!k.isCollected) {
-        ctx.fillStyle = '#f59e0b';
+        // Glow
+        ctx.save();
+        ctx.globalAlpha = 0.3 + 0.2 * Math.sin(animTime * 4);
+        ctx.fillStyle = '#fbbf24';
         ctx.beginPath();
-        ctx.arc(k.x + 12, ky + 12, 10, 0, Math.PI * 2);
+        ctx.arc(k.x + 12, ky + 12, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        // Key head
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(k.x + 12, ky + 10, 9, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#0f172a';
         ctx.beginPath();
-        ctx.arc(k.x + 12, ky + 12, 4, 0, Math.PI * 2);
+        ctx.arc(k.x + 12, ky + 10, 4, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#f59e0b';
-        ctx.fillRect(k.x + 10, ky + 18, 4, 8);
+        // Key shaft
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(k.x + 10, ky + 17, 4, 10);
+        ctx.fillRect(k.x + 14, ky + 22, 4, 3);
+        ctx.fillRect(k.x + 14, ky + 26, 3, 3);
+        ctx.restore();
+        ctx.font = '9px monospace';
+        ctx.fillStyle = '#fbbf24';
+        ctx.textAlign = 'center';
+        ctx.fillText('KEY', k.x + 12, ky - 6);
       }
     });
 
     // Render Lock Doors
     COOP_LEVEL_1.locks.forEach(l => {
       const ly = l.y + offsetY;
+      const isFinale = (l.id === 'lock_4' || l.id === 'lock_4b');
       if (l.isOpen) {
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+        ctx.strokeStyle = isFinale ? 'rgba(167,139,250,0.3)' : 'rgba(56,189,248,0.3)';
         ctx.lineWidth = 2;
         ctx.setLineDash([4, 4]);
         ctx.strokeRect(l.x, ly, l.w, l.h);
         ctx.setLineDash([]);
       } else {
-        ctx.fillStyle = l.lockType === 'key' ? '#b91c1c' : '#c2410c';
+        ctx.fillStyle = isFinale ? '#4c1d95' : (l.lockType === 'key' ? '#92400e' : '#1e3a5f');
         ctx.fillRect(l.x, ly, l.w, l.h);
+        ctx.fillStyle = isFinale ? '#7c3aed' : (l.lockType === 'key' ? '#d97706' : '#0284c7');
+        ctx.fillRect(l.x, ly, 3, l.h);
+        ctx.fillRect(l.x + l.w - 3, ly, 3, l.h);
         ctx.fillStyle = '#f8fafc';
-        ctx.font = 'bold 10px monospace';
+        ctx.font = 'bold 11px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(l.lockType === 'key' ? '🔑' : '🔘', l.x + l.w / 2, ly + l.h / 2);
+        const icon = isFinale ? '⚡' : (l.lockType === 'key' ? '🔑' : '🔘');
+        ctx.fillText(icon, l.x + l.w / 2, ly + l.h / 2 + 4);
       }
     });
 
@@ -957,7 +1009,8 @@ function render(now) {
     if (COOP_LEVEL_1.goal) {
       const g = COOP_LEVEL_1.goal;
       const gy = g.y + offsetY;
-      ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+      const pulse = 0.15 + 0.08 * Math.sin(animTime * 3);
+      ctx.fillStyle = `rgba(16, 185, 129, ${pulse})`;
       ctx.fillRect(g.x, gy, g.w, g.h);
       ctx.strokeStyle = '#10b981';
       ctx.lineWidth = 3;
@@ -965,7 +1018,10 @@ function render(now) {
       ctx.fillStyle = '#10b981';
       ctx.font = 'bold 14px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('🏆 GOAL', g.x + g.w / 2, gy + 24);
+      ctx.fillText('🏆 GOAL', g.x + g.w / 2, gy + 28);
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#6ee7b7';
+      ctx.fillText('(both players)', g.x + g.w / 2, gy + 46);
     }
 
     // Return Portal
