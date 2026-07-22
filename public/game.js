@@ -997,11 +997,11 @@ function render(now) {
         ctx.fillStyle = isFinale ? '#7c3aed' : (l.lockType === 'key' ? '#d97706' : '#0284c7');
         ctx.fillRect(l.x, ly, 3, l.h);
         ctx.fillRect(l.x + l.w - 3, ly, 3, l.h);
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = 'bold 11px monospace';
-        ctx.textAlign = 'center';
-        const icon = isFinale ? '⚡' : (l.lockType === 'key' ? '🔑' : '🔘');
-        ctx.fillText(icon, l.x + l.w / 2, ly + l.h / 2 + 4);
+        // Draw small horizontal stripes instead of emoji
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        for (let si = 20; si < l.h - 10; si += 22) {
+          ctx.fillRect(l.x + 4, ly + si, l.w - 8, 4);
+        }
       }
     });
 
@@ -1016,12 +1016,12 @@ function render(now) {
       ctx.lineWidth = 3;
       ctx.strokeRect(g.x, gy, g.w, g.h);
       ctx.fillStyle = '#10b981';
-      ctx.font = 'bold 14px sans-serif';
+      ctx.font = 'bold 13px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('🏆 GOAL', g.x + g.w / 2, gy + 28);
+      ctx.fillText('GOAL', g.x + g.w / 2, gy + 22);
       ctx.font = '10px monospace';
       ctx.fillStyle = '#6ee7b7';
-      ctx.fillText('(both players)', g.x + g.w / 2, gy + 46);
+      ctx.fillText('both players', g.x + g.w / 2, gy + 38);
     }
 
     // Return Portal

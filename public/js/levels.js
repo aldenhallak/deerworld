@@ -71,18 +71,14 @@ const COOP_LEVEL_1 = {
   ],
   locks: [
     // lock_1: Vertical gate at x:790 — plate lock, held open by plate_1 (P1 on high platform)
-    { id: "lock_1", x: 790, y: 560, w: 24, h: 200, lockType: "plate", isOpen: false },
-    // lock_2: Vertical gate at x:1040 — key lock (blocks spring access to key island until... wait no)
-    //         Actually: key is on the island, lock_2 blocks Room 3 entry — opened permanently by key
-    { id: "lock_2", x: 1600, y: 560, w: 24, h: 200, lockType: "key", isOpen: false },
-    // lock_3: Vertical gate at x:1575 — plate lock, held open by plate_2 (P2 on far right of Room 2)
-    //         Note: lock_3 is BETWEEN lock_2 and Room 3 — actually let's put lock_3 at x:1560 alongside lock_2
-    //         to make a double-gate: key opens one, plate opens the other simultaneously or sequentially.
-    //         Revised: lock_3 is actually in Room 2 between ground sections — held by P2 so P1 can pass.
-    { id: "lock_3", x: 1560, y: 590, w: 24, h: 170, lockType: "plate", isOpen: false },
+    { id: "lock_1", x: 790, y: 480, w: 24, h: 280, lockType: "plate", isOpen: false },
+    // lock_2: Vertical gate — opened permanently by key, blocks Room 3 entry
+    { id: "lock_2", x: 1600, y: 480, w: 24, h: 280, lockType: "key", isOpen: false },
+    // lock_3: Plate lock, held open by plate_2 (P2 on far right of Room 2)
+    { id: "lock_3", x: 1560, y: 480, w: 24, h: 280, lockType: "plate", isOpen: false },
     // lock_4 & lock_4b: The FINAL double gate — BOTH plate_3 and plate_4 must be held simultaneously
-    { id: "lock_4",  x: 2140, y: 580, w: 24, h: 180, lockType: "plate", isOpen: false },
-    { id: "lock_4b", x: 2164, y: 580, w: 24, h: 180, lockType: "plate", isOpen: false }
+    { id: "lock_4",  x: 2140, y: 480, w: 24, h: 280, lockType: "plate", isOpen: false },
+    { id: "lock_4b", x: 2164, y: 480, w: 24, h: 280, lockType: "plate", isOpen: false }
   ],
   goal: { x: 2220, y: 650, w: 150, h: 110 }
 };

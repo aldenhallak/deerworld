@@ -228,7 +228,7 @@ function updatePhysics(dt) {
       const others = Object.values(players).filter(p => p.id !== selfId && (p.world || 'main') === 'coop1');
       const allInGoal = others.some(p => p.x >= g.x && p.x <= g.x + g.w && p.y >= gy && p.y <= gy + g.h);
       if (allInGoal) {
-        spawnFloatText(me.x, me.y - 40, '🏆 CO-OP LEVEL SOLVED! 🏆', '#10b981');
+        spawnFloatText(me.x, me.y - 40, 'CO-OP LEVEL SOLVED!', '#10b981');
       } else {
         spawnFloatText(me.x, me.y - 40, 'Waiting for partner...', '#38bdf8');
       }
