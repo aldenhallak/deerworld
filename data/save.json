@@ -12,13 +12,7 @@
       "plantedAt": 1784608328876
     }
   },
-  "coins": {
-    "coin_0": {
-      "id": "coin_0",
-      "x": 470,
-      "yRel": -220
-    }
-  },
+  "coins": {},
   "userProfiles": {
     "pep": {
       "coins": 1,
@@ -34,10 +28,57 @@
       "coins": 0,
       "inventory": [],
       "equippedHat": null
+    },
+    "pop": {
+      "coins": 5,
+      "inventory": [],
+      "equippedHat": null
     }
   },
   "chatHistory": [],
   "courseLeaderboard": [
+    {
+      "name": "pop",
+      "timeMs": 2925,
+      "formattedTime": "2.92s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "pop",
+      "timeMs": 2926,
+      "formattedTime": "2.93s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "pop",
+      "timeMs": 2993,
+      "formattedTime": "2.99s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "pop",
+      "timeMs": 3058,
+      "formattedTime": "3.06s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "pop",
+      "timeMs": 3101,
+      "formattedTime": "3.10s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "pop",
+      "timeMs": 3142,
+      "formattedTime": "3.14s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "pop",
+      "timeMs": 3167,
+      "formattedTime": "3.17s",
+      "date": "7/21/2026"
+    },
     {
       "name": "Pip",
       "timeMs": 3192,
@@ -45,36 +86,25 @@
       "date": "7/21/2026"
     },
     {
+      "name": "pop",
+      "timeMs": 3300,
+      "formattedTime": "3.30s",
+      "date": "7/21/2026"
+    },
+    {
       "name": "Peep",
       "timeMs": 3543,
       "formattedTime": "3.54s",
       "date": "7/21/2026"
-    },
+    }
+  ],
+  "megaCourseLeaderboard": [
     {
-      "name": "Pip",
-      "timeMs": 3668,
-      "formattedTime": "3.67s",
-      "date": "7/21/2026"
-    },
-    {
-      "name": "Pip",
-      "timeMs": 3709,
-      "formattedTime": "3.71s",
-      "date": "7/21/2026"
-    },
-    {
-      "name": "Pip",
-      "timeMs": 4166,
-      "formattedTime": "4.17s",
-      "date": "7/21/2026"
-    },
-    {
-      "name": "Pip",
-      "timeMs": 4599,
-      "formattedTime": "4.60s",
+      "name": "pop",
+      "timeMs": 15351,
+      "formattedTime": "15.35s",
       "date": "7/21/2026"
     }
   ],
-  "megaCourseLeaderboard": [],
-  "timestamp": 1784637874815
+  "timestamp": 1784638328589
 }

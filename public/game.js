@@ -51,6 +51,35 @@
     tree: { totalTime: 28800000 }         // 8 hours
   };
 
+  const COOP_LEVEL_1 = {
+    name: "Co-op Puzzle Level 1",
+    width: 2400,
+    height: 800,
+    spawnP1: { x: 100, y: 720 },
+    spawnP2: { x: 160, y: 720 },
+    platforms: [
+      { id: "plat_ground_1", x: 0, y: 760, w: 750, h: 40, type: "normal" },
+      { id: "plat_ground_2", x: 850, y: 760, w: 600, h: 40, type: "normal" },
+      { id: "plat_ground_3", x: 1550, y: 760, w: 850, h: 40, type: "normal" },
+      { id: "plat_high_1", x: 300, y: 620, w: 200, h: 20, type: "normal" },
+      { id: "plat_high_2", x: 1000, y: 550, w: 250, h: 20, type: "normal" }
+    ],
+    springs: [
+      { id: "spring_1", x: 680, y: 742, w: 40, h: 18, bounceForce: 1100 }
+    ],
+    plates: [
+      { id: "plate_1", x: 400, y: 610, w: 40, h: 10, targetLockId: "lock_door_1", isPressed: false }
+    ],
+    keys: [
+      { id: "key_1", x: 1100, y: 500, w: 24, h: 24, targetLockId: "lock_door_2", isCollected: false }
+    ],
+    locks: [
+      { id: "lock_door_1", x: 800, y: 600, w: 20, h: 160, lockType: "plate", isOpen: false },
+      { id: "lock_door_2", x: 1500, y: 600, w: 20, h: 160, lockType: "key", isOpen: false }
+    ],
+    goal: { x: 2220, y: 660, w: 80, h: 100 }
+  };
+
   // ---- Web Audio API Synthesizer ----
   let audioCtx = null;
   function getAudioContext() {
@@ -188,6 +217,22 @@
     if (myWorld === 'garden') {
       // Flat ground layout for Garden World
       return [{ x: 0, y: groundY, w: canvas.width, h: 40 }];
+    }
+    if (myWorld === 'select') {
+      // Flat ground layout with floating platform for Level Selection Hall
+      return [
+        { x: 0, y: groundY, w: canvas.width, h: 40 },
+        { x: 200, y: groundY - 110, w: 300, h: 16 }
+      ];
+    }
+    if (myWorld === 'coop1') {
+      const plats = [...COOP_LEVEL_1.platforms];
+      COOP_LEVEL_1.locks.forEach(l => {
+        if (!l.isOpen) {
+          plats.push({ x: l.x, y: l.y, w: l.w, h: l.h });
+        }
+      });
+      return plats;
     }
     if (myWorld === 'course') {
       // Obstacle Course - Daring Platform Gauntlet
@@ -559,15 +604,29 @@
       return;
     }
     if (myWorld === 'main' && Math.abs(me.x - (canvas.width - 200)) < 60 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'course');
+      socket.emit('switchWorld', 'select');
       return;
     }
     if (myWorld === 'garden' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'main');
       return;
     }
+    if (myWorld === 'select') {
+      if (Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+        socket.emit('switchWorld', 'main');
+        return;
+      }
+      if (Math.abs(me.x - 240) < 60 && Math.abs(me.y - groundY) < 30) {
+        socket.emit('switchWorld', 'course');
+        return;
+      }
+      if (Math.abs(me.x - 440) < 60 && Math.abs(me.y - groundY) < 30) {
+        socket.emit('switchWorld', 'coop1');
+        return;
+      }
+    }
     if (myWorld === 'course' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'main');
+      socket.emit('switchWorld', 'select');
       return;
     }
     // Enter Mega Course from Finish Island of Course 1 (x: 1440)
@@ -577,6 +636,10 @@
     }
     if (myWorld === 'course2' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'course');
+      return;
+    }
+    if (myWorld === 'coop1' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'select');
       return;
     }
 
@@ -1055,8 +1118,10 @@
 
     let worldLabel = 'PLATFORMER';
     if (myWorld === 'garden') worldLabel = 'GARDEN & SHOP';
+    else if (myWorld === 'select') worldLabel = 'LEVEL SELECTION';
     else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE 1';
     else if (myWorld === 'course2') worldLabel = 'MEGA COURSE (STAGE 2)';
+    else if (myWorld === 'coop1') worldLabel = 'CO-OP PUZZLE 1';
 
     ctx.fillText(`COINS: ${myCoins} | WORLD: ${worldLabel}`, 14, 26);
 
@@ -1189,19 +1254,76 @@
     });
 
     if (!landed) { me.y = nextY; me.isGrounded = false; }
-    const maxWorldX = myWorld === 'course2' ? 4100 : canvas.width;
+    const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'coop1' ? 2400 : canvas.width);
     me.x = Math.max(20, Math.min(maxWorldX - 20, nextX));
 
     // Fall off screen in Obstacle Courses = teleport to start
-    if ((myWorld === 'course' || myWorld === 'course2') && me.y > canvas.height + 60) {
-      me.x = 120;
+    if ((myWorld === 'course' || myWorld === 'course2' || myWorld === 'coop1') && me.y > canvas.height + 60) {
+      me.x = myWorld === 'coop1' ? 100 : 120;
       me.y = getGroundY();
-      me.vx = 0;
-      me.vy = 0;
-      me.isGrounded = true;
-      courseRunStartTime = 0;
-      courseRunFinished = false;
+      me.vx = 0; me.vy = 0; me.isGrounded = true;
+      if (myWorld === 'course' || myWorld === 'course2') {
+        courseRunStartTime = 0; courseRunFinished = false;
+      }
       spawnFloatText(me.x, me.y - 40, 'FELL! Back to start...', '#e94560');
+    }
+
+    // Spring Collision for Co-op Level 1
+    if (myWorld === 'coop1') {
+      COOP_LEVEL_1.springs.forEach(s => {
+        if (me.vy >= 0 && me.y <= s.y + 6 && nextY >= s.y) {
+          if (nextX >= s.x - 14 && nextX <= s.x + s.w + 14) {
+            me.vy = -(s.bounceForce || 1100);
+            me.isGrounded = false;
+            playHopSound();
+          }
+        }
+      });
+
+      // Reset Pressure Plates state each frame for coop1
+      COOP_LEVEL_1.plates.forEach(plate => plate.isPressed = false);
+
+      // Check all players in coop1 world
+      Object.values(players).forEach(p => {
+        if ((p.world || 'main') !== 'coop1') return;
+        const py = p.y;
+        const px = p.x;
+
+        // Pressure plates
+        COOP_LEVEL_1.plates.forEach(plate => {
+          if (px >= plate.x - 14 && px <= plate.x + plate.w + 14 && Math.abs(py - plate.y) < 14) {
+            plate.isPressed = true;
+          }
+        });
+
+        // Keys (on walkover)
+        COOP_LEVEL_1.keys.forEach(k => {
+          if (!k.isCollected) {
+            if (Math.abs(px - (k.x + 12)) < 30 && Math.abs(py - (k.y + 12)) < 30) {
+              k.isCollected = true;
+              playCoinSound();
+              spawnFloatText(px, py - 40, 'KEY COLLECTED!', '#f59e0b');
+            }
+          }
+        });
+      });
+
+      // Update Lock doors open status
+      COOP_LEVEL_1.locks.forEach(lock => {
+        if (lock.lockType === 'key') {
+          const key = COOP_LEVEL_1.keys.find(k => k.targetLockId === lock.id);
+          if (key && key.isCollected) lock.isOpen = true;
+        } else if (lock.lockType === 'plate') {
+          const plate = COOP_LEVEL_1.plates.find(pl => pl.targetLockId === lock.id);
+          lock.isOpen = plate ? plate.isPressed : false;
+        }
+      });
+
+      // Goal Collision
+      const g = COOP_LEVEL_1.goal;
+      if (me.x >= g.x && me.x <= g.x + g.w && me.y >= g.y && me.y <= g.y + g.h) {
+        spawnFloatText(me.x, me.y - 40, 'CO-OP LEVEL SOLVED!', '#10b981');
+      }
     }
 
     checkCoinPickup();
@@ -1282,11 +1404,28 @@
 
     const groundY = getGroundY();
     const meX = (selfId && players[selfId]) ? players[selfId].x : 120;
-    const cameraX = (myWorld === 'course2') ? Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2)) : 0;
+    let cameraX = 0;
+    if (myWorld === 'course2') {
+      cameraX = Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2));
+    } else if (myWorld === 'coop1') {
+      cameraX = Math.max(0, Math.min(2400 - canvas.width, meX - canvas.width / 2));
+    }
 
     // Background color per world
     if (myWorld === 'garden') {
       ctx.fillStyle = '#1e3323';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (myWorld === 'select') {
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Background Grid
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.05)';
+      ctx.lineWidth = 2;
+      for (let gx = 0; gx < canvas.width; gx += 40) {
+        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
+      }
+    } else if (myWorld === 'coop1') {
+      ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else if (myWorld === 'course') {
       ctx.fillStyle = '#1a1a2e';
@@ -1515,10 +1654,104 @@
       ctx.restore();
 
       // Return Portal (far left)
-      drawPortal(80, groundY, '[E] RETURN TO COURSE 1', '#00e676');
+      drawPortal(80, groundY, '[E] LEVEL SELECT', '#00e676');
+    } else if (myWorld === 'select') {
+      // Render Selection Hall platforms
+      getPlatforms().forEach(plat => {
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fillRect(plat.x, plat.y, plat.w, 4);
+      });
+
+      // Title Sign
+      ctx.fillStyle = '#60a5fa';
+      ctx.font = 'bold 16px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('⭐ LEVEL SELECTION HALL ⭐', 340, groundY - 140);
+
+      // Portals
+      drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
+      drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
+      drawPortal(440, groundY, '[E] CO-OP PUZZLE 1', '#38bdf8');
+    } else if (myWorld === 'coop1') {
+      // Render Co-op Level 1 Platforms
+      COOP_LEVEL_1.platforms.forEach(plat => {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(plat.x, plat.y, plat.w, 4);
+      });
+
+      // Render Springs
+      COOP_LEVEL_1.springs.forEach(s => {
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(s.x, s.y + 6, s.w, s.h - 6);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(s.x, s.y, s.w, 6);
+      });
+
+      // Render Pressure Plates
+      COOP_LEVEL_1.plates.forEach(p => {
+        const isDown = p.isPressed;
+        ctx.fillStyle = isDown ? '#15803d' : '#f59e0b';
+        ctx.fillRect(p.x, p.y + (isDown ? 6 : 0), p.w, p.h - (isDown ? 6 : 0));
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(p.x + 4, p.y + (isDown ? 6 : 0), p.w - 8, 2);
+      });
+
+      // Render Keys
+      COOP_LEVEL_1.keys.forEach(k => {
+        if (!k.isCollected) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(k.x + 12, k.y + 12, 10, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#0f172a';
+          ctx.beginPath();
+          ctx.arc(k.x + 12, k.y + 12, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillRect(k.x + 10, k.y + 18, 4, 8);
+        }
+      });
+
+      // Render Lock Doors
+      COOP_LEVEL_1.locks.forEach(l => {
+        if (l.isOpen) {
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
+          ctx.strokeRect(l.x, l.y, l.w, l.h);
+          ctx.setLineDash([]);
+        } else {
+          ctx.fillStyle = l.lockType === 'key' ? '#b91c1c' : '#c2410c';
+          ctx.fillRect(l.x, l.y, l.w, l.h);
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(l.lockType === 'key' ? '🔑' : '🔘', l.x + l.w / 2, l.y + l.h / 2);
+        }
+      });
+
+      // Render Goal Zone
+      if (COOP_LEVEL_1.goal) {
+        const g = COOP_LEVEL_1.goal;
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+        ctx.fillRect(g.x, g.y, g.w, g.h);
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(g.x, g.y, g.w, g.h);
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏆 GOAL', g.x + g.w / 2, g.y + 24);
+      }
+
+      // Return Portal
+      drawPortal(80, groundY, '[E] LEVEL SELECT', '#00e676');
     } else {
       // Main Platformer World
-      // Platforms
       getPlatforms().forEach(plat => {
         ctx.fillStyle = '#1b2e23';
         ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
@@ -1529,8 +1762,8 @@
       // Portal to Garden World (far right in Main World)
       drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD', '#ffd700');
 
-      // Portal to Obstacle Course (far left in Main World)
-      drawPortal(canvas.width - 200, groundY, '[E] OBSTACLE COURSE', '#e94560');
+      // Portal to Selection World (replacing old obstacle course door)
+      drawPortal(canvas.width - 200, groundY, '[E] LEVEL SELECTION', '#38bdf8');
 
       // Draw Coins (Main World Only)
       Object.values(coins).forEach(coin => {
