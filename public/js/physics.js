@@ -110,22 +110,41 @@ function updatePhysics(dt) {
 
   getPlatforms().forEach(plat => {
     // Horizontal AABB Wall Collision for Gate Walls / Solid Barriers
+    // Uses overlap-resolution (push-out) so it works regardless of speed or spawn position
     if (plat.isGate || plat.isLock) {
       const playerTop = me.y - 40;
       const playerBottom = me.y;
       const platTop = plat.y;
       const platBottom = plat.y + plat.h;
 
-      // Check vertical overlap
+      // Only resolve if there is vertical overlap with the wall
       if (playerBottom > platTop + 2 && playerTop < platBottom - 2) {
-        // Moving Right into Left side of wall
-        if (me.x + 14 <= plat.x && finalX + 14 >= plat.x) {
-          finalX = plat.x - 14;
-          me.vx = 0;
-        }
-        // Moving Left into Right side of wall
-        else if (me.x - 14 >= plat.x + plat.w && finalX - 14 <= plat.x + plat.w) {
-          finalX = plat.x + plat.w + 14;
+        const playerLeft  = finalX - 14;
+        const playerRight = finalX + 14;
+        const wallLeft    = plat.x;
+        const wallRight   = plat.x + plat.w;
+
+        // Check for horizontal overlap
+        if (playerRight > wallLeft && playerLeft < wallRight) {
+          // Determine which side to push out from based on original position
+          const prevRight = me.x + 14;
+          const prevLeft  = me.x - 14;
+          if (prevRight <= wallLeft + 4) {
+            // Was on the left → push left
+            finalX = wallLeft - 14;
+          } else if (prevLeft >= wallRight - 4) {
+            // Was on the right → push right
+            finalX = wallRight + 14;
+          } else {
+            // Already inside (e.g. spawned inside) → push to nearest side
+            const overlapLeft  = playerRight - wallLeft;
+            const overlapRight = wallRight - playerLeft;
+            if (overlapLeft < overlapRight) {
+              finalX = wallLeft - 14;
+            } else {
+              finalX = wallRight + 14;
+            }
+          }
           me.vx = 0;
         }
       }

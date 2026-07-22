@@ -29,6 +29,7 @@ const userProfiles = {}; // { username: { coins, inventory, equippedHat } }
 const chatHistory = [];   // Array of persistent chat message objects
 const courseLeaderboard = []; // Array of top speedrun records: [{ name, timeMs, formattedTime }]
 const megaCourseLeaderboard = []; // Array of mega speedrun records: [{ name, timeMs, formattedTime }]
+const coopLeaderboard = []; // Co-op completion records: [{ names, timeMs, formattedTime, date }]
 const CHAT_LOG_FILE = path.join(DATA_DIR, 'chat_history.log');
 let plantIdCounter = 0;
 let coinIdCounter = 0;
@@ -87,6 +88,7 @@ async function atomicSaveState() {
       chatHistory: chatHistory.slice(-100),
       courseLeaderboard: courseLeaderboard.slice(0, 10),
       megaCourseLeaderboard: megaCourseLeaderboard.slice(0, 10),
+      coopLeaderboard: coopLeaderboard.slice(0, 10),
       timestamp: Date.now()
     }, null, 2);
     await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
@@ -107,6 +109,7 @@ try {
     if (Array.isArray(parsed.chatHistory)) chatHistory.push(...parsed.chatHistory);
     if (Array.isArray(parsed.courseLeaderboard)) courseLeaderboard.push(...parsed.courseLeaderboard);
     if (Array.isArray(parsed.megaCourseLeaderboard)) megaCourseLeaderboard.push(...parsed.megaCourseLeaderboard);
+    if (Array.isArray(parsed.coopLeaderboard)) coopLeaderboard.push(...parsed.coopLeaderboard);
   }
 } catch (e) {}
 
@@ -189,7 +192,8 @@ io.on('connection', (socket) => {
       shopCatalog: SHOP_ITEMS,
       chatHistory,
       courseLeaderboard,
-      megaCourseLeaderboard
+      megaCourseLeaderboard,
+      coopLeaderboard
     });
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
@@ -481,6 +485,43 @@ io.on('connection', (socket) => {
       if (courseLeaderboard.length > 10) courseLeaderboard.length = 10;
       io.emit('leaderboardUpdated', courseLeaderboard);
     }
+    atomicSaveState();
+  });
+
+  // Submit Co-op Puzzle completion time
+  socket.on('submitCoopTime', (payload) => {
+    const player = players[socket.id];
+    if (!player || !payload || typeof payload.timeMs !== 'number' || payload.timeMs < 1000) return;
+
+    // Find the partner (other coop1 player named in payload)
+    const partnerName = payload.partnerName || '?';
+    const sec = (payload.timeMs / 1000).toFixed(2);
+    const formattedTime = `${sec}s`;
+
+    const record = {
+      names: [player.name, partnerName],
+      timeMs: Math.round(payload.timeMs),
+      formattedTime,
+      date: new Date().toLocaleDateString()
+    };
+
+    coopLeaderboard.push(record);
+    coopLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
+    if (coopLeaderboard.length > 10) coopLeaderboard.length = 10;
+    io.emit('coopLeaderboardUpdated', coopLeaderboard);
+
+    // Teleport ALL coop1 players back to spawn after a short delay
+    setTimeout(() => {
+      Object.values(players).forEach(p => {
+        if (p.world === 'coop1') {
+          p.x = p.id === socket.id ? 100 : 180;
+          p.yRel = 0;
+          io.emit('playerWorldSwitched', { id: p.id, world: 'coop1', x: p.x, yRel: p.yRel });
+        }
+      });
+      io.emit('coopLevelReset', {});
+    }, 3000);
+
     atomicSaveState();
   });
 

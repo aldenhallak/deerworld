@@ -33,6 +33,16 @@
       "coins": 5,
       "inventory": [],
       "equippedHat": null
+    },
+    "Pop": {
+      "coins": 1,
+      "inventory": [],
+      "equippedHat": null
+    },
+    "{pp": {
+      "coins": 0,
+      "inventory": [],
+      "equippedHat": null
     }
   },
   "chatHistory": [],
@@ -106,5 +116,5 @@
       "date": "7/21/2026"
     }
   ],
-  "timestamp": 1784690183530
+  "timestamp": 1784694037239
 }
