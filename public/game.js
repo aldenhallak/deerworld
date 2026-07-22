@@ -32,8 +32,11 @@ let droppedItems = {}; // { id: {id, world, type, x, yRel, label} }
 let shopCatalog = {};
 let courseLeaderboard = [];
 let megaCourseLeaderboard = [];
+let coopLeaderboard = [];
 let courseRunStartTime = 0;
 let courseRunFinished = false;
+let coopStartTime = 0;
+let coopFinished = false;
 let myCoins = 0;
 let myInventory = [];
 let myEquippedHat = null;
@@ -84,6 +87,7 @@ function connectSocket(username) {
     shopCatalog = data.shopCatalog || {};
     if (Array.isArray(data.courseLeaderboard)) courseLeaderboard = data.courseLeaderboard;
     if (Array.isArray(data.megaCourseLeaderboard)) megaCourseLeaderboard = data.megaCourseLeaderboard;
+    if (Array.isArray(data.coopLeaderboard)) coopLeaderboard = data.coopLeaderboard;
     
     const me = data.players[selfId];
     if (me) {
@@ -132,6 +136,8 @@ function connectSocket(username) {
         myWorld = data.world;
         courseRunStartTime = 0;
         courseRunFinished = false;
+        coopStartTime = 0;
+        coopFinished = false;
         let wName = 'Main World';
         if (data.world === 'garden') wName = 'Garden World';
         else if (data.world === 'select') wName = 'Level Selection';
@@ -256,6 +262,20 @@ function connectSocket(username) {
 
   socket.on('megaLeaderboardUpdated', (lb) => {
     megaCourseLeaderboard = lb || [];
+  });
+
+  socket.on('coopLeaderboardUpdated', (lb) => {
+    coopLeaderboard = lb || [];
+  });
+
+  socket.on('coopLevelReset', () => {
+    if (typeof COOP_LEVEL_1 !== 'undefined') {
+      COOP_LEVEL_1.keys.forEach(k => k.isCollected = false);
+      COOP_LEVEL_1.plates.forEach(p => p.isPressed = false);
+      COOP_LEVEL_1.locks.forEach(l => l.isOpen = false);
+    }
+    coopStartTime = 0;
+    coopFinished = false;
   });
 
   socket.on('selectLeverFlipped', (data) => {
@@ -886,8 +906,14 @@ function render(now) {
 
     // Right Lever Switch at x: 950 (To the right of the ??? door)
     drawLever(950, groundY, isLeverActive, true);
+
+    // Co-op Leaderboard in Selection Hall
+    drawCoopLeaderboard(1050, groundY);
   } else if (myWorld === 'coop1') {
     const offsetY = canvas.height - COOP_LEVEL_1.height;
+
+    // Co-op Leaderboard at the spawn/start of Co-op world
+    drawCoopLeaderboard(260, groundY);
 
     // Room Section Labels (behind everything)
     ctx.save();
@@ -1173,6 +1199,42 @@ function render(now) {
   drawHUD();
 
   requestAnimationFrame(render);
+}
+
+function drawCoopLeaderboard(x, groundY) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,23,42,0.9)';
+  ctx.fillRect(x, groundY - 200, 260, 140);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, groundY - 200, 260, 140);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('CO-OP LEADERBOARD', x + 130, groundY - 183);
+  ctx.strokeStyle = 'rgba(56,189,248,0.5)';
+  ctx.beginPath();
+  ctx.moveTo(x + 5, groundY - 174);
+  ctx.lineTo(x + 255, groundY - 174);
+  ctx.stroke();
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  const topCoopRuns = coopLeaderboard.slice(0, 8);
+  topCoopRuns.forEach((entry, i) => {
+    const namesStr = entry.names ? entry.names.join(' & ') : 'Team';
+    const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
+    ctx.fillStyle = color;
+    ctx.fillText(`${i + 1}. ${namesStr.substring(0, 28)}`, x + 8, groundY - 160 + i * 15);
+    ctx.textAlign = 'right';
+    ctx.fillText(entry.formattedTime || `${(entry.timeMs/1000).toFixed(2)}s`, x + 252, groundY - 160 + i * 15);
+    ctx.textAlign = 'left';
+  });
+  if (topCoopRuns.length === 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.textAlign = 'center';
+    ctx.fillText('No co-op runs yet!', x + 130, groundY - 145);
+  }
+  ctx.restore();
 }
 
 requestAnimationFrame(render);

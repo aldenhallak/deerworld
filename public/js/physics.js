@@ -173,6 +173,9 @@ function updatePhysics(dt) {
     if (myWorld === 'course' || myWorld === 'course2') {
       courseRunStartTime = 0; courseRunFinished = false;
     }
+    if (myWorld === 'coop1') {
+      coopStartTime = 0; coopFinished = false;
+    }
     spawnFloatText(me.x, me.y - 40, 'FELL! Back to start...', '#e94560');
   }
 
@@ -247,7 +250,18 @@ function updatePhysics(dt) {
       const others = Object.values(players).filter(p => p.id !== selfId && (p.world || 'main') === 'coop1');
       const allInGoal = others.some(p => p.x >= g.x && p.x <= g.x + g.w && p.y >= gy && p.y <= gy + g.h);
       if (allInGoal) {
-        spawnFloatText(me.x, me.y - 40, 'CO-OP LEVEL SOLVED!', '#10b981');
+        if (coopStartTime > 0 && !coopFinished) {
+          const elapsedMs = Date.now() - coopStartTime;
+          coopFinished = true;
+          coopStartTime = 0;
+          playHarvestSound();
+          const partner = others.find(p => p.x >= g.x && p.x <= g.x + g.w && p.y >= gy && p.y <= gy + g.h);
+          const partnerName = partner ? partner.name : 'Partner';
+          spawnFloatText(me.x, me.y - 40, `CO-OP SOLVED! ${(elapsedMs/1000).toFixed(2)}s`, '#10b981');
+          if (socket) {
+            socket.emit('submitCoopTime', { timeMs: elapsedMs, partnerName });
+          }
+        }
       } else {
         spawnFloatText(me.x, me.y - 40, 'Waiting for partner...', '#38bdf8');
       }
@@ -298,6 +312,17 @@ function updatePhysics(dt) {
       const sec = (elapsedMs / 1000).toFixed(2);
       spawnFloatText(me.x, me.y - 40, `MEGA COURSE FINISHED! ${sec}s`, '#ff007f');
       if (socket) socket.emit('submitCourseTime', { timeMs: elapsedMs, courseId: 'course2' });
+    }
+  // Co-op Puzzle 1 Timers (Starts when crossing x: 220)
+  if (myWorld === 'coop1' && selfId && players[selfId]) {
+    const me = players[selfId];
+    if (me.x >= 220 && coopStartTime === 0 && !coopFinished) {
+      coopStartTime = Date.now();
+      spawnFloatText(me.x, me.y - 40, 'CO-OP TIMER STARTED!', '#38bdf8');
+    }
+    if (me.x < 120) {
+      coopStartTime = 0;
+      coopFinished = false;
     }
   }
 
