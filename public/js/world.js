@@ -1,6 +1,7 @@
 // ---- Platforms (Multi-World Support) ----
 function getGroundY() {
-  return canvas.height - 40;
+  const c = (typeof canvas !== 'undefined' && canvas) ? canvas : document.getElementById('gameCanvas');
+  return (c ? c.height : window.innerHeight) - 40;
 }
 
 function getPlatforms() {
@@ -90,6 +91,7 @@ function getPlatforms() {
       // Finish Island (x: 3770..4200)
       { x: 3770, y: groundY,       w: 400, h: 40 }
     ];
+  }
   if (myWorld === 'frogger') {
     // Frogger Highway & River World Layout
     const plats = [

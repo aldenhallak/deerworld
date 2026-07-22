@@ -3,6 +3,11 @@ function escapeHTML(s) {
   return String(s).replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t));
 }
 
+function getGroundY() {
+  const c = (typeof canvas !== 'undefined' && canvas) ? canvas : document.getElementById('gameCanvas');
+  return (c ? c.height : window.innerHeight) - 40;
+}
+
 // ---- Seed Configs & Physics Constants ----
 const SEED_CONFIG = {
   crop: { totalTime: 900000 },          // 15 min
