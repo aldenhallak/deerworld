@@ -52,6 +52,26 @@ function updatePhysics(dt) {
   if (!selfId || !players[selfId]) return;
   const groundY = getGroundY();
 
+  if (myWorld === 'frogger') {
+    if (typeof FroggerMode !== 'undefined') {
+      FroggerMode.update(dt, (typeof animTime !== 'undefined' ? animTime : Date.now() / 1000));
+    }
+    const me = players[selfId];
+    const now = Date.now();
+    if (socket && now - lastEmitTime > 30) {
+      socket.emit('playerMove', {
+        x: Math.round(me.x * 10) / 10,
+        yRel: Math.round((me.y - groundY) * 10) / 10,
+        vx: 0, vy: 0,
+        facing: me.facing || 'up',
+        isMoving: false, isJumping: false, isGrounded: true,
+        world: myWorld
+      });
+      lastEmitTime = now;
+    }
+    return;
+  }
+
   // Selection Hall Pressure Plate Check (x: 350)
   selectPlatePressed = false;
   if (myWorld === 'select') {

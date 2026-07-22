@@ -150,7 +150,10 @@ function connectSocket(username) {
         else if (data.world === 'course') wName = 'Obstacle Course 1';
         else if (data.world === 'course2') wName = 'MEGA Obstacle Course';
         else if (data.world === 'coop1') wName = 'Co-op Puzzle 1';
-        else if (data.world === 'frogger') wName = 'Frogger Highway';
+        else if (data.world === 'frogger') {
+          wName = 'Frogger Arcade';
+          if (typeof FroggerMode !== 'undefined') FroggerMode.init();
+        }
         spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${wName}!`, '#00e676');
       }
     }
@@ -581,6 +584,10 @@ window.addEventListener('keydown', (e) => {
 
   if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
 
+  if (myWorld === 'frogger' && typeof FroggerMode !== 'undefined') {
+    FroggerMode.handleKeyDown(e.code);
+  }
+
   if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
     keysPressed[e.code] = true;
 
@@ -711,7 +718,9 @@ function render(now) {
     // Portal to Main World (far left in Garden World)
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
   } else if (myWorld === 'frogger') {
-    drawFroggerEnvironment(groundY, animTime);
+    if (typeof FroggerMode !== 'undefined') {
+      FroggerMode.render(ctx, animTime);
+    }
   } else if (myWorld === 'course') {
     // Obstacle Course World
     getPlatforms().forEach(plat => {
