@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeerWorld - Co-op Level Editor</title>
+  <link rel="stylesheet" href="editor.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="editor-app">
+    <!-- Top Action Bar -->
+    <header class="top-bar">
+      <div class="brand">
+        <span class="badge">DEERWORLD</span>
+        <h1>Co-op Level Editor</h1>
+      </div>
+
+      <div class="mode-controls">
+        <button id="btn-mode-edit" class="btn-mode active">✏️ Edit Mode</button>
+        <button id="btn-mode-play" class="btn-mode play">▶️ Playtest (P1: WASD | P2: Arrows)</button>
+        <button id="btn-reset-play" class="btn-subtle" style="display:none;">🔄 Reset Positions</button>
+      </div>
+
+      <div class="grid-controls">
+        <label class="toggle-label">
+          <input type="checkbox" id="chk-grid-snap" checked>
+          <span>Grid Snap</span>
+        </label>
+        <select id="sel-grid-size">
+          <option value="10">10px</option>
+          <option value="20" selected>20px</option>
+          <option value="40">40px</option>
+        </select>
+      </div>
+
+      <div class="action-buttons">
+        <button id="btn-template" class="btn-secondary">📋 Sample Level</button>
+        <button id="btn-clear" class="btn-danger">🗑️ Clear All</button>
+        <button id="btn-export" class="btn-primary">💾 Export JSON</button>
+        <button id="btn-import" class="btn-secondary">📂 Import JSON</button>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+      <!-- Left Tool Palette -->
+      <aside class="tool-palette">
+        <div class="section-title">Tools</div>
+        <div class="tool-group">
+          <button class="tool-btn active" data-tool="select" title="Select / Move / Resize (V)">
+            <span class="icon">🔍</span>
+            <span class="name">Select</span>
+            <span class="shortcut">V</span>
+          </button>
+          <button class="tool-btn" data-tool="platform" title="Draw Platform (1)">
+            <span class="icon">🧱</span>
+            <span class="name">Platform</span>
+            <span class="shortcut">1</span>
+          </button>
+          <button class="tool-btn" data-tool="spring" title="Place Spring / Jump Pad (2)">
+            <span class="icon">🌀</span>
+            <span class="name">Spring</span>
+            <span class="shortcut">2</span>
+          </button>
+          <button class="tool-btn" data-tool="plate" title="Place Pressure Plate (3)">
+            <span class="icon">🔘</span>
+            <span class="name">Plate</span>
+            <span class="shortcut">3</span>
+          </button>
+          <button class="tool-btn" data-tool="key" title="Place Key (4)">
+            <span class="icon">🔑</span>
+            <span class="name">Key</span>
+            <span class="shortcut">4</span>
+          </button>
+          <button class="tool-btn" data-tool="lock" title="Place Lock Barrier (5)">
+            <span class="icon">🔒</span>
+            <span class="name">Lock Door</span>
+            <span class="shortcut">5</span>
+          </button>
+          <button class="tool-btn" data-tool="p1_spawn" title="Place Player 1 Spawn (6)">
+            <span class="icon">🦌</span>
+            <span class="name">P1 Spawn</span>
+            <span class="shortcut">6</span>
+          </button>
+          <button class="tool-btn" data-tool="p2_spawn" title="Place Player 2 Spawn (7)">
+            <span class="icon">🦌</span>
+            <span class="name">P2 Spawn</span>
+            <span class="shortcut">7</span>
+          </button>
+          <button class="tool-btn" data-tool="goal" title="Place Co-op Goal (8)">
+            <span class="icon">🏆</span>
+            <span class="name">Goal</span>
+            <span class="shortcut">8</span>
+          </button>
+        </div>
+
+        <div class="section-title">Stage Dimensions</div>
+        <div class="dimension-inputs">
+          <label>Width: <input type="number" id="inp-stage-w" value="2400" step="100" min="800" max="6000"></label>
+          <label>Height: <input type="number" id="inp-stage-h" value="800" step="100" min="400" max="2000"></label>
+        </div>
+      </aside>
+
+      <!-- Center Viewport Canvas -->
+      <main class="canvas-viewport" id="viewport">
+        <canvas id="editor-canvas"></canvas>
+        <div id="playtest-hud" class="playtest-hud" style="display:none;">
+          <div class="hud-item"><span class="p1-tag">P1 (WASD)</span>: Move & Jump</div>
+          <div class="hud-item"><span class="p2-tag">P2 (Arrows)</span>: Move & Jump</div>
+          <div id="hud-status" class="hud-status">Goal: Bring P1 & P2 to the Co-op Goal!</div>
+        </div>
+      </main>
+
+      <!-- Right Property Inspector -->
+      <aside class="property-inspector" id="inspector">
+        <div class="section-title">Inspector</div>
+        <div id="inspector-content" class="inspector-content">
+          <p class="empty-state">No object selected. Click an object or select a tool to draw.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- JSON Export / Import Modal -->
+  <div id="json-modal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-title">Level JSON Data</h2>
+        <button id="btn-close-modal" class="btn-icon">✖</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="json-text" spellcheck="false" placeholder="Paste level JSON here..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-copy-json" class="btn-primary">📋 Copy to Clipboard</button>
+        <button id="btn-download-json" class="btn-secondary">⬇️ Download .json</button>
+        <button id="btn-apply-json" class="btn-success" style="display:none;">✅ Apply / Load Level</button>
+        <button id="btn-cancel-modal" class="btn-subtle">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="editor.js"></script>
+</body>
+</html>
