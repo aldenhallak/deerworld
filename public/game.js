@@ -261,9 +261,6 @@ function connectSocket(username) {
   socket.on('selectLeverFlipped', (data) => {
     selectLeverExpiresAt = data.expiresAt;
     playShopSound();
-    if (selfId && players[selfId]) {
-      spawnFloatText(players[selfId].x, players[selfId].y - 40, 'CO-OP PORTAL UNLOCKED! (5s)', '#10b981');
-    }
   });
 }
 
@@ -847,12 +844,6 @@ function render(now) {
       ctx.fillStyle = '#3b82f6';
       ctx.fillRect(plat.x, plat.y, plat.w, 4);
     });
-
-    // Title Sign
-    ctx.fillStyle = '#60a5fa';
-    ctx.font = 'bold 16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('⭐ LEVEL SELECTION HALL ⭐', 450, groundY - 140);
 
     // Portals & Mechanisms
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');

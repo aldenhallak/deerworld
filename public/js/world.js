@@ -10,20 +10,19 @@ function getPlatforms() {
     return [{ x: 0, y: groundY, w: canvas.width, h: 40 }];
   }
   if (myWorld === 'select') {
-    // Flat ground layout with floating platform for Level Selection Hall
+    // Flat ground layout for Level Selection Hall (no floating platform)
     const selectWidth = Math.max(1400, canvas.width);
     const plats = [
-      { x: 0, y: groundY, w: selectWidth, h: 40 },
-      { x: 200, y: groundY - 110, w: 300, h: 16 }
+      { x: 0, y: groundY, w: selectWidth, h: 40 }
     ];
     const isLeverActive = selectLeverExpiresAt > Date.now();
-    // Gate 1 at x: 500 (Full height; opened by pressure plate at x: 350 OR active lever)
+    // Gate 1 at x: 500 (Height: 220px; slightly larger than jump height)
     if (!selectPlatePressed && !isLeverActive) {
-      plats.push({ x: 500, y: 0, w: 20, h: groundY, isGate: true });
+      plats.push({ x: 500, y: groundY - 220, w: 20, h: 220, isGate: true });
     }
-    // Gate 2 at x: 750 (Full height; opened by lever at x: 650 for 5s)
+    // Gate 2 at x: 750 (Height: 220px; slightly larger than jump height)
     if (!isLeverActive) {
-      plats.push({ x: 750, y: 0, w: 20, h: groundY, isGate: true });
+      plats.push({ x: 750, y: groundY - 220, w: 20, h: 220, isGate: true });
     }
     return plats;
   }

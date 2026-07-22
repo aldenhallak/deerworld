@@ -100,8 +100,8 @@ function drawGateDoor(x, groundY, isOpen) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   const gw = 20;
-  const gh = groundY;
-  const gy = 0;
+  const gh = 220;
+  const gy = groundY - gh;
 
   if (isOpen) {
     ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)';
@@ -118,7 +118,7 @@ function drawGateDoor(x, groundY, isOpen) {
     ctx.fillStyle = '#f8fafc';
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('🔒', x + gw / 2, groundY - 80);
+    ctx.fillText('🔒', x + gw / 2, gy + gh / 2);
   }
   ctx.restore();
 }
