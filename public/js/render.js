@@ -368,7 +368,7 @@ function drawHUD() {
   else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE 1';
   else if (myWorld === 'course2') worldLabel = 'MEGA COURSE (STAGE 2)';
   else if (myWorld === 'coop1') worldLabel = 'CO-OP PUZZLE 1';
-  else if (myWorld === 'frogger') worldLabel = 'FROGGER HIGHWAY & RIVER';
+  else if (myWorld === 'frogger') worldLabel = 'KLIPSPRINGER CROSSING';
 
   ctx.fillText(`COINS: ${myCoins} | WORLD: ${worldLabel}`, 14, 26);
 
@@ -543,7 +543,7 @@ function drawFroggerEnvironment(groundY, animTime) {
   ctx.fillStyle = '#00e676';
   ctx.font = 'bold 11px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('FROGGER RECORDS', 2020, groundY - 183);
+  ctx.fillText('CROSSING RECORDS', 2020, groundY - 183);
 
   ctx.strokeStyle = 'rgba(0,230,118,0.5)';
   ctx.beginPath(); ctx.moveTo(1945, groundY - 174); ctx.lineTo(2095, groundY - 174); ctx.stroke();
@@ -562,7 +562,7 @@ function drawFroggerEnvironment(groundY, animTime) {
   if (topRuns.length === 0) {
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.textAlign = 'center';
-    ctx.fillText('No frogger runs yet!', 2020, groundY - 145);
+    ctx.fillText('No runs yet!', 2020, groundY - 145);
   }
 
   // Return Portal (far left in Frogger World)

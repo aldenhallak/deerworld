@@ -1,4 +1,4 @@
-// ---- Dedicated Classic Top-Down Frogger Engine ----
+// ---- Dedicated Classic Top-Down Klipspringer Crossing Engine ----
 function drawKlipspringerPlayer(ctx, x, y, facing, isHopAnimating, equippedHat) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;

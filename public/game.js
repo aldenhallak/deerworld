@@ -151,7 +151,7 @@ function connectSocket(username) {
         else if (data.world === 'course2') wName = 'MEGA Obstacle Course';
         else if (data.world === 'coop1') wName = 'Co-op Puzzle 1';
         else if (data.world === 'frogger') {
-          wName = 'Frogger Arcade';
+          wName = 'Klipspringer Crossing';
           if (typeof FroggerMode !== 'undefined') FroggerMode.init();
         }
         spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${wName}!`, '#00e676');
@@ -936,7 +936,7 @@ function render(now) {
     // Portals & Mechanisms
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
     drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
-    drawPortal(450, groundY, '[E] FROGGER HIGHWAY', '#00e676');
+    drawPortal(450, groundY, '[E] KLIPSPRINGER CROSSING', '#00e676');
 
     const isLeverActive = selectLeverExpiresAt > Date.now();
     const isGate1Open = selectPlatePressed || isLeverActive;

@@ -83,9 +83,9 @@ const COOP_LEVEL_1 = {
   goal: { x: 2220, y: 650, w: 150, h: 110 }
 };
 
-// ---- Frogger Highway & River Level ----
+// ---- Klipspringer Crossing & River Level ----
 const FROGGER_LEVEL = {
-  name: "Frogger Highway & River",
+  name: "Klipspringer Crossing & River",
   width: 2200,
   startIsland: { x: 0, w: 240 },
   roadZone: { x: 240, w: 800 },
