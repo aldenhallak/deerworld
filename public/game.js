@@ -1204,7 +1204,7 @@ function render(now) {
     // Sprite
     let activeSprite = spriteF;
     if (!p.isGrounded || p.isJumping) activeSprite = spriteH;
-    else if (p.isMoving && Math.abs(p.vx || 0) > 10) {
+    else if (p.isMoving && Math.abs(p.vx || 0) > 30) {
       activeSprite = Math.floor(animTime * 10) % 2 === 0 ? spriteF : spriteG;
     }
 

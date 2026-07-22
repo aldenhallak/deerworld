@@ -1,55 +1,43 @@
-// ---- Dedicated Classic 8-Bit Top-Down Frogger Engine ----
-function draw8BitFrog(ctx, x, y, facing) {
+// ---- Dedicated Classic Top-Down Frogger Engine ----
+function drawKlipspringerPlayer(ctx, x, y, facing, isHopAnimating, equippedHat) {
   ctx.save();
   ctx.imageSmoothingEnabled = false;
 
   const px = Math.round(x);
   const py = Math.round(y);
 
-  // Frog Body (Bright retro green)
-  ctx.fillStyle = '#00e600';
-  ctx.fillRect(px - 10, py - 10, 20, 20);
-
-  // Dark Green Back stripe
-  ctx.fillStyle = '#009900';
-  ctx.fillRect(px - 6, py - 6, 12, 12);
-
-  // Eyes & Pupils
-  ctx.fillStyle = '#ffffff';
-  if (facing === 'down') {
-    ctx.fillRect(px - 9, py + 6, 6, 6);
-    ctx.fillRect(px + 3, py + 6, 6, 6);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(px - 7, py + 8, 3, 3);
-    ctx.fillRect(px + 4, py + 8, 3, 3);
-  } else if (facing === 'left') {
-    ctx.fillRect(px - 12, py - 9, 6, 6);
-    ctx.fillRect(px - 12, py + 3, 6, 6);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(px - 11, py - 7, 3, 3);
-    ctx.fillRect(px - 11, py + 4, 3, 3);
-  } else if (facing === 'right') {
-    ctx.fillRect(px + 6, py - 9, 6, 6);
-    ctx.fillRect(px + 6, py + 3, 6, 6);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(px + 8, py - 7, 3, 3);
-    ctx.fillRect(px + 8, py + 4, 3, 3);
-  } else { // 'up' default
-    ctx.fillRect(px - 9, py - 12, 6, 6);
-    ctx.fillRect(px + 3, py - 12, 6, 6);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(px - 7, py - 11, 3, 3);
-    ctx.fillRect(px + 4, py - 11, 3, 3);
+  let activeSprite = (typeof spriteF !== 'undefined') ? spriteF : null;
+  if (isHopAnimating && typeof spriteH !== 'undefined') {
+    activeSprite = spriteH;
   }
 
-  // 4 Corner Limbs
-  ctx.fillStyle = '#00cc00';
-  ctx.fillRect(px - 13, py - 9, 4, 5);
-  ctx.fillRect(px + 9, py - 9, 4, 5);
-  ctx.fillRect(px - 13, py + 4, 4, 5);
-  ctx.fillRect(px + 9, py + 4, 4, 5);
+  const scale = 0.35;
+  const sw = (activeSprite && activeSprite.width ? activeSprite.width : 60) * scale;
+  const sh = (activeSprite && activeSprite.height ? activeSprite.height : 80) * scale;
+
+  ctx.translate(px, py);
+  if (facing === 'left') {
+    ctx.scale(-1, 1);
+  }
+
+  if (typeof imagesLoaded !== 'undefined' && imagesLoaded && activeSprite && activeSprite.complete) {
+    ctx.drawImage(activeSprite, -sw / 2, -sh + 10, sw, sh);
+  } else {
+    // Crisp 8-Bit Antelope/Klipspringer fallback
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(-10, -12, 20, 20);
+    ctx.fillStyle = '#fef08a';
+    ctx.fillRect(-7, -18, 4, 8);
+    ctx.fillRect(3, -18, 4, 8);
+  }
 
   ctx.restore();
+
+  // Render Equipped Hat if available
+  const currentHat = (typeof myEquippedHat !== 'undefined') ? myEquippedHat : equippedHat;
+  if (currentHat && typeof drawWearableHat !== 'undefined') {
+    drawWearableHat(px, py, currentHat, facing, sh);
+  }
 }
 
 const FroggerMode = {
@@ -67,6 +55,8 @@ const FroggerMode = {
     facing: 'up',
     deaths: 0,
     score: 0,
+    isHopAnimating: false,
+    hopTimer: 0,
     homesFilled: [false, false, false, false, false]
   },
 
@@ -105,6 +95,8 @@ const FroggerMode = {
     this.player.gridX = 6;
     this.player.gridY = 12;
     this.player.facing = 'up';
+    this.player.isHopAnimating = false;
+    this.player.hopTimer = 0;
     this.syncPositionImmediate();
   },
 
@@ -148,6 +140,8 @@ const FroggerMode = {
     if (nextGX >= 0 && nextGX < this.cols && nextGY >= 0 && nextGY < this.rows) {
       this.player.gridX = nextGX;
       this.player.gridY = nextGY;
+      this.player.isHopAnimating = true;
+      this.player.hopTimer = 0.18;
 
       if (this.startTime === 0 && nextGY < 12) {
         this.startTime = Date.now();
@@ -166,9 +160,18 @@ const FroggerMode = {
     this.player.x += (targetX - this.player.x) * Math.min(1, 20 * dt);
     this.player.y += (targetY - this.player.y) * Math.min(1, 20 * dt);
 
+    if (this.player.hopTimer > 0) {
+      this.player.hopTimer -= dt;
+      if (this.player.hopTimer <= 0) this.player.isHopAnimating = false;
+    }
+
     const me = players[selfId];
     me.x = this.player.x;
     me.y = this.player.y;
+    me.facing = this.player.facing;
+    me.isMoving = this.player.isHopAnimating;
+    me.isJumping = this.player.isHopAnimating;
+    me.isGrounded = !this.player.isHopAnimating;
 
     const row = this.player.gridY;
     const lane = this.lanes.find(l => l.row === row);
@@ -336,7 +339,7 @@ const FroggerMode = {
           ctx.strokeRect(hx, ry + 4, ts, ts - 8);
 
           if (isFilled) {
-            draw8BitFrog(ctx, hx + ts / 2, ry + ts / 2, 'up');
+            drawKlipspringerPlayer(ctx, hx + ts / 2, ry + ts / 2 + 10, 'right', false, 'cute_bow');
           }
         });
       } else if (lane.type === 'river') {
@@ -409,8 +412,17 @@ const FroggerMode = {
       }
     });
 
-    // Draw 8-Bit Player Frog
-    draw8BitFrog(ctx, this.player.x, this.player.y, this.player.facing);
+    // Render Other Connected Players in Frogger Mode
+    if (typeof players !== 'undefined') {
+      Object.values(players).forEach(other => {
+        if (other.id !== selfId && (other.world || 'main') === 'frogger') {
+          drawKlipspringerPlayer(ctx, other.x, other.y, other.facing || 'right', false, other.equippedHat);
+        }
+      });
+    }
+
+    // Render Player Klipspringer Character
+    drawKlipspringerPlayer(ctx, this.player.x, this.player.y, this.player.facing, this.player.isHopAnimating, myEquippedHat);
 
     // 8-Bit Clean Retro HUD
     ctx.font = 'bold 12px "Courier New", monospace';

@@ -106,7 +106,8 @@ function updatePhysics(dt) {
     me.facing = 'right'; me.isMoving = true;
   } else {
     me.vx = me.vx > 0 ? Math.max(0, me.vx - FRICTION * dt) : Math.min(0, me.vx + FRICTION * dt);
-    me.isMoving = false;
+    if (Math.abs(me.vx) < 15) me.vx = 0;
+    me.isMoving = Math.abs(me.vx) > 30;
   }
 
   if (me.isGrounded && me.isMoving && Math.abs(me.vx) > 30) {
