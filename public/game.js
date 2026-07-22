@@ -226,10 +226,11 @@
       ];
     }
     if (myWorld === 'coop1') {
-      const plats = [...COOP_LEVEL_1.platforms];
+      const offsetY = canvas.height - COOP_LEVEL_1.height;
+      const plats = COOP_LEVEL_1.platforms.map(p => ({ x: p.x, y: p.y + offsetY, w: p.w, h: p.h }));
       COOP_LEVEL_1.locks.forEach(l => {
         if (!l.isOpen) {
-          plats.push({ x: l.x, y: l.y, w: l.w, h: l.h });
+          plats.push({ x: l.x, y: l.y + offsetY, w: l.w, h: l.h });
         }
       });
       return plats;
@@ -1270,8 +1271,11 @@
 
     // Spring Collision for Co-op Level 1
     if (myWorld === 'coop1') {
+      const offsetY = canvas.height - COOP_LEVEL_1.height;
+
       COOP_LEVEL_1.springs.forEach(s => {
-        if (me.vy >= 0 && me.y <= s.y + 6 && nextY >= s.y) {
+        const sy = s.y + offsetY;
+        if (me.vy >= 0 && me.y <= sy + 6 && nextY >= sy) {
           if (nextX >= s.x - 14 && nextX <= s.x + s.w + 14) {
             me.vy = -(s.bounceForce || 1100);
             me.isGrounded = false;
@@ -1291,15 +1295,17 @@
 
         // Pressure plates
         COOP_LEVEL_1.plates.forEach(plate => {
-          if (px >= plate.x - 14 && px <= plate.x + plate.w + 14 && Math.abs(py - plate.y) < 14) {
+          const plateY = plate.y + offsetY;
+          if (px >= plate.x - 14 && px <= plate.x + plate.w + 14 && Math.abs(py - plateY) < 14) {
             plate.isPressed = true;
           }
         });
 
         // Keys (on walkover)
         COOP_LEVEL_1.keys.forEach(k => {
+          const keyY = k.y + offsetY;
           if (!k.isCollected) {
-            if (Math.abs(px - (k.x + 12)) < 30 && Math.abs(py - (k.y + 12)) < 30) {
+            if (Math.abs(px - (k.x + 12)) < 30 && Math.abs(py - (keyY + 12)) < 30) {
               k.isCollected = true;
               playCoinSound();
               spawnFloatText(px, py - 40, 'KEY COLLECTED!', '#f59e0b');
@@ -1321,7 +1327,8 @@
 
       // Goal Collision
       const g = COOP_LEVEL_1.goal;
-      if (me.x >= g.x && me.x <= g.x + g.w && me.y >= g.y && me.y <= g.y + g.h) {
+      const gy = g.y + offsetY;
+      if (me.x >= g.x && me.x <= g.x + g.w && me.y >= gy && me.y <= gy + g.h) {
         spawnFloatText(me.x, me.y - 40, 'CO-OP LEVEL SOLVED!', '#10b981');
       }
     }
@@ -1675,77 +1682,85 @@
       drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
       drawPortal(440, groundY, '[E] CO-OP PUZZLE 1', '#38bdf8');
     } else if (myWorld === 'coop1') {
+      const offsetY = canvas.height - COOP_LEVEL_1.height;
+
       // Render Co-op Level 1 Platforms
       COOP_LEVEL_1.platforms.forEach(plat => {
+        const py = plat.y + offsetY;
         ctx.fillStyle = '#1e293b';
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+        ctx.fillRect(plat.x, py, plat.w, plat.h);
         ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(plat.x, plat.y, plat.w, 4);
+        ctx.fillRect(plat.x, py, plat.w, 4);
       });
 
       // Render Springs
       COOP_LEVEL_1.springs.forEach(s => {
+        const sy = s.y + offsetY;
         ctx.fillStyle = '#0284c7';
-        ctx.fillRect(s.x, s.y + 6, s.w, s.h - 6);
+        ctx.fillRect(s.x, sy + 6, s.w, s.h - 6);
         ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(s.x, s.y, s.w, 6);
+        ctx.fillRect(s.x, sy, s.w, 6);
       });
 
       // Render Pressure Plates
       COOP_LEVEL_1.plates.forEach(p => {
+        const py = p.y + offsetY;
         const isDown = p.isPressed;
         ctx.fillStyle = isDown ? '#15803d' : '#f59e0b';
-        ctx.fillRect(p.x, p.y + (isDown ? 6 : 0), p.w, p.h - (isDown ? 6 : 0));
+        ctx.fillRect(p.x, py + (isDown ? 6 : 0), p.w, p.h - (isDown ? 6 : 0));
         ctx.fillStyle = '#fef08a';
-        ctx.fillRect(p.x + 4, p.y + (isDown ? 6 : 0), p.w - 8, 2);
+        ctx.fillRect(p.x + 4, py + (isDown ? 6 : 0), p.w - 8, 2);
       });
 
       // Render Keys
       COOP_LEVEL_1.keys.forEach(k => {
+        const ky = k.y + offsetY;
         if (!k.isCollected) {
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.arc(k.x + 12, k.y + 12, 10, 0, Math.PI * 2);
+          ctx.arc(k.x + 12, ky + 12, 10, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#0f172a';
           ctx.beginPath();
-          ctx.arc(k.x + 12, k.y + 12, 4, 0, Math.PI * 2);
+          ctx.arc(k.x + 12, ky + 12, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#f59e0b';
-          ctx.fillRect(k.x + 10, k.y + 18, 4, 8);
+          ctx.fillRect(k.x + 10, ky + 18, 4, 8);
         }
       });
 
       // Render Lock Doors
       COOP_LEVEL_1.locks.forEach(l => {
+        const ly = l.y + offsetY;
         if (l.isOpen) {
           ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
           ctx.lineWidth = 2;
           ctx.setLineDash([4, 4]);
-          ctx.strokeRect(l.x, l.y, l.w, l.h);
+          ctx.strokeRect(l.x, ly, l.w, l.h);
           ctx.setLineDash([]);
         } else {
           ctx.fillStyle = l.lockType === 'key' ? '#b91c1c' : '#c2410c';
-          ctx.fillRect(l.x, l.y, l.w, l.h);
+          ctx.fillRect(l.x, ly, l.w, l.h);
           ctx.fillStyle = '#f8fafc';
           ctx.font = 'bold 10px monospace';
           ctx.textAlign = 'center';
-          ctx.fillText(l.lockType === 'key' ? '🔑' : '🔘', l.x + l.w / 2, l.y + l.h / 2);
+          ctx.fillText(l.lockType === 'key' ? '🔑' : '🔘', l.x + l.w / 2, ly + l.h / 2);
         }
       });
 
       // Render Goal Zone
       if (COOP_LEVEL_1.goal) {
         const g = COOP_LEVEL_1.goal;
+        const gy = g.y + offsetY;
         ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
-        ctx.fillRect(g.x, g.y, g.w, g.h);
+        ctx.fillRect(g.x, gy, g.w, g.h);
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 3;
-        ctx.strokeRect(g.x, g.y, g.w, g.h);
+        ctx.strokeRect(g.x, gy, g.w, g.h);
         ctx.fillStyle = '#10b981';
         ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('🏆 GOAL', g.x + g.w / 2, g.y + 24);
+        ctx.fillText('🏆 GOAL', g.x + g.w / 2, gy + 24);
       }
 
       // Return Portal
