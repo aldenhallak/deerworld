@@ -505,6 +505,32 @@ function dropCoinOnGround() {
   socket.emit('dropItem', { type: 'coin', x: me.x, yRel: me.y - groundY });
 }
 
+// ---- Chat UI ----
+function addChatMessage(msg) {
+  if (!chatMessagesEl || !msg) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg' + (msg.isSystem ? ' system' : '');
+
+  if (msg.isSystem) {
+    div.textContent = msg.text || '';
+  } else {
+    const senderSpan = document.createElement('span');
+    senderSpan.className = 'sender';
+    senderSpan.textContent = `${msg.sender || 'Anonymous'}: `;
+    div.appendChild(senderSpan);
+
+    const textNode = document.createTextNode(msg.text || '');
+    div.appendChild(textNode);
+  }
+
+  chatMessagesEl.appendChild(div);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+
+  while (chatMessagesEl.children.length > 50) {
+    chatMessagesEl.removeChild(chatMessagesEl.firstChild);
+  }
+}
+
 // ---- Inputs ----
 function openChatInput() {
   chatForm.classList.add('active');
