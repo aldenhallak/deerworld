@@ -46,6 +46,8 @@ const SHOP_ITEMS = {
   cowboy_hat: { id: 'cowboy_hat', name: 'Cowboy Hat', type: 'hat', cost: 12 },
   ascot: { id: 'ascot', name: 'Red Ascot', type: 'hat', cost: 7 },
   beanie: { id: 'beanie', name: 'Green Beanie', type: 'hat', cost: 6 },
+  glasses: { id: 'glasses', name: 'Wire Glasses', type: 'hat', cost: 7 },
+  headphones: { id: 'headphones', name: 'Headphones', type: 'hat', cost: 9 },
   crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', cost: 1 },
   carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 3 },
   corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', cost: 6 },
