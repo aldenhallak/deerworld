@@ -845,6 +845,7 @@ function render(now) {
   } else if (myWorld === 'select') {
     // Render Selection Hall platforms
     getPlatforms().forEach(plat => {
+      if (plat.isGate) return;
       ctx.fillStyle = '#1f2937';
       ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
       ctx.fillStyle = '#3b82f6';
@@ -864,23 +865,30 @@ function render(now) {
     // Connecting Wires along ground
     ctx.save();
     ctx.lineWidth = 3;
-    // Wire from Plate (450) to Lever (650)
-    ctx.strokeStyle = selectPlatePressed ? '#eab308' : '#475569';
-    ctx.beginPath(); ctx.moveTo(450, groundY - 2); ctx.lineTo(650, groundY - 2); ctx.stroke();
-    // Wire from Lever (650) to Portal (850)
-    const isUnlocked = selectLeverExpiresAt > Date.now();
-    ctx.strokeStyle = isUnlocked ? '#38bdf8' : '#475569';
-    ctx.beginPath(); ctx.moveTo(650, groundY - 2); ctx.lineTo(850, groundY - 2); ctx.stroke();
+    // Wire from Pressure Plate (350) to Gate Door 1 (500)
+    ctx.strokeStyle = selectPlatePressed ? '#10b981' : '#475569';
+    ctx.beginPath(); ctx.moveTo(350, groundY - 2); ctx.lineTo(500, groundY - 2); ctx.stroke();
+
+    // Wire from Lever (650) to Gate Door 2 (750)
+    const isLeverUnlocked = selectLeverExpiresAt > Date.now();
+    ctx.strokeStyle = isLeverUnlocked ? '#38bdf8' : '#475569';
+    ctx.beginPath(); ctx.moveTo(650, groundY - 2); ctx.lineTo(750, groundY - 2); ctx.stroke();
     ctx.restore();
 
-    // Co-op Pressure Plate at x: 450
-    drawSelectPlate(450, groundY, selectPlatePressed);
+    // Pressure Plate at x: 350 (No text label)
+    drawSelectPlate(350, groundY, selectPlatePressed);
 
-    // Co-op Lever Switch at x: 650
-    drawLever(650, groundY, isUnlocked, selectPlatePressed);
+    // Gate Door 1 at x: 500 (Opened by Pressure Plate at x: 350)
+    drawGateDoor(500, groundY, selectPlatePressed);
 
-    // Co-op Portal at x: 850 (NO NAME ON IT!)
-    if (isUnlocked) {
+    // Lever Switch at x: 650 (No text label)
+    drawLever(650, groundY, isLeverUnlocked, selectPlatePressed);
+
+    // Gate Door 2 at x: 750 (Opened by Lever at x: 650 for 5s)
+    drawGateDoor(750, groundY, isLeverUnlocked);
+
+    // Anonymous Portal at x: 850 (NO NAME ON IT!)
+    if (isLeverUnlocked) {
       const remainingSec = Math.ceil((selectLeverExpiresAt - Date.now()) / 1000);
       drawPortal(850, groundY, `[E] ENTER PORTAL (${remainingSec}s)`, '#38bdf8');
     } else {

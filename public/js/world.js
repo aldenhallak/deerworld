@@ -12,11 +12,19 @@ function getPlatforms() {
   if (myWorld === 'select') {
     // Flat ground layout with floating platform for Level Selection Hall
     const selectWidth = Math.max(1400, canvas.width);
-    return [
+    const plats = [
       { x: 0, y: groundY, w: selectWidth, h: 40 },
-      { x: 200, y: groundY - 110, w: 300, h: 16 },
-      { x: 580, y: groundY - 110, w: 350, h: 16 }
+      { x: 200, y: groundY - 110, w: 300, h: 16 }
     ];
+    // Gate 1 at x: 500 (opened by pressure plate at x: 350)
+    if (!selectPlatePressed) {
+      plats.push({ x: 500, y: groundY - 160, w: 20, h: 160, isGate: true });
+    }
+    // Gate 2 at x: 750 (opened by lever at x: 650 for 5s)
+    if (!(selectLeverExpiresAt > Date.now())) {
+      plats.push({ x: 750, y: groundY - 160, w: 20, h: 160, isGate: true });
+    }
+    return plats;
   }
   if (myWorld === 'coop1') {
     const offsetY = canvas.height - COOP_LEVEL_1.height;

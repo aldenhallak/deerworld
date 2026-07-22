@@ -58,11 +58,6 @@ function drawSelectPlate(x, groundY, isPressed) {
   ctx.fillRect(x - pw/2, py + (isPressed ? 6 : 0), pw, ph - (isPressed ? 6 : 0));
   ctx.fillStyle = '#fef08a';
   ctx.fillRect(x - pw/2 + 4, py + (isPressed ? 6 : 0), pw - 8, 2);
-
-  ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = isPressed ? '#86efac' : '#fef08a';
-  ctx.fillText('CO-OP PLATE', x, py - 10);
   ctx.restore();
 }
 
@@ -98,11 +93,32 @@ function drawLever(x, groundY, isActivated, isPowered) {
   ctx.arc(knobX, knobY, 6, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = isActivated ? '#10b981' : (isPowered ? '#fef08a' : '#94a3b8');
-  ctx.fillText('[E] FLIP LEVER', x, groundY - 44);
+  ctx.restore();
+}
 
+function drawGateDoor(x, groundY, isOpen) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  const gw = 20, gh = 160;
+  const gy = groundY - gh;
+
+  if (isOpen) {
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(x, gy, gw, gh);
+    ctx.setLineDash([]);
+  } else {
+    ctx.fillStyle = '#b91c1c';
+    ctx.fillRect(x, gy, gw, gh);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(x, gy, 4, gh);
+    ctx.fillRect(x + gw - 4, gy, 4, gh);
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔒', x + gw / 2, gy + gh / 2);
+  }
   ctx.restore();
 }
 
