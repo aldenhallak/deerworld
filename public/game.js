@@ -1,1931 +1,1077 @@
-// Klipspringer Platformer — Multi-World (Main vs Garden), Soil-Bed Planting Constraint & Shop Modal
-(function() {
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const joinModal = document.getElementById('joinModal');
-  const joinForm = document.getElementById('joinForm');
-  const usernameInput = document.getElementById('usernameInput');
-  const chatBar = document.getElementById('chatBar');
-  const chatMessagesEl = document.getElementById('chatMessages');
-  const chatForm = document.getElementById('chatForm');
-  const chatInput = document.getElementById('chatInput');
-  const btnJump = document.getElementById('btnJump');
+// Klipspringer Platformer — Multi-World Main Entrypoint
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const joinModal = document.getElementById('joinModal');
+const joinForm = document.getElementById('joinForm');
+const usernameInput = document.getElementById('usernameInput');
+const chatBar = document.getElementById('chatBar');
+const chatMessagesEl = document.getElementById('chatMessages');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const btnJump = document.getElementById('btnJump');
 
-  // Shop Modal elements
-  const shopModal = document.getElementById('shopModal');
-  const shopGrid = document.getElementById('shopGrid');
-  const shopCoinsText = document.getElementById('shopCoinsText');
-  const btnCloseShop = document.getElementById('btnCloseShop');
+// Shop Modal elements
+const shopModal = document.getElementById('shopModal');
+const shopGrid = document.getElementById('shopGrid');
+const shopCoinsText = document.getElementById('shopCoinsText');
+const btnCloseShop = document.getElementById('btnCloseShop');
 
-  let socket = null;
-  let selfId = null;
-  let players = {};
-  let speechBubbles = {};
-  let keysPressed = {};
-  let particles = [];
-  let stepTimer = 0;
+let socket = null;
+let selfId = null;
+let players = {};
+let speechBubbles = {};
+let keysPressed = {};
+let particles = [];
+let stepTimer = 0;
 
-  // World & Inventory State
-  let myWorld = 'main'; // 'main', 'garden', or 'course'
-  let coins = {};        // { id: {id, x, yRel} }
-  let plants = {};       // { id: {id, type, x, yRel, stage, maxStage, ownerName} }
-  let droppedItems = {}; // { id: {id, world, type, x, yRel, label} }
-  let shopCatalog = {};
-  let courseLeaderboard = [];
-  let megaCourseLeaderboard = [];
-  let courseRunStartTime = 0;
-  let courseRunFinished = false;
-  let myCoins = 0;
-  let myInventory = [];
-  let myEquippedHat = null;
+// World & Inventory State
+let myWorld = 'main'; // 'main', 'garden', 'select', 'course', 'course2', or 'coop1'
+let coins = {};        // { id: {id, x, yRel} }
+let plants = {};       // { id: {id, type, x, yRel, stage, maxStage, ownerName} }
+let droppedItems = {}; // { id: {id, world, type, x, yRel, label} }
+let shopCatalog = {};
+let courseLeaderboard = [];
+let megaCourseLeaderboard = [];
+let courseRunStartTime = 0;
+let courseRunFinished = false;
+let myCoins = 0;
+let myInventory = [];
+let myEquippedHat = null;
 
-  const SEED_CONFIG = {
-    crop: { totalTime: 900000 },          // 15 min
-    carrot: { totalTime: 1800000 },       // 30 min
-    corn: { totalTime: 2700000 },         // 45 min
-    strawberry: { totalTime: 3600000 },   // 1 hour
-    flower: { totalTime: 7200000 },       // 2 hours
-    pumpkin: { totalTime: 10800000 },      // 3 hours
-    watermelon: { totalTime: 14400000 },   // 4 hours
-    grape: { totalTime: 21600000 },        // 6 hours
-    tree: { totalTime: 28800000 }         // 8 hours
-  };
+// ---- Sprites ----
+const spriteF = new Image(); spriteF.src = 'sprite_f.png';
+const spriteG = new Image(); spriteG.src = 'sprite_g.png';
+const spriteH = new Image(); spriteH.src = 'sprite_h.png';
+let imagesLoaded = false, loadedCount = 0;
+function onImgLoad() { if (++loadedCount >= 3) imagesLoaded = true; }
+spriteF.onload = spriteG.onload = spriteH.onload = onImgLoad;
 
-  const COOP_LEVEL_1 = {
-    name: "Co-op Puzzle Level 1",
-    width: 2400,
-    height: 800,
-    spawnP1: { x: 100, y: 720 },
-    spawnP2: { x: 160, y: 720 },
-    platforms: [
-      { id: "plat_ground_1", x: 0, y: 760, w: 750, h: 40, type: "normal" },
-      { id: "plat_ground_2", x: 850, y: 760, w: 600, h: 40, type: "normal" },
-      { id: "plat_ground_3", x: 1550, y: 760, w: 850, h: 40, type: "normal" },
-      { id: "plat_high_1", x: 300, y: 620, w: 200, h: 20, type: "normal" },
-      { id: "plat_high_2", x: 1000, y: 550, w: 250, h: 20, type: "normal" }
-    ],
-    springs: [
-      { id: "spring_1", x: 680, y: 742, w: 40, h: 18, bounceForce: 1100 }
-    ],
-    plates: [
-      { id: "plate_1", x: 400, y: 610, w: 40, h: 10, targetLockId: "lock_door_1", isPressed: false }
-    ],
-    keys: [
-      { id: "key_1", x: 1100, y: 500, w: 24, h: 24, targetLockId: "lock_door_2", isCollected: false }
-    ],
-    locks: [
-      { id: "lock_door_1", x: 800, y: 600, w: 20, h: 160, lockType: "plate", isOpen: false },
-      { id: "lock_door_2", x: 1500, y: 600, w: 20, h: 160, lockType: "key", isOpen: false }
-    ],
-    goal: { x: 2220, y: 660, w: 80, h: 100 }
-  };
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-  // ---- Web Audio API Synthesizer ----
-  let audioCtx = null;
-  function getAudioContext() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
-  }
+// ---- Socket Connection ----
+function connectSocket(username) {
+  socket = io();
 
-  function playFootstepSound() {
-    try {
-      const actx = getAudioContext();
-      const osc = actx.createOscillator();
-      const gain = actx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(140 + Math.random() * 40, actx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, actx.currentTime + 0.04);
-      gain.gain.setValueAtTime(0.08, actx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.04);
-      osc.connect(gain); gain.connect(actx.destination);
-      osc.start(); osc.stop(actx.currentTime + 0.04);
-    } catch(e) {}
-  }
+  socket.on('connect', () => {
+    socket.emit('join', { name: username });
+  });
 
-  function playKissSound() {
-    try {
-      const actx = getAudioContext();
-      const osc1 = actx.createOscillator(); const osc2 = actx.createOscillator();
-      const gain = actx.createGain();
-      osc1.type = 'sine'; osc2.type = 'sine';
-      osc1.frequency.setValueAtTime(523.25, actx.currentTime);
-      osc1.frequency.exponentialRampToValueAtTime(783.99, actx.currentTime + 0.15);
-      osc2.frequency.setValueAtTime(659.25, actx.currentTime);
-      osc2.frequency.exponentialRampToValueAtTime(1046.50, actx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.12, actx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.18);
-      osc1.connect(gain); osc2.connect(gain); gain.connect(actx.destination);
-      osc1.start(); osc2.start();
-      osc1.stop(actx.currentTime + 0.18); osc2.stop(actx.currentTime + 0.18);
-    } catch(e) {}
-  }
-
-  function playCoinSound() {
-    try {
-      const actx = getAudioContext();
-      const osc = actx.createOscillator(); const gain = actx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(988, actx.currentTime);
-      osc.frequency.setValueAtTime(1319, actx.currentTime + 0.06);
-      gain.gain.setValueAtTime(0.1, actx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.12);
-      osc.connect(gain); gain.connect(actx.destination);
-      osc.start(); osc.stop(actx.currentTime + 0.12);
-    } catch(e) {}
-  }
-
-  function playPlantSound() {
-    try {
-      const actx = getAudioContext();
-      const osc = actx.createOscillator(); const gain = actx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(220, actx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(440, actx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.1, actx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.12);
-      osc.connect(gain); gain.connect(actx.destination);
-      osc.start(); osc.stop(actx.currentTime + 0.12);
-    } catch(e) {}
-  }
-
-  function playHarvestSound() {
-    try {
-      const actx = getAudioContext();
-      [0, 0.07, 0.14].forEach((t, i) => {
-        const osc = actx.createOscillator(); const gain = actx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime([523.25, 659.25, 783.99][i], actx.currentTime + t);
-        gain.gain.setValueAtTime(0.12, actx.currentTime + t);
-        gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + t + 0.14);
-        osc.connect(gain); gain.connect(actx.destination);
-        osc.start(actx.currentTime + t); osc.stop(actx.currentTime + t + 0.14);
-      });
-    } catch(e) {}
-  }
-
-  function playShopSound() {
-    try {
-      const actx = getAudioContext();
-      const osc = actx.createOscillator(); const gain = actx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, actx.currentTime);
-      osc.frequency.setValueAtTime(880, actx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.12, actx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.18);
-      osc.connect(gain); gain.connect(actx.destination);
-      osc.start(); osc.stop(actx.currentTime + 0.18);
-    } catch(e) {}
-  }
-
-  function playHopSound() {
-    try {
-      const actx = getAudioContext();
-      const osc = actx.createOscillator(); const gain = actx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(340, actx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(680, actx.currentTime + 0.09);
-      gain.gain.setValueAtTime(0.14, actx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.1);
-      osc.connect(gain); gain.connect(actx.destination);
-      osc.start(); osc.stop(actx.currentTime + 0.1);
-    } catch(e) {}
-  }
-
-  // ---- Sprites ----
-  const spriteF = new Image(); spriteF.src = 'sprite_f.png';
-  const spriteG = new Image(); spriteG.src = 'sprite_g.png';
-  const spriteH = new Image(); spriteH.src = 'sprite_h.png';
-  let imagesLoaded = false, loadedCount = 0;
-  function onImgLoad() { if (++loadedCount >= 3) imagesLoaded = true; }
-  spriteF.onload = spriteG.onload = spriteH.onload = onImgLoad;
-
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-
-  function getGroundY() {
-    return canvas.height - 40;
-  }
-
-  // ---- Platforms (Multi-World Support) ----
-  function getPlatforms() {
+  socket.on('init', (data) => {
+    selfId = data.selfId;
+    players = {};
     const groundY = getGroundY();
-    if (myWorld === 'garden') {
-      // Flat ground layout for Garden World
-      return [{ x: 0, y: groundY, w: canvas.width, h: 40 }];
-    }
-    if (myWorld === 'select') {
-      // Flat ground layout with floating platform for Level Selection Hall
-      return [
-        { x: 0, y: groundY, w: canvas.width, h: 40 },
-        { x: 200, y: groundY - 110, w: 300, h: 16 }
-      ];
-    }
-    if (myWorld === 'coop1') {
-      const offsetY = canvas.height - COOP_LEVEL_1.height;
-      const plats = COOP_LEVEL_1.platforms.map(p => ({ x: p.x, y: p.y + offsetY, w: p.w, h: p.h }));
-      COOP_LEVEL_1.locks.forEach(l => {
-        if (!l.isOpen) {
-          plats.push({ x: l.x, y: l.y + offsetY, w: l.w, h: l.h });
-        }
-      });
-      return plats;
-    }
-    if (myWorld === 'course') {
-      // Obstacle Course - Daring Platform Gauntlet
-      return [
-        { x: 0,    y: groundY,       w: 220, h: 40 },  // Start Island
-        { x: 300,  y: groundY - 30,  w: 70,  h: 14 },  // Hop 1 - small
-        { x: 430,  y: groundY - 80,  w: 60,  h: 14 },  // Hop 2 - narrow climb
-        { x: 540,  y: groundY - 150, w: 55,  h: 14 },  // Hop 3 - high narrow
-        { x: 660,  y: groundY - 90,  w: 50,  h: 14 },  // Drop 4 - tiny
-        { x: 760,  y: groundY - 180, w: 65,  h: 14 },  // Leap 5 - big jump up
-        { x: 890,  y: groundY - 110, w: 45,  h: 14 },  // Drop 6 - smallest
-        { x: 980,  y: groundY - 200, w: 70,  h: 14 },  // Leap 7 - peak
-        { x: 1100, y: groundY - 130, w: 55,  h: 14 },  // Drop 8
-        { x: 1210, y: groundY - 60,  w: 60,  h: 14 },  // Descent 9
-        { x: 1330, y: groundY,       w: 300, h: 40 }   // Finish Island
-      ];
-    }
-    if (myWorld === 'course2') {
-      // Mega Obstacle Course - 4000px Scrolling Gauntlet
-      return [
-        { x: 0,    y: groundY,       w: 240, h: 40 },  // Start Island (x: 0..240)
-        // Section 1: The Warmup Clamber (x: 240..1000)
-        { x: 310,  y: groundY - 40,  w: 65,  h: 14 },
-        { x: 440,  y: groundY - 90,  w: 60,  h: 14 },
-        { x: 570,  y: groundY - 140, w: 55,  h: 14 },
-        { x: 700,  y: groundY - 90,  w: 60,  h: 14 },
-        { x: 830,  y: groundY - 160, w: 50,  h: 14 },
-        { x: 960,  y: groundY - 80,  w: 70,  h: 14 },
-        // Section 2: Sky High Stepping Stones (x: 1000..1900)
-        { x: 1100, y: groundY - 50,  w: 50,  h: 14 },
-        { x: 1220, y: groundY - 110, w: 50,  h: 14 },
-        { x: 1340, y: groundY - 180, w: 45,  h: 14 },
-        { x: 1460, y: groundY - 250, w: 45,  h: 14 },  // Sky Peak
-        { x: 1590, y: groundY - 180, w: 50,  h: 14 },
-        { x: 1720, y: groundY - 100, w: 55,  h: 14 },
-        { x: 1850, y: groundY - 40,  w: 65,  h: 14 },
-        // Section 3: Precision Drops & Gaps (x: 1900..2900)
-        { x: 2000, y: groundY - 140, w: 45,  h: 14 },
-        { x: 2130, y: groundY - 70,  w: 45,  h: 14 },
-        { x: 2260, y: groundY - 190, w: 45,  h: 14 },
-        { x: 2400, y: groundY - 100, w: 50,  h: 14 },
-        { x: 2540, y: groundY - 220, w: 45,  h: 14 },
-        { x: 2680, y: groundY - 130, w: 55,  h: 14 },
-        { x: 2820, y: groundY - 50,  w: 60,  h: 14 },
-        // Section 4: Final Gauntlet Sprint (x: 2900..3750)
-        { x: 2970, y: groundY - 120, w: 55,  h: 14 },
-        { x: 3110, y: groundY - 180, w: 50,  h: 14 },
-        { x: 3250, y: groundY - 240, w: 45,  h: 14 },
-        { x: 3390, y: groundY - 160, w: 55,  h: 14 },
-        { x: 3530, y: groundY - 80,  w: 60,  h: 14 },
-        { x: 3670, y: groundY - 30,  w: 70,  h: 14 },
-        // Finish Island (x: 3770..4200)
-        { x: 3770, y: groundY,       w: 400, h: 40 }
-      ];
-    }
-    return [
-      { x: 0,   y: groundY,       w: canvas.width, h: 40  },
-      { x: 80,  y: groundY - 110, w: 200, h: 16 },
-      { x: 340, y: groundY - 200, w: 220, h: 16 },
-      { x: 640, y: groundY - 130, w: 200, h: 16 },
-      { x: 180, y: groundY - 290, w: 180, h: 16 },
-      { x: 480, y: groundY - 370, w: 220, h: 16 },
-      { x: 800, y: groundY - 260, w: 180, h: 16 }
-    ];
-  }
-
-  // ---- Socket Connection ----
-  function connectSocket(username) {
-    socket = io();
-
-    socket.on('connect', () => {
-      socket.emit('join', { name: username });
-    });
-
-    socket.on('init', (data) => {
-      selfId = data.selfId;
-      players = {};
-      const groundY = getGroundY();
-      for (let id in data.players) {
-        const p = data.players[id];
-        const absY = groundY + (p.yRel !== undefined ? p.yRel : 0);
-        players[id] = {
-          ...p,
-          world: p.world || 'main',
-          renderX: Number(p.x) || 300,
-          renderY: absY,
-          y: absY,
-          vx: 0, vy: 0,
-          coyoteTimer: 0, jumpBufferTimer: 0
-        };
-      }
-      coins = data.coins || {};
-      plants = data.plants || {};
-      droppedItems = data.droppedItems || {};
-      shopCatalog = data.shopCatalog || {};
-      if (Array.isArray(data.courseLeaderboard)) courseLeaderboard = data.courseLeaderboard;
-      if (Array.isArray(data.megaCourseLeaderboard)) megaCourseLeaderboard = data.megaCourseLeaderboard;
-      
-      const me = data.players[selfId];
-      if (me) {
-        myWorld = me.world || 'main';
-        myCoins = me.coins !== undefined ? me.coins : 0;
-        myInventory = me.inventory || [];
-        myEquippedHat = me.equippedHat || null;
-      }
-
-      if (Array.isArray(data.chatHistory) && data.chatHistory.length > 0) {
-        chatMessagesEl.innerHTML = '';
-        data.chatHistory.forEach(msg => addChatMessage(msg));
-      }
-
-      joinModal.classList.add('hidden');
-      chatBar.classList.remove('hidden');
-      renderShopGrid();
-    });
-
-    socket.on('playerJoined', (p) => {
-      const groundY = getGroundY();
+    for (let id in data.players) {
+      const p = data.players[id];
       const absY = groundY + (p.yRel !== undefined ? p.yRel : 0);
-      players[p.id] = { ...p, world: p.world || 'main', renderX: p.x || 300, renderY: absY, y: absY, vx: 0, vy: 0, coyoteTimer: 0, jumpBufferTimer: 0 };
-    });
+      players[id] = {
+        ...p,
+        world: p.world || 'main',
+        renderX: Number(p.x) || 300,
+        renderY: absY,
+        y: absY,
+        vx: 0, vy: 0,
+        coyoteTimer: 0, jumpBufferTimer: 0
+      };
+    }
+    coins = data.coins || {};
+    plants = data.plants || {};
+    droppedItems = data.droppedItems || {};
+    shopCatalog = data.shopCatalog || {};
+    if (Array.isArray(data.courseLeaderboard)) courseLeaderboard = data.courseLeaderboard;
+    if (Array.isArray(data.megaCourseLeaderboard)) megaCourseLeaderboard = data.megaCourseLeaderboard;
+    
+    const me = data.players[selfId];
+    if (me) {
+      myWorld = me.world || 'main';
+      myCoins = me.coins !== undefined ? me.coins : 0;
+      myInventory = me.inventory || [];
+      myEquippedHat = me.equippedHat || null;
+    }
 
-    socket.on('playerMoved', (data) => {
-      if (!players[data.id] || data.id === selfId) return;
-      const p = players[data.id];
+    if (Array.isArray(data.chatHistory) && data.chatHistory.length > 0) {
+      chatMessagesEl.innerHTML = '';
+      data.chatHistory.forEach(msg => addChatMessage(msg));
+    }
+
+    joinModal.classList.add('hidden');
+    chatBar.classList.remove('hidden');
+    renderShopGrid();
+  });
+
+  socket.on('playerJoined', (p) => {
+    const groundY = getGroundY();
+    const absY = groundY + (p.yRel !== undefined ? p.yRel : 0);
+    players[p.id] = { ...p, world: p.world || 'main', renderX: p.x || 300, renderY: absY, y: absY, vx: 0, vy: 0, coyoteTimer: 0, jumpBufferTimer: 0 };
+  });
+
+  socket.on('playerMoved', (data) => {
+    if (!players[data.id] || data.id === selfId) return;
+    const p = players[data.id];
+    const groundY = getGroundY();
+    p.x = Number(data.x) || p.x;
+    p.y = groundY + (data.yRel !== undefined ? Number(data.yRel) : 0);
+    p.vx = Number(data.vx) || 0; p.vy = Number(data.vy) || 0;
+    p.facing = data.facing; p.isMoving = data.isMoving;
+    p.isJumping = data.isJumping; p.isGrounded = data.isGrounded;
+    p.equippedHat = data.equippedHat;
+    if (data.world) p.world = data.world;
+  });
+
+  socket.on('playerWorldSwitched', (data) => {
+    if (players[data.id]) {
+      players[data.id].world = data.world;
+      players[data.id].x = data.x;
       const groundY = getGroundY();
-      p.x = Number(data.x) || p.x;
-      p.y = groundY + (data.yRel !== undefined ? Number(data.yRel) : 0);
-      p.vx = Number(data.vx) || 0; p.vy = Number(data.vy) || 0;
-      p.facing = data.facing; p.isMoving = data.isMoving;
-      p.isJumping = data.isJumping; p.isGrounded = data.isGrounded;
-      p.equippedHat = data.equippedHat;
-      if (data.world) p.world = data.world;
-    });
-
-    socket.on('playerWorldSwitched', (data) => {
-      if (players[data.id]) {
-        players[data.id].world = data.world;
-        players[data.id].x = data.x;
-        const groundY = getGroundY();
-        players[data.id].y = groundY + data.yRel;
-        if (data.id === selfId) {
-          myWorld = data.world;
-          courseRunStartTime = 0;
-          courseRunFinished = false;
-          let wName = 'Main World';
-          if (data.world === 'garden') wName = 'Garden World';
-          else if (data.world === 'course') wName = 'Obstacle Course 1';
-          else if (data.world === 'course2') wName = 'MEGA Obstacle Course';
-          spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${wName}!`, '#00e676');
-        }
+      players[data.id].y = groundY + data.yRel;
+      if (data.id === selfId) {
+        myWorld = data.world;
+        courseRunStartTime = 0;
+        courseRunFinished = false;
+        let wName = 'Main World';
+        if (data.world === 'garden') wName = 'Garden World';
+        else if (data.world === 'select') wName = 'Level Selection';
+        else if (data.world === 'course') wName = 'Obstacle Course 1';
+        else if (data.world === 'course2') wName = 'MEGA Obstacle Course';
+        else if (data.world === 'coop1') wName = 'Co-op Puzzle 1';
+        spawnFloatText(players[selfId].x, players[selfId].y - 40, `Entered ${wName}!`, '#00e676');
       }
-    });
+    }
+  });
 
-    socket.on('playerKissed', (data) => {
-      if (players[data.id] && players[data.id].world === myWorld) {
-        spawnHeartParticles(players[data.id].x, players[data.id].y - 30);
-        if (data.targetId && players[data.targetId])
-          spawnHeartParticles(players[data.targetId].x, players[data.targetId].y - 30);
-        playKissSound();
-      }
-    });
+  socket.on('playerKissed', (data) => {
+    if (players[data.id] && players[data.id].world === myWorld) {
+      spawnHeartParticles(players[data.id].x, players[data.id].y - 30);
+      if (data.targetId && players[data.targetId])
+        spawnHeartParticles(players[data.targetId].x, players[data.targetId].y - 30);
+      playKissSound();
+    }
+  });
 
-    socket.on('playerEquipUpdated', (data) => {
-      if (players[data.id]) {
-        players[data.id].equippedHat = data.equippedHat;
-        if (data.id === selfId) {
-          myEquippedHat = data.equippedHat;
-          myCoins = data.coins;
-          myInventory = data.inventory || [];
-          updateShopBalance();
-        }
-      }
-    });
-
-    socket.on('notice', (data) => {
-      if (selfId && players[selfId]) {
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, data.text, '#ff5252');
-      }
-    });
-
-    socket.on('itemPurchased', (data) => {
-      myCoins = data.coins;
-      myInventory = data.inventory;
-      playShopSound();
-      updateShopBalance();
-      renderShopGrid();
-      if (selfId && players[selfId]) {
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, `Bought ${data.item.name}!`, '#76ff03');
-      }
-    });
-
-    socket.on('playerLeft', (id) => {
-      delete players[id];
-      delete speechBubbles[id];
-    });
-
-    socket.on('chatMessage', (msg) => {
-      addChatMessage(msg);
-      if (!msg.isSystem && msg.id && players[msg.id]) {
-        speechBubbles[msg.id] = { text: msg.text, expiresAt: Date.now() + 5000 };
-      }
-    });
-
-    // Coin events
-    socket.on('coinCollected', (data) => {
-      delete coins[data.coinId];
-      if (data.playerId === selfId) {
+  socket.on('playerEquipUpdated', (data) => {
+    if (players[data.id]) {
+      players[data.id].equippedHat = data.equippedHat;
+      if (data.id === selfId) {
+        myEquippedHat = data.equippedHat;
         myCoins = data.coins;
-        playCoinSound();
+        myInventory = data.inventory || [];
         updateShopBalance();
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, '+1 Coin', '#ffd700');
       }
-    });
+    }
+  });
 
-    socket.on('coinSpawned', (coin) => {
-      coins[coin.id] = coin;
-    });
+  socket.on('notice', (data) => {
+    if (selfId && players[selfId]) {
+      spawnFloatText(players[selfId].x, players[selfId].y - 40, data.text, '#ff5252');
+    }
+  });
 
-    socket.on('coinsUpdated', (data) => {
-      myCoins = data.coins;
-      if (data.inventory) myInventory = data.inventory;
-      updateShopBalance();
-    });
-
-    // Plant events
-    socket.on('plantCreated', (plant) => {
-      plants[plant.id] = plant;
-      if (myWorld === 'garden') playPlantSound();
-    });
-
-    socket.on('plantUpdated', (data) => {
-      if (plants[data.id]) plants[data.id].stage = data.stage;
-    });
-
-    socket.on('plantHarvested', (data) => {
-      delete plants[data.plantId];
-      if (data.playerId === selfId) {
-        myCoins = data.coins;
-        playHarvestSound();
-        updateShopBalance();
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, `+${data.reward} Coins`, '#76ff03');
-      }
-    });
-
-    // Item dropping / pickup
-    socket.on('itemDropped', (drop) => {
-      droppedItems[drop.id] = drop;
-    });
-
-    socket.on('itemPickedUp', (data) => {
-      delete droppedItems[data.dropId];
-      if (data.playerId === selfId) {
-        myCoins = data.coins;
-        if (data.inventory) myInventory = data.inventory;
-        playCoinSound();
-        updateShopBalance();
-        spawnFloatText(players[selfId].x, players[selfId].y - 40, 'Picked up item!', '#ffd700');
-      }
-    });
-
-    socket.on('leaderboardUpdated', (lb) => {
-      courseLeaderboard = lb || [];
-    });
-
-    socket.on('megaLeaderboardUpdated', (lb) => {
-      megaCourseLeaderboard = lb || [];
-    });
-  }
-
-  // ---- Shop Popup Modal Logic ----
-  function updateShopBalance() {
-    if (shopCoinsText) shopCoinsText.innerText = myCoins;
-  }
-
-  function renderShopGrid() {
-    if (!shopGrid || !shopCatalog) return;
-    shopGrid.innerHTML = '';
-
-    Object.values(shopCatalog).forEach(item => {
-      const card = document.createElement('div');
-      card.className = 'shop-card';
-      const canAfford = myCoins >= item.cost;
-
-      card.innerHTML = `
-        <div>
-          <div class="item-name">${escapeHTML(item.name)}</div>
-        </div>
-        <div class="item-footer">
-          <span class="item-cost">${item.cost} 🪙</span>
-          <button type="button" class="buy-btn" ${canAfford ? '' : 'disabled'}>BUY</button>
-        </div>
-      `;
-
-      const buyBtn = card.querySelector('.buy-btn');
-      buyBtn.addEventListener('click', () => {
-        if (socket) socket.emit('buyStallItem', item.id);
-      });
-
-      shopGrid.appendChild(card);
-    });
-  }
-
-  function openShopModal() {
+  socket.on('itemPurchased', (data) => {
+    myCoins = data.coins;
+    myInventory = data.inventory;
+    playShopSound();
     updateShopBalance();
     renderShopGrid();
-    shopModal.classList.remove('hidden');
-  }
-
-  function closeShopModal() {
-    shopModal.classList.add('hidden');
-  }
-
-  if (btnCloseShop) {
-    btnCloseShop.addEventListener('click', closeShopModal);
-  }
-
-  // ---- Particles & Text ----
-  const floatTexts = [];
-
-  function spawnHeartParticles(x, y) {
-    for (let i = 0; i < 8; i++) {
-      particles.push({
-        x: x + (Math.random() - 0.5) * 20,
-        y: y + (Math.random() - 0.5) * 10,
-        vx: (Math.random() - 0.5) * 40,
-        vy: -60 - Math.random() * 50,
-        alpha: 1.0,
-        scale: 0.8 + Math.random() * 0.6,
-        life: 1.2,
-        emoji: '❤️'
-      });
+    if (selfId && players[selfId]) {
+      spawnFloatText(players[selfId].x, players[selfId].y - 40, `Bought ${data.item.name}!`, '#76ff03');
     }
-  }
+  });
 
-  function spawnFloatText(x, y, text, color = '#ffe066') {
-    floatTexts.push({ x, y, text, color, alpha: 1, vy: -50, life: 1.2 });
-  }
+  socket.on('playerLeft', (id) => {
+    delete players[id];
+    delete speechBubbles[id];
+  });
 
-  // ---- Actions & Interactions ----
-  function tryKiss() {
-    getAudioContext();
-    if (!selfId || !players[selfId]) return;
-    const me = players[selfId];
-    let nearestPartner = null, minDist = 80;
-    Object.values(players).forEach(other => {
-      if (other.id !== selfId && other.world === myWorld) {
-        const d = Math.hypot(me.x - other.x, me.y - other.y);
-        if (d < minDist) { minDist = d; nearestPartner = other; }
-      }
+  socket.on('chatMessage', (msg) => {
+    addChatMessage(msg);
+    if (!msg.isSystem && msg.id && players[msg.id]) {
+      speechBubbles[msg.id] = { text: msg.text, expiresAt: Date.now() + 5000 };
+    }
+  });
+
+  // Coin events
+  socket.on('coinCollected', (data) => {
+    delete coins[data.coinId];
+    if (data.playerId === selfId) {
+      myCoins = data.coins;
+      playCoinSound();
+      updateShopBalance();
+      spawnFloatText(players[selfId].x, players[selfId].y - 40, '+1 Coin', '#ffd700');
+    }
+  });
+
+  socket.on('coinSpawned', (coin) => {
+    coins[coin.id] = coin;
+  });
+
+  socket.on('coinsUpdated', (data) => {
+    myCoins = data.coins;
+    if (data.inventory) myInventory = data.inventory;
+    updateShopBalance();
+  });
+
+  // Plant events
+  socket.on('plantCreated', (plant) => {
+    plants[plant.id] = plant;
+    if (myWorld === 'garden') playPlantSound();
+  });
+
+  socket.on('plantUpdated', (data) => {
+    if (plants[data.id]) plants[data.id].stage = data.stage;
+  });
+
+  socket.on('plantHarvested', (data) => {
+    delete plants[data.plantId];
+    if (data.playerId === selfId) {
+      myCoins = data.coins;
+      playHarvestSound();
+      updateShopBalance();
+      spawnFloatText(players[selfId].x, players[selfId].y - 40, `+${data.reward} Coins`, '#76ff03');
+    }
+  });
+
+  // Item dropping / pickup
+  socket.on('itemDropped', (drop) => {
+    droppedItems[drop.id] = drop;
+  });
+
+  socket.on('itemPickedUp', (data) => {
+    delete droppedItems[data.dropId];
+    if (data.playerId === selfId) {
+      myCoins = data.coins;
+      if (data.inventory) myInventory = data.inventory;
+      playCoinSound();
+      updateShopBalance();
+      spawnFloatText(players[selfId].x, players[selfId].y - 40, 'Picked up item!', '#ffd700');
+    }
+  });
+
+  socket.on('leaderboardUpdated', (lb) => {
+    courseLeaderboard = lb || [];
+  });
+
+  socket.on('megaLeaderboardUpdated', (lb) => {
+    megaCourseLeaderboard = lb || [];
+  });
+}
+
+// ---- Shop Popup Modal Logic ----
+function updateShopBalance() {
+  if (shopCoinsText) shopCoinsText.innerText = myCoins;
+}
+
+function renderShopGrid() {
+  if (!shopGrid || !shopCatalog) return;
+  shopGrid.innerHTML = '';
+
+  Object.values(shopCatalog).forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'shop-card';
+    const canAfford = myCoins >= item.cost;
+
+    card.innerHTML = `
+      <div>
+        <div class="item-name">${escapeHTML(item.name)}</div>
+      </div>
+      <div class="item-footer">
+        <span class="item-cost">${item.cost} 🪙</span>
+        <button type="button" class="buy-btn" ${canAfford ? '' : 'disabled'}>BUY</button>
+      </div>
+    `;
+
+    const buyBtn = card.querySelector('.buy-btn');
+    buyBtn.addEventListener('click', () => {
+      if (socket) socket.emit('buyStallItem', item.id);
     });
-    spawnHeartParticles(me.x, me.y - 30);
-    playKissSound();
-    if (nearestPartner) spawnHeartParticles(nearestPartner.x, nearestPartner.y - 30);
-    socket.emit('playerKiss', { targetId: nearestPartner ? nearestPartner.id : null });
+
+    shopGrid.appendChild(card);
+  });
+}
+
+function openShopModal() {
+  updateShopBalance();
+  renderShopGrid();
+  shopModal.classList.remove('hidden');
+}
+
+function closeShopModal() {
+  shopModal.classList.add('hidden');
+}
+
+if (btnCloseShop) {
+  btnCloseShop.addEventListener('click', closeShopModal);
+}
+
+// ---- Particles & Text ----
+const floatTexts = [];
+
+function spawnHeartParticles(x, y) {
+  for (let i = 0; i < 8; i++) {
+    particles.push({
+      x: x + (Math.random() - 0.5) * 20,
+      y: y + (Math.random() - 0.5) * 10,
+      vx: (Math.random() - 0.5) * 40,
+      vy: -60 - Math.random() * 50,
+      alpha: 1.0,
+      scale: 0.8 + Math.random() * 0.6,
+      life: 1.2,
+      emoji: '❤️'
+    });
   }
+}
 
-  function tryInteract() {
-    if (!selfId || !players[selfId]) return;
-    const me = players[selfId];
-    const groundY = getGroundY();
+function spawnFloatText(x, y, text, color = '#ffe066') {
+  floatTexts.push({ x, y, text, color, alpha: 1, vy: -50, life: 1.2 });
+}
 
-    // 1. World Portal / Doorway Interaction
-    const mainPortalX = canvas.width - 100;
-    const shopX = canvas.width - 100;
-
-    if (myWorld === 'main' && Math.abs(me.x - mainPortalX) < 70 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'garden');
-      return;
+// ---- Actions & Interactions ----
+function tryKiss() {
+  getAudioContext();
+  if (!selfId || !players[selfId]) return;
+  const me = players[selfId];
+  let nearestPartner = null, minDist = 80;
+  Object.values(players).forEach(other => {
+    if (other.id !== selfId && other.world === myWorld) {
+      const d = Math.hypot(me.x - other.x, me.y - other.y);
+      if (d < minDist) { minDist = d; nearestPartner = other; }
     }
-    if (myWorld === 'main' && Math.abs(me.x - (canvas.width - 200)) < 60 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'select');
-      return;
-    }
-    if (myWorld === 'garden' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+  });
+  spawnHeartParticles(me.x, me.y - 30);
+  playKissSound();
+  if (nearestPartner) spawnHeartParticles(nearestPartner.x, nearestPartner.y - 30);
+  socket.emit('playerKiss', { targetId: nearestPartner ? nearestPartner.id : null });
+}
+
+function tryInteract() {
+  if (!selfId || !players[selfId]) return;
+  const me = players[selfId];
+  const groundY = getGroundY();
+
+  // 1. World Portal / Doorway Interaction
+  const mainPortalX = canvas.width - 100;
+  const shopX = canvas.width - 100;
+
+  if (myWorld === 'main' && Math.abs(me.x - mainPortalX) < 70 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'garden');
+    return;
+  }
+  if (myWorld === 'main' && Math.abs(me.x - (canvas.width - 200)) < 60 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'select');
+    return;
+  }
+  if (myWorld === 'garden' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'main');
+    return;
+  }
+  if (myWorld === 'select') {
+    if (Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'main');
       return;
     }
-    if (myWorld === 'select') {
-      if (Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
-        socket.emit('switchWorld', 'main');
-        return;
-      }
-      if (Math.abs(me.x - 240) < 60 && Math.abs(me.y - groundY) < 30) {
-        socket.emit('switchWorld', 'course');
-        return;
-      }
-      if (Math.abs(me.x - 440) < 60 && Math.abs(me.y - groundY) < 30) {
-        socket.emit('switchWorld', 'coop1');
-        return;
-      }
-    }
-    if (myWorld === 'course' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'select');
-      return;
-    }
-    // Enter Mega Course from Finish Island of Course 1 (x: 1440)
-    if (myWorld === 'course' && Math.abs(me.x - 1440) < 60 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'course2');
-      return;
-    }
-    if (myWorld === 'course2' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+    if (Math.abs(me.x - 240) < 60 && Math.abs(me.y - groundY) < 30) {
       socket.emit('switchWorld', 'course');
       return;
     }
-    if (myWorld === 'coop1' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'select');
+    if (Math.abs(me.x - 440) < 60 && Math.abs(me.y - groundY) < 30) {
+      socket.emit('switchWorld', 'coop1');
       return;
     }
+  }
+  if (myWorld === 'course' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'select');
+    return;
+  }
+  // Enter Mega Course from Finish Island of Course 1 (x: 1440)
+  if (myWorld === 'course' && Math.abs(me.x - 1440) < 60 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'course2');
+    return;
+  }
+  if (myWorld === 'course2' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'course');
+    return;
+  }
+  if (myWorld === 'coop1' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'select');
+    return;
+  }
 
-    // 2. Open Shop Popup Modal (when near Shop Stall on far right in Garden World)
-    if (myWorld === 'garden' && Math.abs(me.x - shopX) < 75 && Math.abs(me.y - groundY) < 30) {
-      openShopModal();
-      return;
-    }
+  // 2. Open Shop Popup Modal (when near Shop Stall on far right in Garden World)
+  if (myWorld === 'garden' && Math.abs(me.x - shopX) < 75 && Math.abs(me.y - groundY) < 30) {
+    openShopModal();
+    return;
+  }
 
-    // 4. Harvestable Plants nearby (Garden World only)
-    if (myWorld === 'garden') {
-      let harvestTarget = null, minDist = 70;
-      Object.values(plants).forEach(plant => {
-        const plantAbsY = groundY + plant.yRel;
-        if (plant.stage >= plant.maxStage) {
-          const d = Math.hypot(me.x - plant.x, me.y - plantAbsY);
-          if (d < minDist) { minDist = d; harvestTarget = plant; }
-        }
-      });
-
-      if (harvestTarget) {
-        socket.emit('harvest', harvestTarget.id);
-        return;
+  // 4. Harvestable Plants nearby (Garden World only)
+  if (myWorld === 'garden') {
+    let harvestTarget = null, minDist = 70;
+    Object.values(plants).forEach(plant => {
+      const plantAbsY = groundY + plant.yRel;
+      if (plant.stage >= plant.maxStage) {
+        const d = Math.hypot(me.x - plant.x, me.y - plantAbsY);
+        if (d < minDist) { minDist = d; harvestTarget = plant; }
       }
-    }
-
-    // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..canvas.width - 220)
-    if (myWorld !== 'garden') {
-      spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant!', '#ffab40');
-      return;
-    }
-    if (me.x < 180 || me.x > canvas.width - 220 || Math.abs(me.y - groundY) > 20) {
-      spawnFloatText(me.x, me.y - 40, 'Must plant inside soil bed!', '#ff5252');
-      return;
-    }
-
-    const yRel = me.y - groundY;
-    const seedOrder = ['carrot_seed','corn_seed','strawberry_seed','flower_seed','pumpkin_seed','watermelon_seed','grape_seed','tree_seed','crop_seed'];
-    let foundSeed = seedOrder.find(s => myInventory.includes(s));
-
-    if (foundSeed) {
-      const type = shopCatalog[foundSeed] ? shopCatalog[foundSeed].seedType || 'crop' : 'crop';
-      socket.emit('plant', { type, x: me.x, yRel });
-    } else if (myCoins >= 1) {
-      socket.emit('plant', { type: 'crop', x: me.x, yRel });
-    } else {
-      spawnFloatText(me.x, me.y - 40, 'No seeds or coins to plant!', '#ff5252');
-    }
-  }
-
-  function cycleEquippedHat() {
-    if (!selfId || !players[selfId]) return;
-    const hats = myInventory.filter(id => shopCatalog[id] && shopCatalog[id].type === 'hat');
-    hats.unshift(null);
-
-    const currentIdx = hats.indexOf(myEquippedHat);
-    const nextIdx = (currentIdx + 1) % hats.length;
-    const nextHat = hats[nextIdx];
-
-    socket.emit('equipItem', nextHat);
-    playShopSound();
-    const label = nextHat && shopCatalog[nextHat] ? shopCatalog[nextHat].name : 'Barehead';
-    spawnFloatText(players[selfId].x, players[selfId].y - 40, `Equipped: ${label}`, '#00e676');
-  }
-
-  function dropCoinOnGround() {
-    if (!selfId || !players[selfId]) return;
-    if (myCoins < 1) {
-      spawnFloatText(players[selfId].x, players[selfId].y - 40, 'No coins to drop!', '#ff5252');
-      return;
-    }
-    const groundY = getGroundY();
-    const me = players[selfId];
-    socket.emit('dropItem', { type: 'coin', x: me.x, yRel: me.y - groundY });
-  }
-
-  // ---- Inputs ----
-  function openChatInput() {
-    chatForm.classList.add('active');
-    chatInput.focus();
-  }
-
-  function closeChatInput() {
-    chatForm.classList.remove('active');
-    chatInput.value = '';
-    chatInput.blur();
-  }
-
-  window.addEventListener('keydown', (e) => {
-    getAudioContext();
-
-    if (e.code === 'Escape') {
-      closeChatInput();
-      closeShopModal();
-      return;
-    }
-
-    if (e.key === 'Enter') {
-      if (document.activeElement !== chatInput) {
-        openChatInput();
-        e.preventDefault();
-        return;
-      }
-    }
-
-    if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
-
-    if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
-      keysPressed[e.code] = true;
-
-    if (e.code === 'KeyK') tryKiss();
-    if (e.code === 'KeyE') tryInteract();
-    if (e.code === 'KeyH') cycleEquippedHat();
-    if (e.code === 'KeyQ') dropCoinOnGround();
-
-    if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
-      players[selfId].jumpBufferTimer = 0.15;
-  });
-
-  window.addEventListener('keyup', (e) => {
-    delete keysPressed[e.code];
-    if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId]) {
-      const me = players[selfId];
-      if (me.vy < -250) me.vy *= 0.45;
-    }
-  });
-
-  if (btnJump) {
-    btnJump.addEventListener('pointerdown', () => {
-      getAudioContext();
-      if (selfId && players[selfId]) players[selfId].jumpBufferTimer = 0.15;
     });
-  }
 
-  chatForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    getAudioContext();
-    const text = chatInput.value.trim();
-    if (text && socket) {
-      socket.emit('sendChat', text);
+    if (harvestTarget) {
+      socket.emit('harvest', harvestTarget.id);
+      return;
     }
+  }
+
+  // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..canvas.width - 220)
+  if (myWorld !== 'garden') {
+    spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant!', '#ffab40');
+    return;
+  }
+  if (me.x < 180 || me.x > canvas.width - 220 || Math.abs(me.y - groundY) > 20) {
+    spawnFloatText(me.x, me.y - 40, 'Must plant inside soil bed!', '#ff5252');
+    return;
+  }
+
+  const yRel = me.y - groundY;
+  const seedOrder = ['carrot_seed','corn_seed','strawberry_seed','flower_seed','pumpkin_seed','watermelon_seed','grape_seed','tree_seed','crop_seed'];
+  let foundSeed = seedOrder.find(s => myInventory.includes(s));
+
+  if (foundSeed) {
+    const type = shopCatalog[foundSeed] ? shopCatalog[foundSeed].seedType || 'crop' : 'crop';
+    socket.emit('plant', { type, x: me.x, yRel });
+  } else if (myCoins >= 1) {
+    socket.emit('plant', { type: 'crop', x: me.x, yRel });
+  } else {
+    spawnFloatText(me.x, me.y - 40, 'No seeds or coins to plant!', '#ff5252');
+  }
+}
+
+function cycleEquippedHat() {
+  if (!selfId || !players[selfId]) return;
+  const hats = myInventory.filter(id => shopCatalog[id] && shopCatalog[id].type === 'hat');
+  hats.unshift(null);
+
+  const currentIdx = hats.indexOf(myEquippedHat);
+  const nextIdx = (currentIdx + 1) % hats.length;
+  const nextHat = hats[nextIdx];
+
+  socket.emit('equipItem', nextHat);
+  playShopSound();
+  const label = nextHat && shopCatalog[nextHat] ? shopCatalog[nextHat].name : 'Barehead';
+  spawnFloatText(players[selfId].x, players[selfId].y - 40, `Equipped: ${label}`, '#00e676');
+}
+
+function dropCoinOnGround() {
+  if (!selfId || !players[selfId]) return;
+  if (myCoins < 1) {
+    spawnFloatText(players[selfId].x, players[selfId].y - 40, 'No coins to drop!', '#ff5252');
+    return;
+  }
+  const groundY = getGroundY();
+  const me = players[selfId];
+  socket.emit('dropItem', { type: 'coin', x: me.x, yRel: me.y - groundY });
+}
+
+// ---- Inputs ----
+function openChatInput() {
+  chatForm.classList.add('active');
+  chatInput.focus();
+}
+
+function closeChatInput() {
+  chatForm.classList.remove('active');
+  chatInput.value = '';
+  chatInput.blur();
+}
+
+window.addEventListener('keydown', (e) => {
+  getAudioContext();
+
+  if (e.code === 'Escape') {
     closeChatInput();
-  });
+    closeShopModal();
+    return;
+  }
 
-  chatInput.addEventListener('blur', () => {
-    setTimeout(() => {
-      if (document.activeElement !== chatInput) {
-        chatForm.classList.remove('active');
-      }
-    }, 150);
-  });
+  if (e.key === 'Enter') {
+    if (document.activeElement !== chatInput) {
+      openChatInput();
+      e.preventDefault();
+      return;
+    }
+  }
 
-  joinForm.addEventListener('submit', (e) => {
-    e.preventDefault();
+  if (document.activeElement === chatInput || document.activeElement === usernameInput) return;
+
+  if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
+    keysPressed[e.code] = true;
+
+  if (e.code === 'KeyK') tryKiss();
+  if (e.code === 'KeyE') tryInteract();
+  if (e.code === 'KeyH') cycleEquippedHat();
+  if (e.code === 'KeyQ') dropCoinOnGround();
+
+  if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
+    players[selfId].jumpBufferTimer = 0.15;
+});
+
+window.addEventListener('keyup', (e) => {
+  delete keysPressed[e.code];
+  if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId]) {
+    const me = players[selfId];
+    if (me.vy < -250) me.vy *= 0.45;
+  }
+});
+
+if (btnJump) {
+  btnJump.addEventListener('pointerdown', () => {
     getAudioContext();
-    const name = usernameInput.value.trim();
-    if (name) connectSocket(name);
+    if (selfId && players[selfId]) players[selfId].jumpBufferTimer = 0.15;
   });
+}
 
-  // ---- Drawing Helpers ----
-  function addChatMessage(msg) {
-    const div = document.createElement('div');
-    div.className = `chat-msg ${msg.isSystem ? 'system' : ''} ${msg.id === selfId ? 'self' : ''}`;
-    div.innerHTML = msg.isSystem
-      ? escapeHTML(msg.text)
-      : `<span class="sender">${escapeHTML(msg.sender)}:</span> ${escapeHTML(msg.text)}`;
-    chatMessagesEl.appendChild(div);
-    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+chatForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  getAudioContext();
+  const text = chatInput.value.trim();
+  if (text && socket) {
+    socket.emit('sendChat', text);
+  }
+  closeChatInput();
+});
 
-    // Auto fade-out chat message after 45 seconds so conversation stays readable much longer
-    setTimeout(() => {
-      div.style.opacity = '0';
-      setTimeout(() => {
-        if (div.parentNode) div.parentNode.removeChild(div);
-      }, 500);
-    }, 45000);
+chatInput.addEventListener('blur', () => {
+  setTimeout(() => {
+    if (document.activeElement !== chatInput) {
+      chatForm.classList.remove('active');
+    }
+  }, 150);
+});
+
+joinForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  getAudioContext();
+  const name = usernameInput.value.trim();
+  if (name) connectSocket(name);
+});
+
+// Main render loop handles canvas drawing and animation frame
+let lastFrameTime = 0, animTime = 0;
+
+function render(now) {
+  if (!lastFrameTime) lastFrameTime = now || performance.now();
+  let dt = (now - lastFrameTime) / 1000;
+  lastFrameTime = now;
+  if (isNaN(dt) || dt <= 0 || dt > 0.1) dt = 0.016;
+  animTime += dt;
+
+  updatePhysics(dt);
+
+  ctx.imageSmoothingEnabled = false;
+
+  const groundY = getGroundY();
+  const meX = (selfId && players[selfId]) ? players[selfId].x : 120;
+  let cameraX = 0;
+  if (myWorld === 'course2') {
+    cameraX = Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2));
+  } else if (myWorld === 'coop1') {
+    cameraX = Math.max(0, Math.min(2400 - canvas.width, meX - canvas.width / 2));
   }
 
-  function escapeHTML(s) {
-    return s.replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t));
+  // Background color per world
+  if (myWorld === 'garden') {
+    ctx.fillStyle = '#1e3323';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (myWorld === 'select') {
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Background Grid
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.05)';
+    ctx.lineWidth = 2;
+    for (let gx = 0; gx < canvas.width; gx += 40) {
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
+    }
+  } else if (myWorld === 'coop1') {
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (myWorld === 'course') {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (myWorld === 'course2') {
+    ctx.fillStyle = '#0b0813';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Background Cyber Grid Beams
+    ctx.strokeStyle = 'rgba(224,64,251,0.06)';
+    ctx.lineWidth = 2;
+    for (let gx = 0; gx < canvas.width; gx += 40) {
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, canvas.height);
+      ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle = '#22382b';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  function drawSpeechBubble(x, y, text) {
+  // Begin World Camera Transformation
+  ctx.save();
+  if (cameraX !== 0) {
+    ctx.translate(-cameraX, 0);
+  }
+
+  if (myWorld === 'garden') {
+    // Garden Soil Bed
+    drawGardenSoilBed(groundY);
+    // Shop Building
+    drawShopBuilding(groundY);
+    // Portal to Main World (far left in Garden World)
+    drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
+  } else if (myWorld === 'course') {
+    // Obstacle Course World
+    getPlatforms().forEach(plat => {
+      ctx.fillStyle = '#16213e';
+      ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+      ctx.fillStyle = '#e94560';
+      ctx.fillRect(plat.x, plat.y, plat.w, 4);
+      // Side edges
+      ctx.fillStyle = '#0f3460';
+      ctx.fillRect(plat.x, plat.y + 4, 3, plat.h - 4);
+      ctx.fillRect(plat.x + plat.w - 3, plat.y + 4, 3, plat.h - 4);
+    });
+
+    // Start Line Archway at x: 200
     ctx.save();
-    ctx.font = '12px sans-serif';
-    const tw = ctx.measureText(text).width;
-    const bw = Math.max(40, tw + 12), bh = 20;
-    ctx.fillStyle = '#ffffcc'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
-    ctx.fillRect(x - bw/2, y - bh, bw, bh);
-    ctx.strokeRect(x - bw/2, y - bh, bw, bh);
-    ctx.fillStyle = '#000'; ctx.textAlign = 'center';
-    ctx.fillText(text, x, y - 6);
+    ctx.strokeStyle = '#76ff03';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(200, groundY);
+    ctx.lineTo(200, groundY - 80);
+    ctx.lineTo(240, groundY - 80);
+    ctx.lineTo(240, groundY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#76ff03';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('START', 220, groundY - 86);
+    // Chevron arrows
+    ctx.font = '16px monospace';
+    ctx.fillText('>>', 220, groundY - 50);
     ctx.restore();
-  }
 
-  function drawNameTag(x, y, name) {
+    // Finish Line Archway at x: 1370
     ctx.save();
-    ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-    const tw = ctx.measureText(name).width;
-    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
-    ctx.fillRect(x - tw/2 - 4, y - 14, tw + 8, 16);
-    ctx.strokeRect(x - tw/2 - 4, y - 14, tw + 8, 16);
-    ctx.fillStyle = '#000'; ctx.fillText(name, x, y - 2);
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(1370, groundY);
+    ctx.lineTo(1370, groundY - 80);
+    ctx.lineTo(1410, groundY - 80);
+    ctx.lineTo(1410, groundY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('FINISH', 1390, groundY - 86);
+    // Checkered flag pattern
+    for (let fy = 0; fy < 4; fy++) {
+      for (let fx = 0; fx < 2; fx++) {
+        ctx.fillStyle = (fx + fy) % 2 === 0 ? '#ffd700' : '#1a1a2e';
+        ctx.fillRect(1372 + fx * 8, groundY - 78 + fy * 8, 8, 8);
+      }
+    }
     ctx.restore();
-  }
 
-  // --- RENDERING SCENERY & WORLDS ---
-
-  // Portal / Doorway Archway
-  function drawPortal(x, groundY, label, color = '#76ff03') {
+    // Leaderboard Billboard at x: 120
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
-    // Stone Archway
-    ctx.fillStyle = '#424242';
-    ctx.fillRect(x - 22, groundY - 50, 8, 50);
-    ctx.fillRect(x + 14, groundY - 50, 8, 50);
-    ctx.fillRect(x - 22, groundY - 58, 44, 10);
-
-    // Glowing Archway Portal Door
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.8;
-    ctx.fillRect(x - 14, groundY - 48, 28, 48);
-    ctx.globalAlpha = 1.0;
-
-    // Label prompt
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.fillRect(90, groundY - 200, 160, 140);
+    ctx.strokeStyle = '#e94560';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(90, groundY - 200, 160, 140);
+    ctx.fillStyle = '#e94560';
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(label, x, groundY - 64);
-
-    ctx.restore();
-  }
-
-  // Physical Shop Building (Far Right Edge of Garden World)
-  function drawShopBuilding(groundY) {
-    const sx = canvas.width - 90;
-    const sy = groundY;
-
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
-    // Wooden Building Wall
-    ctx.fillStyle = '#4e342e';
-    ctx.fillRect(sx - 45, sy - 60, 90, 60);
-
-    // Counter Top
-    ctx.fillStyle = '#8d6e63';
-    ctx.fillRect(sx - 50, sy - 30, 100, 6);
-
-    // Roof Awning
-    ctx.fillStyle = '#e53935';
-    ctx.fillRect(sx - 52, sy - 72, 104, 14);
-
-    // Shopkeeper Bunny NPC
-    ctx.fillStyle = '#d7ccc8';
-    ctx.fillRect(sx - 8, sy - 48, 16, 18);
-    ctx.fillStyle = '#000';
-    ctx.fillRect(sx - 4, sy - 44, 3, 3);
-    ctx.fillRect(sx + 2, sy - 44, 3, 3);
-
-    // Shop Sign
-    ctx.fillStyle = '#795548';
-    ctx.fillRect(sx - 40, sy - 90, 80, 16);
-    ctx.fillStyle = '#ffd700';
-    ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('FARM SHOP', sx, sy - 78);
-
-    // Diegetic Prompt
-    if (selfId && players[selfId]) {
-      const me = players[selfId];
-      if (Math.abs(me.x - sx) < 70) {
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(sx - 80, sy - 115, 160, 20);
-        ctx.fillStyle = '#76ff03';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('PRESS [E] OPEN SHOP', sx, sy - 101);
-      }
-    }
-
-    ctx.restore();
-  }
-
-  // Physical Garden Soil Bed Graphics (No Text)
-  function drawGardenSoilBed(groundY) {
-    const gx = 180;
-    const gw = Math.max(200, canvas.width - 360);
-    const gy = groundY;
-
-    ctx.save();
-    // Wooden Fence Posts
-    ctx.fillStyle = '#8d6e63';
-    ctx.fillRect(gx - 10, gy - 24, 8, 24);
-    ctx.fillRect(gx + gw + 2, gy - 24, 8, 24);
-    ctx.fillRect(gx - 10, gy - 18, gw + 20, 4);
-
-    // Tilled Earth Soil Beds
-    ctx.fillStyle = '#3e2723';
-    ctx.fillRect(gx, gy - 8, gw, 8);
-    ctx.fillStyle = '#4e342e';
-    ctx.fillRect(gx + 2, gy - 6, gw - 4, 4);
-
-    ctx.restore();
-  }
-
-
-
-  // Crisp Pixel Art Coin
-  function drawPixelCoin(x, y, t) {
-    if (isNaN(x) || isNaN(y)) return;
-    const bob = Math.sin(t * 4 + x * 0.05) * 3;
-    const cy = y + bob;
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(x - 6, cy - 7, 12, 14);
-    ctx.fillRect(x - 7, cy - 6, 14, 12);
-
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(x - 5, cy - 5, 10, 10);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x - 3, cy - 4, 3, 3);
-
-    ctx.fillStyle = '#d4af37';
-    ctx.fillRect(x - 1, cy - 2, 3, 5);
-
-    ctx.restore();
-  }
-
-  function drawSoilPlot(x, y) {
-    ctx.save();
-    ctx.fillStyle = '#4a2e18';
-    ctx.fillRect(x - 12, y - 3, 24, 5);
-    ctx.fillStyle = '#2d1a0c';
-    ctx.fillRect(x - 10, y - 1, 20, 3);
-    ctx.restore();
-  }
-
-  function drawPixelPlant(plant, absY, t) {
-    drawSoilPlot(plant.x, absY);
-
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
-    const px = plant.x;
-    const py = absY - 3;
-    const plantType = plant.type || 'crop';
-
-    if (plantType === 'carrot') {
-      if (plant.stage === 0) {
-        ctx.fillStyle = '#81c784'; ctx.fillRect(px - 2, py - 6, 4, 6);
-      } else if (plant.stage === 1) {
-        ctx.fillStyle = '#388e3c'; ctx.fillRect(px - 4, py - 10, 8, 10);
-      } else {
-        ctx.fillStyle = '#2e7d32'; ctx.fillRect(px - 6, py - 16, 12, 12);
-        ctx.fillStyle = '#ff6d00'; ctx.fillRect(px - 4, py - 6, 8, 6);
-        ctx.fillStyle = '#ff9100'; ctx.fillRect(px - 2, py - 4, 4, 4);
-      }
-    } else if (plantType === 'strawberry') {
-      if (plant.stage === 0) {
-        ctx.fillStyle = '#81c784'; ctx.fillRect(px - 2, py - 6, 4, 6);
-      } else if (plant.stage === 1) {
-        ctx.fillStyle = '#43a047'; ctx.fillRect(px - 6, py - 10, 12, 10);
-      } else {
-        ctx.fillStyle = '#1b5e20'; ctx.fillRect(px - 8, py - 16, 16, 14);
-        ctx.fillStyle = '#d50000';
-        ctx.fillRect(px - 5, py - 12, 4, 5);
-        ctx.fillRect(px + 2, py - 10, 4, 5);
-      }
-    } else if (plantType === 'flower') {
-      if (plant.stage === 0) {
-        ctx.fillStyle = '#81c784'; ctx.fillRect(px - 1, py - 6, 2, 6);
-      } else if (plant.stage === 1) {
-        ctx.fillStyle = '#43a047'; ctx.fillRect(px - 2, py - 12, 4, 12);
-      } else {
-        ctx.fillStyle = '#2e7d32'; ctx.fillRect(px - 2, py - 18, 4, 18);
-        ctx.fillStyle = '#ffeb3b'; ctx.fillRect(px - 8, py - 24, 16, 12);
-        ctx.fillStyle = '#ff6f00'; ctx.fillRect(px - 4, py - 20, 8, 6);
-      }
-    } else {
-      if (plant.stage === 0) {
-        ctx.fillStyle = '#4caf50'; ctx.fillRect(px - 1, py - 6, 2, 6);
-      } else if (plant.stage === 1) {
-        ctx.fillStyle = '#388e3c'; ctx.fillRect(px - 2, py - 12, 4, 12);
-      } else {
-        ctx.fillStyle = '#fbc02d'; ctx.fillRect(px - 4, py - 20, 8, 16);
-      }
-    }
-
-    if (plant.stage >= plant.maxStage) {
-      ctx.font = 'bold 10px monospace';
-      ctx.fillStyle = '#76ff03';
-      ctx.textAlign = 'center';
-      ctx.fillText('[E] HARVEST', px, py - 26);
-    } else if (plant.plantedAt) {
-      const config = SEED_CONFIG[plantType] || SEED_CONFIG.crop;
-      const elapsed = Date.now() - plant.plantedAt;
-      const remainingMs = Math.max(0, config.totalTime - elapsed);
-      const totalSec = Math.ceil(remainingMs / 1000);
-      const mins = Math.floor(totalSec / 60);
-      const secs = totalSec % 60;
-      const hrs = Math.floor(mins / 60);
-      const displayMins = mins % 60;
-
-      let timeStr = `${mins}m ${secs}s`;
-      if (hrs > 0) timeStr = `${hrs}h ${displayMins}m`;
-
-      ctx.font = '9px monospace';
-      ctx.fillStyle = 'rgba(255,255,255,0.75)';
-      ctx.textAlign = 'center';
-      ctx.fillText(timeStr, px, py - 22);
-    }
-
-    ctx.restore();
-  }
-
-  function drawWearableHat(px, py, hatId, facing, approxH) {
-    if (!hatId) return;
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
-    // Position hat snugly on top of the Klipspringer's head & ears
-    const headY = py - approxH + 22;
-    const headX = px;
-
-    if (hatId === 'straw_hat') {
-      ctx.fillStyle = '#fbc02d';
-      ctx.fillRect(headX - 16, headY - 4, 32, 5);
-      ctx.fillRect(headX - 10, headY - 12, 20, 9);
-      ctx.fillStyle = '#d50000';
-      ctx.fillRect(headX - 10, headY - 6, 20, 2);
-    } else if (hatId === 'flower_crown') {
-      ctx.fillStyle = '#4caf50';
-      ctx.fillRect(headX - 12, headY - 4, 24, 3);
-      const colors = ['#ff4081', '#ffeb3b', '#00e676', '#ff4081'];
-      colors.forEach((c, i) => {
-        ctx.fillStyle = c;
-        ctx.fillRect(headX - 10 + i * 6, headY - 8, 4, 5);
-      });
-    } else if (hatId === 'cute_bow') {
-      const earX = facing === 'right' ? headX - 8 : headX + 4;
-      ctx.fillStyle = '#ff4081';
-      ctx.fillRect(earX - 6, headY - 6, 12, 8);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(earX - 2, headY - 4, 4, 4);
-    } else if (hatId === 'party_hat') {
-      ctx.fillStyle = '#ab47bc';
-      ctx.beginPath();
-      ctx.moveTo(headX, headY - 18);
-      ctx.lineTo(headX - 8, headY - 2);
-      ctx.lineTo(headX + 8, headY - 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#ffeb3b';
-      ctx.fillRect(headX - 2, headY - 20, 4, 4);
-    } else if (hatId === 'cool_shades') {
-      const eyeX = facing === 'right' ? headX + 2 : headX - 8;
-      ctx.fillStyle = '#212121';
-      ctx.fillRect(eyeX - 4, headY + 2, 14, 5);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(eyeX - 2, headY + 3, 2, 2);
-    }
-
-    ctx.restore();
-  }
-
-  function drawHUD() {
-    if (!selfId) return;
-    ctx.save();
-    ctx.font = 'bold 14px monospace';
+    ctx.fillText('LEADERBOARD', 170, groundY - 183);
+    // Divider line
+    ctx.strokeStyle = 'rgba(233,69,96,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(95, groundY - 174);
+    ctx.lineTo(245, groundY - 174);
+    ctx.stroke();
+    // Entries
+    ctx.font = '10px monospace';
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffd700';
-
-    let worldLabel = 'PLATFORMER';
-    if (myWorld === 'garden') worldLabel = 'GARDEN & SHOP';
-    else if (myWorld === 'select') worldLabel = 'LEVEL SELECTION';
-    else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE 1';
-    else if (myWorld === 'course2') worldLabel = 'MEGA COURSE (STAGE 2)';
-    else if (myWorld === 'coop1') worldLabel = 'CO-OP PUZZLE 1';
-
-    ctx.fillText(`COINS: ${myCoins} | WORLD: ${worldLabel}`, 14, 26);
-
-    const hatName = myEquippedHat && shopCatalog[myEquippedHat] ? shopCatalog[myEquippedHat].name : 'None';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(`HAT: ${hatName} [H to Swap]`, 14, 48);
-
-    ctx.font = '11px sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin', 14, 68);
-
-    // Live Obstacle Course Stopwatch Header
-    if ((myWorld === 'course' || myWorld === 'course2') && courseRunStartTime > 0) {
-      const elapsedSec = ((Date.now() - courseRunStartTime) / 1000).toFixed(2);
-      ctx.fillStyle = 'rgba(0,0,0,0.85)';
-      ctx.fillRect(canvas.width / 2 - 80, 10, 160, 32);
-      ctx.strokeStyle = myWorld === 'course2' ? '#ff007f' : '#76ff03';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(canvas.width / 2 - 80, 10, 160, 32);
-      ctx.fillStyle = myWorld === 'course2' ? '#ff007f' : '#76ff03';
-      ctx.font = 'bold 16px monospace';
+    const topRuns = courseLeaderboard.slice(0, 8);
+    topRuns.forEach((entry, i) => {
+      const sec = (entry.timeMs / 1000).toFixed(2);
+      const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
+      ctx.fillStyle = color;
+      ctx.fillText(`${i + 1}. ${entry.name}`, 98, groundY - 160 + i * 15);
+      ctx.textAlign = 'right';
+      ctx.fillText(`${sec}s`, 244, groundY - 160 + i * 15);
+      ctx.textAlign = 'left';
+    });
+    if (topRuns.length === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.textAlign = 'center';
-      ctx.fillText(`RUN TIME: ${elapsedSec}s`, canvas.width / 2, 32);
+      ctx.fillText('No runs yet!', 170, groundY - 145);
+    }
+    ctx.restore();
+
+    // Return Portal (far left)
+    drawPortal(80, groundY, '[E] RETURN TO MAIN', '#00e676');
+
+    // Portal to Mega Course (far right on finish island x: 1440)
+    drawPortal(1440, groundY, '[E] ENTER MEGA COURSE', '#ff007f');
+  } else if (myWorld === 'course2') {
+    // Mega Obstacle Course (4000px Cyber Stage)
+    // Platforms with Mega Cyber styling
+    getPlatforms().forEach(plat => {
+      ctx.fillStyle = '#181028';
+      ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+      ctx.fillStyle = '#e040fb';
+      ctx.fillRect(plat.x, plat.y, plat.w, 4);
+      ctx.fillStyle = '#7b1fa2';
+      ctx.fillRect(plat.x, plat.y + 4, 3, plat.h - 4);
+      ctx.fillRect(plat.x + plat.w - 3, plat.y + 4, 3, plat.h - 4);
+    });
+
+    // Start Line Archway at x: 200
+    ctx.save();
+    ctx.strokeStyle = '#ff007f';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(200, groundY);
+    ctx.lineTo(200, groundY - 90);
+    ctx.lineTo(240, groundY - 90);
+    ctx.lineTo(240, groundY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ff007f';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('MEGA START', 220, groundY - 96);
+    ctx.font = '16px monospace';
+    ctx.fillText('>>>', 220, groundY - 55);
+    ctx.restore();
+
+    // Finish Line Archway at x: 3870
+    ctx.save();
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(3870, groundY);
+    ctx.lineTo(3870, groundY - 90);
+    ctx.lineTo(3910, groundY - 90);
+    ctx.lineTo(3910, groundY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('MEGA FINISH', 3890, groundY - 96);
+    for (let fy = 0; fy < 4; fy++) {
+      for (let fx = 0; fx < 2; fx++) {
+        ctx.fillStyle = (fx + fy) % 2 === 0 ? '#ff007f' : '#ffd700';
+        ctx.fillRect(3872 + fx * 8, groundY - 88 + fy * 8, 8, 8);
+      }
+    }
+    ctx.restore();
+
+    // Mega Leaderboard Billboard at x: 120
+    ctx.save();
+    ctx.fillStyle = 'rgba(11,8,19,0.9)';
+    ctx.fillRect(90, groundY - 200, 160, 140);
+    ctx.strokeStyle = '#ff007f';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(90, groundY - 200, 160, 140);
+    ctx.fillStyle = '#ff007f';
+    ctx.font = 'bold 11px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('MEGA LEADERBOARD', 170, groundY - 183);
+    ctx.strokeStyle = 'rgba(255,0,127,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(95, groundY - 174);
+    ctx.lineTo(245, groundY - 174);
+    ctx.stroke();
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'left';
+    const topMegaRuns = megaCourseLeaderboard.slice(0, 8);
+    topMegaRuns.forEach((entry, i) => {
+      const sec = (entry.timeMs / 1000).toFixed(2);
+      const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
+      ctx.fillStyle = color;
+      ctx.fillText(`${i + 1}. ${entry.name}`, 98, groundY - 160 + i * 15);
+      ctx.textAlign = 'right';
+      ctx.fillText(`${sec}s`, 244, groundY - 160 + i * 15);
+      ctx.textAlign = 'left';
+    });
+    if (topMegaRuns.length === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.textAlign = 'center';
+      ctx.fillText('No mega runs yet!', 170, groundY - 145);
+    }
+    ctx.restore();
+
+    // Return Portal (far left)
+    drawPortal(80, groundY, '[E] LEVEL SELECT', '#00e676');
+  } else if (myWorld === 'select') {
+    // Render Selection Hall platforms
+    getPlatforms().forEach(plat => {
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillRect(plat.x, plat.y, plat.w, 4);
+    });
+
+    // Title Sign
+    ctx.fillStyle = '#60a5fa';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('⭐ LEVEL SELECTION HALL ⭐', 340, groundY - 140);
+
+    // Portals
+    drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
+    drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
+    drawPortal(440, groundY, '[E] CO-OP PUZZLE 1', '#38bdf8');
+  } else if (myWorld === 'coop1') {
+    const offsetY = canvas.height - COOP_LEVEL_1.height;
+
+    // Render Co-op Level 1 Platforms
+    COOP_LEVEL_1.platforms.forEach(plat => {
+      const py = plat.y + offsetY;
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(plat.x, py, plat.w, plat.h);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(plat.x, py, plat.w, 4);
+    });
+
+    // Render Springs
+    COOP_LEVEL_1.springs.forEach(s => {
+      const sy = s.y + offsetY;
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(s.x, sy + 6, s.w, s.h - 6);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(s.x, sy, s.w, 6);
+    });
+
+    // Render Pressure Plates
+    COOP_LEVEL_1.plates.forEach(p => {
+      const py = p.y + offsetY;
+      const isDown = p.isPressed;
+      ctx.fillStyle = isDown ? '#15803d' : '#f59e0b';
+      ctx.fillRect(p.x, py + (isDown ? 6 : 0), p.w, p.h - (isDown ? 6 : 0));
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(p.x + 4, py + (isDown ? 6 : 0), p.w - 8, 2);
+    });
+
+    // Render Keys
+    COOP_LEVEL_1.keys.forEach(k => {
+      const ky = k.y + offsetY;
+      if (!k.isCollected) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(k.x + 12, ky + 12, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(k.x + 12, ky + 12, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(k.x + 10, ky + 18, 4, 8);
+      }
+    });
+
+    // Render Lock Doors
+    COOP_LEVEL_1.locks.forEach(l => {
+      const ly = l.y + offsetY;
+      if (l.isOpen) {
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(l.x, ly, l.w, l.h);
+        ctx.setLineDash([]);
+      } else {
+        ctx.fillStyle = l.lockType === 'key' ? '#b91c1c' : '#c2410c';
+        ctx.fillRect(l.x, ly, l.w, l.h);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(l.lockType === 'key' ? '🔑' : '🔘', l.x + l.w / 2, ly + l.h / 2);
+      }
+    });
+
+    // Render Goal Zone
+    if (COOP_LEVEL_1.goal) {
+      const g = COOP_LEVEL_1.goal;
+      const gy = g.y + offsetY;
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+      ctx.fillRect(g.x, gy, g.w, g.h);
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(g.x, gy, g.w, g.h);
+      ctx.fillStyle = '#10b981';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🏆 GOAL', g.x + g.w / 2, gy + 24);
     }
 
-    ctx.restore();
-  }
+    // Return Portal
+    drawPortal(80, groundY, '[E] LEVEL SELECT', '#00e676');
+  } else {
+    // Main Platformer World
+    getPlatforms().forEach(plat => {
+      ctx.fillStyle = '#1b2e23';
+      ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+      ctx.fillStyle = '#2e6b45';
+      ctx.fillRect(plat.x, plat.y, plat.w, 4);
+    });
 
-  function checkCoinPickup() {
-    if (!selfId || !players[selfId] || myWorld !== 'main') return;
-    const me = players[selfId];
-    const groundY = getGroundY();
+    // Portal to Garden World (far right in Main World)
+    drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD', '#ffd700');
 
+    // Portal to Selection World (replacing old obstacle course door)
+    drawPortal(canvas.width - 200, groundY, '[E] LEVEL SELECTION', '#38bdf8');
+
+    // Draw Coins (Main World Only)
     Object.values(coins).forEach(coin => {
       const yRel = coin.yRel !== undefined ? Number(coin.yRel) : (coin.y !== undefined ? Number(coin.y) - groundY : -20);
       const coinAbsY = groundY + yRel;
       const coinX = Number(coin.x) || 100;
-
-      const dx = Math.abs(me.x - coinX);
-      const dy = Math.abs((me.y - 20) - coinAbsY);
-
-      if (dx < 34 && dy < 44) {
-        socket.emit('collectCoin', coin.id);
-        delete coins[coin.id];
-      }
+      drawPixelCoin(coinX, coinAbsY, animTime);
     });
   }
 
-  function checkDroppedItemPickup() {
-    if (!selfId || !players[selfId]) return;
-    const me = players[selfId];
-    const groundY = getGroundY();
-    const now = Date.now();
-
-    Object.values(droppedItems).forEach(drop => {
-      if ((drop.world || 'main') === myWorld) {
-        const dropAbsY = groundY + drop.yRel;
-        const dx = Math.abs(me.x - drop.x);
-        const dy = Math.abs((me.y - 20) - dropAbsY);
-
-        const age = now - (drop.createdAt || 0);
-        // If owner is still standing right on top of drop point, delay re-pickup for 1s
-        if (drop.droppedBy === selfId && dx < 30 && age < 1000) return;
-
-        // Walk over collision check
-        if (dx < 36 && dy < 44) {
-          socket.emit('pickupItem', drop.id);
-          delete droppedItems[drop.id];
-        }
-      }
+  // Draw Plants & Trees (Garden World Only)
+  if (myWorld === 'garden') {
+    Object.values(plants).forEach(plant => {
+      const plantAbsY = groundY + plant.yRel;
+      drawPixelPlant(plant, plantAbsY, animTime);
     });
   }
 
-  // ---- Physics Engine ----
-  const GRAVITY = 1750, MOVE_SPEED = 400, ACCELERATION = 3000, FRICTION = 3400, JUMP_FORCE = 740;
-  let lastEmitTime = 0;
-
-  function updatePhysics(dt) {
-    if (!selfId || !players[selfId]) return;
-    const me = players[selfId];
-    if (isNaN(me.x)) me.x = 300;
-    if (isNaN(me.y)) me.y = 400;
-    if (isNaN(me.vx)) me.vx = 0;
-    if (isNaN(me.vy)) me.vy = 0;
-    if (me.coyoteTimer === undefined) me.coyoteTimer = 0;
-    if (me.jumpBufferTimer === undefined) me.jumpBufferTimer = 0;
-
-    if (me.isGrounded) me.coyoteTimer = 0.14;
-    else me.coyoteTimer = Math.max(0, me.coyoteTimer - dt);
-    me.jumpBufferTimer = Math.max(0, me.jumpBufferTimer - dt);
-
-    const moveLeft  = keysPressed['ArrowLeft']  || keysPressed['KeyA'];
-    const moveRight = keysPressed['ArrowRight'] || keysPressed['KeyD'];
-
-    if (moveLeft) {
-      me.vx = Math.max(-MOVE_SPEED, me.vx - ACCELERATION * dt);
-      me.facing = 'left'; me.isMoving = true;
-    } else if (moveRight) {
-      me.vx = Math.min(MOVE_SPEED, me.vx + ACCELERATION * dt);
-      me.facing = 'right'; me.isMoving = true;
-    } else {
-      me.vx = me.vx > 0 ? Math.max(0, me.vx - FRICTION * dt) : Math.min(0, me.vx + FRICTION * dt);
-      me.isMoving = false;
-    }
-
-    if (me.isGrounded && me.isMoving && Math.abs(me.vx) > 30) {
-      stepTimer += dt;
-      if (stepTimer >= 0.22) { playFootstepSound(); stepTimer = 0; }
-    } else { stepTimer = 0; }
-
-    if (me.jumpBufferTimer > 0 && me.coyoteTimer > 0) {
-      me.vy = -JUMP_FORCE;
-      me.isGrounded = false; me.isJumping = true;
-      me.coyoteTimer = 0; me.jumpBufferTimer = 0;
-      playHopSound();
-    }
-
-    me.vy += GRAVITY * dt;
-    const nextX = me.x + me.vx * dt;
-    const nextY = me.y + me.vy * dt;
-
-    let landed = false;
-    getPlatforms().forEach(plat => {
-      if (me.vy >= 0 && me.y <= plat.y + 6 && nextY >= plat.y) {
-        if (nextX >= plat.x - 14 && nextX <= plat.x + plat.w + 14) {
-          me.y = plat.y; me.vy = 0;
-          landed = true; me.isGrounded = true; me.isJumping = false;
-        }
-      }
-    });
-
-    if (!landed) { me.y = nextY; me.isGrounded = false; }
-    const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'coop1' ? 2400 : canvas.width);
-    me.x = Math.max(20, Math.min(maxWorldX - 20, nextX));
-
-    // Fall off screen in Obstacle Courses = teleport to start
-    if ((myWorld === 'course' || myWorld === 'course2' || myWorld === 'coop1') && me.y > canvas.height + 60) {
-      me.x = myWorld === 'coop1' ? 100 : 120;
-      me.y = getGroundY();
-      me.vx = 0; me.vy = 0; me.isGrounded = true;
-      if (myWorld === 'course' || myWorld === 'course2') {
-        courseRunStartTime = 0; courseRunFinished = false;
-      }
-      spawnFloatText(me.x, me.y - 40, 'FELL! Back to start...', '#e94560');
-    }
-
-    // Spring Collision for Co-op Level 1
-    if (myWorld === 'coop1') {
-      const offsetY = canvas.height - COOP_LEVEL_1.height;
-
-      COOP_LEVEL_1.springs.forEach(s => {
-        const sy = s.y + offsetY;
-        if (me.vy >= 0 && me.y <= sy + 6 && nextY >= sy) {
-          if (nextX >= s.x - 14 && nextX <= s.x + s.w + 14) {
-            me.vy = -(s.bounceForce || 1100);
-            me.isGrounded = false;
-            playHopSound();
-          }
-        }
-      });
-
-      // Reset Pressure Plates state each frame for coop1
-      COOP_LEVEL_1.plates.forEach(plate => plate.isPressed = false);
-
-      // Check all players in coop1 world
-      Object.values(players).forEach(p => {
-        if ((p.world || 'main') !== 'coop1') return;
-        const py = p.y;
-        const px = p.x;
-
-        // Pressure plates
-        COOP_LEVEL_1.plates.forEach(plate => {
-          const plateY = plate.y + offsetY;
-          if (px >= plate.x - 14 && px <= plate.x + plate.w + 14 && Math.abs(py - plateY) < 14) {
-            plate.isPressed = true;
-          }
-        });
-
-        // Keys (on walkover)
-        COOP_LEVEL_1.keys.forEach(k => {
-          const keyY = k.y + offsetY;
-          if (!k.isCollected) {
-            if (Math.abs(px - (k.x + 12)) < 30 && Math.abs(py - (keyY + 12)) < 30) {
-              k.isCollected = true;
-              playCoinSound();
-              spawnFloatText(px, py - 40, 'KEY COLLECTED!', '#f59e0b');
-            }
-          }
-        });
-      });
-
-      // Update Lock doors open status
-      COOP_LEVEL_1.locks.forEach(lock => {
-        if (lock.lockType === 'key') {
-          const key = COOP_LEVEL_1.keys.find(k => k.targetLockId === lock.id);
-          if (key && key.isCollected) lock.isOpen = true;
-        } else if (lock.lockType === 'plate') {
-          const plate = COOP_LEVEL_1.plates.find(pl => pl.targetLockId === lock.id);
-          lock.isOpen = plate ? plate.isPressed : false;
-        }
-      });
-
-      // Goal Collision
-      const g = COOP_LEVEL_1.goal;
-      const gy = g.y + offsetY;
-      if (me.x >= g.x && me.x <= g.x + g.w && me.y >= gy && me.y <= gy + g.h) {
-        spawnFloatText(me.x, me.y - 40, 'CO-OP LEVEL SOLVED!', '#10b981');
-      }
-    }
-
-    checkCoinPickup();
-    checkDroppedItemPickup();
-
-    // Obstacle Course 1 Timers (Start Line x: 200, Finish Line x: 1370)
-    if (myWorld === 'course' && selfId && players[selfId]) {
-      const me = players[selfId];
-      if (me.x >= 200 && me.x < 240 && courseRunStartTime === 0 && !courseRunFinished) {
-        courseRunStartTime = Date.now();
-        spawnFloatText(me.x, me.y - 40, 'TIMER STARTED! GO GO GO!', '#76ff03');
-      }
-      if (me.x < 180) {
-        courseRunStartTime = 0;
-        courseRunFinished = false;
-      }
-      if (me.x >= 1370 && courseRunStartTime > 0 && !courseRunFinished) {
-        const elapsedMs = Date.now() - courseRunStartTime;
-        courseRunFinished = true;
-        courseRunStartTime = 0;
-        playHarvestSound();
-        const sec = (elapsedMs / 1000).toFixed(2);
-        spawnFloatText(me.x, me.y - 40, `COURSE FINISHED! ${sec}s`, '#76ff03');
-        if (socket) socket.emit('submitCourseTime', { timeMs: elapsedMs, courseId: 'course' });
-      }
-    }
-
-    // Mega Obstacle Course 2 Timers (Start Line x: 200, Finish Line x: 3870)
-    if (myWorld === 'course2' && selfId && players[selfId]) {
-      const me = players[selfId];
-      if (me.x >= 200 && me.x < 240 && courseRunStartTime === 0 && !courseRunFinished) {
-        courseRunStartTime = Date.now();
-        spawnFloatText(me.x, me.y - 40, 'MEGA TIMER STARTED! GO!', '#ff007f');
-      }
-      if (me.x < 180) {
-        courseRunStartTime = 0;
-        courseRunFinished = false;
-      }
-      if (me.x >= 3870 && courseRunStartTime > 0 && !courseRunFinished) {
-        const elapsedMs = Date.now() - courseRunStartTime;
-        courseRunFinished = true;
-        courseRunStartTime = 0;
-        playHarvestSound();
-        const sec = (elapsedMs / 1000).toFixed(2);
-        spawnFloatText(me.x, me.y - 40, `MEGA COURSE FINISHED! ${sec}s`, '#ff007f');
-        if (socket) socket.emit('submitCourseTime', { timeMs: elapsedMs, courseId: 'course2' });
-      }
-    }
-
-    const now = Date.now();
-    const groundY = getGroundY();
-    if (socket && now - lastEmitTime > 30) {
-      socket.emit('playerMove', {
-        x: Math.round(me.x * 10) / 10,
-        yRel: Math.round((me.y - groundY) * 10) / 10,
-        vx: Math.round(me.vx), vy: Math.round(me.vy),
-        facing: me.facing, isMoving: me.isMoving,
-        isJumping: !me.isGrounded, isGrounded: me.isGrounded,
-        world: myWorld
-      });
-      lastEmitTime = now;
-    }
-  }
-
-  // ---- Main Render Loop ----
-  let lastFrameTime = 0, animTime = 0;
-
-  function render(now) {
-    if (!lastFrameTime) lastFrameTime = now || performance.now();
-    let dt = (now - lastFrameTime) / 1000;
-    lastFrameTime = now;
-    if (isNaN(dt) || dt <= 0 || dt > 0.1) dt = 0.016;
-    animTime += dt;
-
-    updatePhysics(dt);
-
-    ctx.imageSmoothingEnabled = false;
-
-    const groundY = getGroundY();
-    const meX = (selfId && players[selfId]) ? players[selfId].x : 120;
-    let cameraX = 0;
-    if (myWorld === 'course2') {
-      cameraX = Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2));
-    } else if (myWorld === 'coop1') {
-      cameraX = Math.max(0, Math.min(2400 - canvas.width, meX - canvas.width / 2));
-    }
-
-    // Background color per world
-    if (myWorld === 'garden') {
-      ctx.fillStyle = '#1e3323';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (myWorld === 'select') {
-      ctx.fillStyle = '#111827';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Background Grid
-      ctx.strokeStyle = 'rgba(59, 130, 246, 0.05)';
-      ctx.lineWidth = 2;
-      for (let gx = 0; gx < canvas.width; gx += 40) {
-        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, canvas.height); ctx.stroke();
-      }
-    } else if (myWorld === 'coop1') {
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (myWorld === 'course') {
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (myWorld === 'course2') {
-      ctx.fillStyle = '#0b0813';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Background Cyber Grid Beams
-      ctx.strokeStyle = 'rgba(224,64,251,0.06)';
-      ctx.lineWidth = 2;
-      for (let gx = 0; gx < canvas.width; gx += 40) {
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, canvas.height);
-        ctx.stroke();
-      }
-    } else {
-      ctx.fillStyle = '#22382b';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Begin World Camera Transformation
-    ctx.save();
-    if (cameraX !== 0) {
-      ctx.translate(-cameraX, 0);
-    }
-
-    if (myWorld === 'garden') {
-      // Garden Soil Bed
-      drawGardenSoilBed(groundY);
-      // Shop Building
-      drawShopBuilding(groundY);
-      // Portal to Main World (far left in Garden World)
-      drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
-    } else if (myWorld === 'course') {
-      // Obstacle Course World
-      getPlatforms().forEach(plat => {
-        ctx.fillStyle = '#16213e';
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = '#e94560';
-        ctx.fillRect(plat.x, plat.y, plat.w, 4);
-        // Side edges
-        ctx.fillStyle = '#0f3460';
-        ctx.fillRect(plat.x, plat.y + 4, 3, plat.h - 4);
-        ctx.fillRect(plat.x + plat.w - 3, plat.y + 4, 3, plat.h - 4);
-      });
-
-      // Start Line Archway at x: 200
+  // Draw Dropped Items on Ground (World Filtered)
+  Object.values(droppedItems).forEach(drop => {
+    if ((drop.world || 'main') === myWorld) {
+      const dropAbsY = groundY + drop.yRel;
+      const bob = Math.sin(animTime * 5 + drop.x) * 3;
       ctx.save();
-      ctx.strokeStyle = '#76ff03';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      ctx.moveTo(200, groundY);
-      ctx.lineTo(200, groundY - 80);
-      ctx.lineTo(240, groundY - 80);
-      ctx.lineTo(240, groundY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#76ff03';
-      ctx.font = 'bold 12px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('START', 220, groundY - 86);
-      // Chevron arrows
-      ctx.font = '16px monospace';
-      ctx.fillText('>>', 220, groundY - 50);
-      ctx.restore();
-
-      // Finish Line Archway at x: 1370
-      ctx.save();
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      ctx.moveTo(1370, groundY);
-      ctx.lineTo(1370, groundY - 80);
-      ctx.lineTo(1410, groundY - 80);
-      ctx.lineTo(1410, groundY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#ffd700';
-      ctx.font = 'bold 12px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('FINISH', 1390, groundY - 86);
-      // Checkered flag pattern
-      for (let fy = 0; fy < 4; fy++) {
-        for (let fx = 0; fx < 2; fx++) {
-          ctx.fillStyle = (fx + fy) % 2 === 0 ? '#ffd700' : '#1a1a2e';
-          ctx.fillRect(1372 + fx * 8, groundY - 78 + fy * 8, 8, 8);
-        }
-      }
-      ctx.restore();
-
-      // Leaderboard Billboard at x: 120
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.fillRect(90, groundY - 200, 160, 140);
-      ctx.strokeStyle = '#e94560';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(90, groundY - 200, 160, 140);
-      ctx.fillStyle = '#e94560';
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('LEADERBOARD', 170, groundY - 183);
-      // Divider line
-      ctx.strokeStyle = 'rgba(233,69,96,0.5)';
-      ctx.beginPath();
-      ctx.moveTo(95, groundY - 174);
-      ctx.lineTo(245, groundY - 174);
-      ctx.stroke();
-      // Entries
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'left';
-      const topRuns = courseLeaderboard.slice(0, 8);
-      topRuns.forEach((entry, i) => {
-        const sec = (entry.timeMs / 1000).toFixed(2);
-        const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
-        ctx.fillStyle = color;
-        ctx.fillText(`${i + 1}. ${entry.name}`, 98, groundY - 160 + i * 15);
-        ctx.textAlign = 'right';
-        ctx.fillText(`${sec}s`, 244, groundY - 160 + i * 15);
-        ctx.textAlign = 'left';
-      });
-      if (topRuns.length === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.textAlign = 'center';
-        ctx.fillText('No runs yet!', 170, groundY - 145);
-      }
-      ctx.restore();
-
-      // Return Portal (far left)
-      drawPortal(80, groundY, '[E] RETURN TO MAIN', '#00e676');
-
-      // Portal to Mega Course (far right on finish island x: 1440)
-      drawPortal(1440, groundY, '[E] ENTER MEGA COURSE', '#ff007f');
-    } else if (myWorld === 'course2') {
-      // Mega Obstacle Course (4000px Cyber Stage)
-      // Platforms with Mega Cyber styling
-      getPlatforms().forEach(plat => {
-        ctx.fillStyle = '#181028';
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = '#e040fb';
-        ctx.fillRect(plat.x, plat.y, plat.w, 4);
-        ctx.fillStyle = '#7b1fa2';
-        ctx.fillRect(plat.x, plat.y + 4, 3, plat.h - 4);
-        ctx.fillRect(plat.x + plat.w - 3, plat.y + 4, 3, plat.h - 4);
-      });
-
-      // Start Line Archway at x: 200
-      ctx.save();
-      ctx.strokeStyle = '#ff007f';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      ctx.moveTo(200, groundY);
-      ctx.lineTo(200, groundY - 90);
-      ctx.lineTo(240, groundY - 90);
-      ctx.lineTo(240, groundY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#ff007f';
-      ctx.font = 'bold 12px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('MEGA START', 220, groundY - 96);
-      ctx.font = '16px monospace';
-      ctx.fillText('>>>', 220, groundY - 55);
-      ctx.restore();
-
-      // Finish Line Archway at x: 3870
-      ctx.save();
-      ctx.strokeStyle = '#ffd700';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 4]);
-      ctx.beginPath();
-      ctx.moveTo(3870, groundY);
-      ctx.lineTo(3870, groundY - 90);
-      ctx.lineTo(3910, groundY - 90);
-      ctx.lineTo(3910, groundY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#ffd700';
-      ctx.font = 'bold 12px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('MEGA FINISH', 3890, groundY - 96);
-      for (let fy = 0; fy < 4; fy++) {
-        for (let fx = 0; fx < 2; fx++) {
-          ctx.fillStyle = (fx + fy) % 2 === 0 ? '#ff007f' : '#ffd700';
-          ctx.fillRect(3872 + fx * 8, groundY - 88 + fy * 8, 8, 8);
-        }
-      }
-      ctx.restore();
-
-      // Mega Leaderboard Billboard at x: 120
-      ctx.save();
-      ctx.fillStyle = 'rgba(11,8,19,0.9)';
-      ctx.fillRect(90, groundY - 200, 160, 140);
-      ctx.strokeStyle = '#ff007f';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(90, groundY - 200, 160, 140);
-      ctx.fillStyle = '#ff007f';
-      ctx.font = 'bold 11px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('MEGA LEADERBOARD', 170, groundY - 183);
-      ctx.strokeStyle = 'rgba(255,0,127,0.5)';
-      ctx.beginPath();
-      ctx.moveTo(95, groundY - 174);
-      ctx.lineTo(245, groundY - 174);
-      ctx.stroke();
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'left';
-      const topMegaRuns = megaCourseLeaderboard.slice(0, 8);
-      topMegaRuns.forEach((entry, i) => {
-        const sec = (entry.timeMs / 1000).toFixed(2);
-        const color = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)';
-        ctx.fillStyle = color;
-        ctx.fillText(`${i + 1}. ${entry.name}`, 98, groundY - 160 + i * 15);
-        ctx.textAlign = 'right';
-        ctx.fillText(`${sec}s`, 244, groundY - 160 + i * 15);
-        ctx.textAlign = 'left';
-      });
-      if (topMegaRuns.length === 0) {
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.textAlign = 'center';
-        ctx.fillText('No mega runs yet!', 170, groundY - 145);
-      }
-      ctx.restore();
-
-      // Return Portal (far left)
-      drawPortal(80, groundY, '[E] LEVEL SELECT', '#00e676');
-    } else if (myWorld === 'select') {
-      // Render Selection Hall platforms
-      getPlatforms().forEach(plat => {
-        ctx.fillStyle = '#1f2937';
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = '#3b82f6';
-        ctx.fillRect(plat.x, plat.y, plat.w, 4);
-      });
-
-      // Title Sign
-      ctx.fillStyle = '#60a5fa';
-      ctx.font = 'bold 16px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('⭐ LEVEL SELECTION HALL ⭐', 340, groundY - 140);
-
-      // Portals
-      drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
-      drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
-      drawPortal(440, groundY, '[E] CO-OP PUZZLE 1', '#38bdf8');
-    } else if (myWorld === 'coop1') {
-      const offsetY = canvas.height - COOP_LEVEL_1.height;
-
-      // Render Co-op Level 1 Platforms
-      COOP_LEVEL_1.platforms.forEach(plat => {
-        const py = plat.y + offsetY;
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(plat.x, py, plat.w, plat.h);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(plat.x, py, plat.w, 4);
-      });
-
-      // Render Springs
-      COOP_LEVEL_1.springs.forEach(s => {
-        const sy = s.y + offsetY;
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(s.x, sy + 6, s.w, s.h - 6);
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillRect(s.x, sy, s.w, 6);
-      });
-
-      // Render Pressure Plates
-      COOP_LEVEL_1.plates.forEach(p => {
-        const py = p.y + offsetY;
-        const isDown = p.isPressed;
-        ctx.fillStyle = isDown ? '#15803d' : '#f59e0b';
-        ctx.fillRect(p.x, py + (isDown ? 6 : 0), p.w, p.h - (isDown ? 6 : 0));
-        ctx.fillStyle = '#fef08a';
-        ctx.fillRect(p.x + 4, py + (isDown ? 6 : 0), p.w - 8, 2);
-      });
-
-      // Render Keys
-      COOP_LEVEL_1.keys.forEach(k => {
-        const ky = k.y + offsetY;
-        if (!k.isCollected) {
-          ctx.fillStyle = '#f59e0b';
-          ctx.beginPath();
-          ctx.arc(k.x + 12, ky + 12, 10, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#0f172a';
-          ctx.beginPath();
-          ctx.arc(k.x + 12, ky + 12, 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#f59e0b';
-          ctx.fillRect(k.x + 10, ky + 18, 4, 8);
-        }
-      });
-
-      // Render Lock Doors
-      COOP_LEVEL_1.locks.forEach(l => {
-        const ly = l.y + offsetY;
-        if (l.isOpen) {
-          ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.strokeRect(l.x, ly, l.w, l.h);
-          ctx.setLineDash([]);
-        } else {
-          ctx.fillStyle = l.lockType === 'key' ? '#b91c1c' : '#c2410c';
-          ctx.fillRect(l.x, ly, l.w, l.h);
-          ctx.fillStyle = '#f8fafc';
-          ctx.font = 'bold 10px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(l.lockType === 'key' ? '🔑' : '🔘', l.x + l.w / 2, ly + l.h / 2);
-        }
-      });
-
-      // Render Goal Zone
-      if (COOP_LEVEL_1.goal) {
-        const g = COOP_LEVEL_1.goal;
-        const gy = g.y + offsetY;
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
-        ctx.fillRect(g.x, gy, g.w, g.h);
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(g.x, gy, g.w, g.h);
-        ctx.fillStyle = '#10b981';
-        ctx.font = 'bold 14px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🏆 GOAL', g.x + g.w / 2, gy + 24);
-      }
-
-      // Return Portal
-      drawPortal(80, groundY, '[E] LEVEL SELECT', '#00e676');
-    } else {
-      // Main Platformer World
-      getPlatforms().forEach(plat => {
-        ctx.fillStyle = '#1b2e23';
-        ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
-        ctx.fillStyle = '#2e6b45';
-        ctx.fillRect(plat.x, plat.y, plat.w, 4);
-      });
-
-      // Portal to Garden World (far right in Main World)
-      drawPortal(canvas.width - 100, groundY, '[E] ENTER GARDEN WORLD', '#ffd700');
-
-      // Portal to Selection World (replacing old obstacle course door)
-      drawPortal(canvas.width - 200, groundY, '[E] LEVEL SELECTION', '#38bdf8');
-
-      // Draw Coins (Main World Only)
-      Object.values(coins).forEach(coin => {
-        const yRel = coin.yRel !== undefined ? Number(coin.yRel) : (coin.y !== undefined ? Number(coin.y) - groundY : -20);
-        const coinAbsY = groundY + yRel;
-        const coinX = Number(coin.x) || 100;
-        drawPixelCoin(coinX, coinAbsY, animTime);
-      });
-    }
-
-    // Draw Plants & Trees (Garden World Only)
-    if (myWorld === 'garden') {
-      Object.values(plants).forEach(plant => {
-        const plantAbsY = groundY + plant.yRel;
-        drawPixelPlant(plant, plantAbsY, animTime);
-      });
-    }
-
-    // Draw Dropped Items on Ground (World Filtered)
-    Object.values(droppedItems).forEach(drop => {
-      if ((drop.world || 'main') === myWorld) {
-        const dropAbsY = groundY + drop.yRel;
-        const bob = Math.sin(animTime * 5 + drop.x) * 3;
-        ctx.save();
-        if (drop.type === 'coin') {
-          drawPixelCoin(drop.x, dropAbsY, animTime);
-        } else {
-          // Pixel gift box shape
-          ctx.fillStyle = '#e53935';
-          ctx.fillRect(drop.x - 6, dropAbsY + bob - 10, 12, 10);
-          ctx.fillStyle = '#ffd700';
-          ctx.fillRect(drop.x - 2, dropAbsY + bob - 10, 4, 10);
-          ctx.fillRect(drop.x - 6, dropAbsY + bob - 6, 12, 2);
-        }
-        ctx.font = '10px monospace';
+      if (drop.type === 'coin') {
+        drawPixelCoin(drop.x, dropAbsY, animTime);
+      } else {
+        // Pixel gift box shape
+        ctx.fillStyle = '#e53935';
+        ctx.fillRect(drop.x - 6, dropAbsY + bob - 10, 12, 10);
         ctx.fillStyle = '#ffd700';
-        ctx.textAlign = 'center';
-        ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 16);
-        ctx.restore();
+        ctx.fillRect(drop.x - 2, dropAbsY + bob - 10, 4, 10);
+        ctx.fillRect(drop.x - 6, dropAbsY + bob - 6, 12, 2);
       }
-    });
-
-    // Draw Players (Filter by same world)
-    Object.values(players).forEach(p => {
-      if ((p.world || 'main') !== myWorld) return;
-
-      if (isNaN(p.renderX)) p.renderX = p.x || 300;
-      if (isNaN(p.renderY)) p.renderY = p.y || 400;
-
-      if (p.id !== selfId) {
-        p.renderX += (p.x - p.renderX) * Math.min(1, dt * 18);
-        p.renderY += (p.y - p.renderY) * Math.min(1, dt * 18);
-      } else {
-        p.renderX = p.x; p.renderY = p.y;
-      }
-
-      const px = p.renderX, py = p.renderY;
-
-      // Shadow
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.beginPath();
-      ctx.ellipse(px, py + 2, 20, 4, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#ffd700';
+      ctx.textAlign = 'center';
+      ctx.fillText(drop.label || 'Item', drop.x, dropAbsY + bob - 16);
       ctx.restore();
+    }
+  });
 
-      // Sprite
-      let activeSprite = spriteF;
-      if (!p.isGrounded || p.isJumping) activeSprite = spriteH;
-      else if (p.isMoving && Math.abs(p.vx || 0) > 10) {
-        activeSprite = Math.floor(animTime * 10) % 2 === 0 ? spriteF : spriteG;
-      }
+  // Draw Players (Filter by same world)
+  Object.values(players).forEach(p => {
+    if ((p.world || 'main') !== myWorld) return;
 
-      const approxH = (activeSprite.height || 100) * 0.35;
+    if (isNaN(p.renderX)) p.renderX = p.x || 300;
+    if (isNaN(p.renderY)) p.renderY = p.y || 400;
 
-      if (imagesLoaded && activeSprite.complete) {
-        ctx.save();
-        const scale = 0.35;
-        const sw = activeSprite.width * scale, sh = activeSprite.height * scale;
-        ctx.translate(px, py);
-        if (p.facing === 'right') ctx.scale(-1, 1);
-        ctx.drawImage(activeSprite, -sw/2, -sh + 4, sw, sh);
-        ctx.restore();
-      }
+    if (p.id !== selfId) {
+      p.renderX += (p.x - p.renderX) * Math.min(1, dt * 18);
+      p.renderY += (p.y - p.renderY) * Math.min(1, dt * 18);
+    } else {
+      p.renderX = p.x; p.renderY = p.y;
+    }
 
-      // Draw Wearable Hat
-      const currentHat = p.id === selfId ? myEquippedHat : p.equippedHat;
-      drawWearableHat(px, py, currentHat, p.facing, approxH);
+    const px = p.renderX, py = p.renderY;
 
-      // Name / speech bubble offset higher if wearing a hat
-      const textYOffset = currentHat ? -18 : -4;
-      if (speechBubbles[p.id]) {
-        const b = speechBubbles[p.id];
-        if (Date.now() > b.expiresAt) delete speechBubbles[p.id];
-        else drawSpeechBubble(px, py - approxH + textYOffset, b.text);
-      } else {
-        drawNameTag(px, py - approxH + textYOffset, p.name);
-      }
-    });
-
-  function drawPixelHeart(x, y, scale) {
+    // Shadow
     ctx.save();
-    ctx.fillStyle = '#ff4081';
-    const s = Math.max(1, Math.round(scale * 2.5));
-    ctx.fillRect(x - s * 2, y - s * 2, s * 2, s * 2);
-    ctx.fillRect(x + s, y - s * 2, s * 2, s * 2);
-    ctx.fillRect(x - s * 3, y - s, s * 7, s * 2);
-    ctx.fillRect(x - s * 2, y + s, s * 5, s);
-    ctx.fillRect(x - s, y + s * 2, s * 3, s);
-    ctx.fillRect(x, y + s * 3, s, s);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(px, py + 2, 20, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
-  }
+
+    // Sprite
+    let activeSprite = spriteF;
+    if (!p.isGrounded || p.isJumping) activeSprite = spriteH;
+    else if (p.isMoving && Math.abs(p.vx || 0) > 10) {
+      activeSprite = Math.floor(animTime * 10) % 2 === 0 ? spriteF : spriteG;
+    }
+
+    const approxH = (activeSprite.height || 100) * 0.35;
+
+    if (imagesLoaded && activeSprite.complete) {
+      ctx.save();
+      const scale = 0.35;
+      const sw = activeSprite.width * scale, sh = activeSprite.height * scale;
+      ctx.translate(px, py);
+      if (p.facing === 'right') ctx.scale(-1, 1);
+      ctx.drawImage(activeSprite, -sw/2, -sh + 4, sw, sh);
+      ctx.restore();
+    }
+
+    // Draw Wearable Hat
+    const currentHat = p.id === selfId ? myEquippedHat : p.equippedHat;
+    drawWearableHat(px, py, currentHat, p.facing, approxH);
+
+    // Name / speech bubble offset higher if wearing a hat
+    const textYOffset = currentHat ? -18 : -4;
+    if (speechBubbles[p.id]) {
+      const b = speechBubbles[p.id];
+      if (Date.now() > b.expiresAt) delete speechBubbles[p.id];
+      else drawSpeechBubble(px, py - approxH + textYOffset, b.text);
+    } else {
+      drawNameTag(px, py - approxH + textYOffset, p.name);
+    }
+  });
 
   // Render loop heart particle drawing
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      p.alpha -= dt / p.life;
-      if (p.alpha <= 0) { particles.splice(i, 1); continue; }
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, p.alpha);
-      drawPixelHeart(p.x, p.y, p.scale);
-      ctx.restore();
-    }
-
-    // Floating text feedback
-    for (let i = floatTexts.length - 1; i >= 0; i--) {
-      const ft = floatTexts[i];
-      ft.y += ft.vy * dt;
-      ft.alpha -= dt / ft.life;
-      if (ft.alpha <= 0) { floatTexts.splice(i, 1); continue; }
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, ft.alpha);
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = ft.color || '#ffe066';
-      ctx.fillText(ft.text, ft.x, ft.y);
-      ctx.restore();
-    }
-
-    // End World Camera Transformation
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.alpha -= dt / p.life;
+    if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.alpha);
+    drawPixelHeart(p.x, p.y, p.scale);
     ctx.restore();
-
-    drawHUD();
-
-    requestAnimationFrame(render);
   }
 
+  // Floating text feedback
+  for (let i = floatTexts.length - 1; i >= 0; i--) {
+    const ft = floatTexts[i];
+    ft.y += ft.vy * dt;
+    ft.alpha -= dt / ft.life;
+    if (ft.alpha <= 0) { floatTexts.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, ft.alpha);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = ft.color || '#ffe066';
+    ctx.fillText(ft.text, ft.x, ft.y);
+    ctx.restore();
+  }
+
+  // End World Camera Transformation
+  ctx.restore();
+
+  drawHUD();
+
   requestAnimationFrame(render);
-})();
+}
+
+requestAnimationFrame(render);
