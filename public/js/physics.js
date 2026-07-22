@@ -50,6 +50,7 @@ let selectLeverExpiresAt = 0;
 
 function updatePhysics(dt) {
   if (!selfId || !players[selfId]) return;
+  const groundY = getGroundY();
 
   // Selection Hall Pressure Plate Check (x: 350)
   selectPlatePressed = false;

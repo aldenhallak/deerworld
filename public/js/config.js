@@ -1,3 +1,8 @@
+function escapeHTML(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>'"]/g, t => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[t]||t));
+}
+
 // ---- Seed Configs & Physics Constants ----
 const SEED_CONFIG = {
   crop: { totalTime: 900000 },          // 15 min
