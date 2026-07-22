@@ -11,9 +11,11 @@ function getPlatforms() {
   }
   if (myWorld === 'select') {
     // Flat ground layout with floating platform for Level Selection Hall
+    const selectWidth = Math.max(1400, canvas.width);
     return [
-      { x: 0, y: groundY, w: canvas.width, h: 40 },
-      { x: 200, y: groundY - 110, w: 300, h: 16 }
+      { x: 0, y: groundY, w: selectWidth, h: 40 },
+      { x: 200, y: groundY - 110, w: 300, h: 16 },
+      { x: 580, y: groundY - 110, w: 350, h: 16 }
     ];
   }
   if (myWorld === 'coop1') {

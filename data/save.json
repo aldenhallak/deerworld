@@ -12,7 +12,13 @@
       "plantedAt": 1784608328876
     }
   },
-  "coins": {},
+  "coins": {
+    "coin_1": {
+      "id": "coin_1",
+      "x": 300,
+      "yRel": -310
+    }
+  },
   "userProfiles": {
     "pep": {
       "coins": 1,
@@ -20,7 +26,7 @@
       "equippedHat": null
     },
     "Pip": {
-      "coins": 1,
+      "coins": 2,
       "inventory": [],
       "equippedHat": null
     },
@@ -39,6 +45,12 @@
   "courseLeaderboard": [
     {
       "name": "pop",
+      "timeMs": 2925,
+      "formattedTime": "2.92s",
+      "date": "7/21/2026"
+    },
+    {
+      "name": "Pip",
       "timeMs": 2925,
       "formattedTime": "2.92s",
       "date": "7/21/2026"
@@ -90,12 +102,6 @@
       "timeMs": 3300,
       "formattedTime": "3.30s",
       "date": "7/21/2026"
-    },
-    {
-      "name": "Peep",
-      "timeMs": 3543,
-      "formattedTime": "3.54s",
-      "date": "7/21/2026"
     }
   ],
   "megaCourseLeaderboard": [
@@ -106,5 +112,5 @@
       "date": "7/21/2026"
     }
   ],
-  "timestamp": 1784689136120
+  "timestamp": 1784689290784
 }

@@ -45,9 +45,22 @@ function checkDroppedItemPickup() {
 }
 
 let lastEmitTime = 0;
+let selectPlatePressed = false;
+let selectLeverExpiresAt = 0;
 
 function updatePhysics(dt) {
   if (!selfId || !players[selfId]) return;
+
+  // Selection Hall Pressure Plate Check (x: 450)
+  selectPlatePressed = false;
+  const groundY = getGroundY();
+  Object.values(players).forEach(p => {
+    if ((p.world || 'main') === 'select') {
+      if (Math.abs(p.x - 450) < 25 && Math.abs(p.y - groundY) < 14) {
+        selectPlatePressed = true;
+      }
+    }
+  });
   const me = players[selfId];
   if (isNaN(me.x)) me.x = 300;
   if (isNaN(me.y)) me.y = 400;

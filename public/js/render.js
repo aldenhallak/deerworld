@@ -49,6 +49,63 @@ function drawPortal(x, groundY, label, color = '#76ff03') {
   ctx.restore();
 }
 
+function drawSelectPlate(x, groundY, isPressed) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  const pw = 40, ph = 10;
+  const py = groundY - ph;
+  ctx.fillStyle = isPressed ? '#15803d' : '#f59e0b';
+  ctx.fillRect(x - pw/2, py + (isPressed ? 6 : 0), pw, ph - (isPressed ? 6 : 0));
+  ctx.fillStyle = '#fef08a';
+  ctx.fillRect(x - pw/2 + 4, py + (isPressed ? 6 : 0), pw - 8, 2);
+
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = isPressed ? '#86efac' : '#fef08a';
+  ctx.fillText('CO-OP PLATE', x, py - 10);
+  ctx.restore();
+}
+
+function drawLever(x, groundY, isActivated, isPowered) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+
+  ctx.fillStyle = '#334155';
+  ctx.fillRect(x - 14, groundY - 10, 28, 10);
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(x - 10, groundY - 8, 20, 4);
+
+  ctx.fillStyle = '#64748b';
+  ctx.beginPath();
+  ctx.arc(x, groundY - 8, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x, groundY - 8);
+  if (isActivated) {
+    ctx.lineTo(x + 12, groundY - 30);
+  } else {
+    ctx.lineTo(x - 12, groundY - 30);
+  }
+  ctx.stroke();
+
+  const knobX = isActivated ? x + 12 : x - 12;
+  const knobY = groundY - 30;
+  ctx.fillStyle = isActivated ? '#10b981' : (isPowered ? '#f59e0b' : '#ef4444');
+  ctx.beginPath();
+  ctx.arc(knobX, knobY, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = isActivated ? '#10b981' : (isPowered ? '#fef08a' : '#94a3b8');
+  ctx.fillText('[E] FLIP LEVER', x, groundY - 44);
+
+  ctx.restore();
+}
+
 // Physical Shop Building (Far Right Edge of Garden World)
 function drawShopBuilding(groundY) {
   const sx = canvas.width - 90;

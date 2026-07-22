@@ -257,6 +257,14 @@ function connectSocket(username) {
   socket.on('megaLeaderboardUpdated', (lb) => {
     megaCourseLeaderboard = lb || [];
   });
+
+  socket.on('selectLeverFlipped', (data) => {
+    selectLeverExpiresAt = data.expiresAt;
+    playShopSound();
+    if (selfId && players[selfId]) {
+      spawnFloatText(players[selfId].x, players[selfId].y - 40, 'CO-OP PORTAL UNLOCKED! (5s)', '#10b981');
+    }
+  });
 }
 
 // ---- Shop Popup Modal Logic ----
@@ -376,8 +384,20 @@ function tryInteract() {
       socket.emit('switchWorld', 'course');
       return;
     }
-    if (Math.abs(me.x - 440) < 60 && Math.abs(me.y - groundY) < 30) {
-      socket.emit('switchWorld', 'coop1');
+    if (Math.abs(me.x - 650) < 60 && Math.abs(me.y - groundY) < 30) {
+      if (selectPlatePressed) {
+        if (socket) socket.emit('flipSelectLever');
+      } else {
+        spawnFloatText(me.x, me.y - 40, 'Partner must stand on pressure plate first!', '#ffab40');
+      }
+      return;
+    }
+    if (Math.abs(me.x - 850) < 60 && Math.abs(me.y - groundY) < 30) {
+      if (selectLeverExpiresAt > Date.now()) {
+        socket.emit('switchWorld', 'coop1');
+      } else {
+        spawnFloatText(me.x, me.y - 40, 'Portal is locked! Solve switch puzzle to enter.', '#ff5252');
+      }
       return;
     }
   }
@@ -835,12 +855,37 @@ function render(now) {
     ctx.fillStyle = '#60a5fa';
     ctx.font = 'bold 16px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('⭐ LEVEL SELECTION HALL ⭐', 340, groundY - 140);
+    ctx.fillText('⭐ LEVEL SELECTION HALL ⭐', 450, groundY - 140);
 
-    // Portals
+    // Portals & Mechanisms
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
     drawPortal(240, groundY, '[E] OBSTACLE COURSES', '#e94560');
-    drawPortal(440, groundY, '[E] CO-OP PUZZLE 1', '#38bdf8');
+
+    // Connecting Wires along ground
+    ctx.save();
+    ctx.lineWidth = 3;
+    // Wire from Plate (450) to Lever (650)
+    ctx.strokeStyle = selectPlatePressed ? '#eab308' : '#475569';
+    ctx.beginPath(); ctx.moveTo(450, groundY - 2); ctx.lineTo(650, groundY - 2); ctx.stroke();
+    // Wire from Lever (650) to Portal (850)
+    const isUnlocked = selectLeverExpiresAt > Date.now();
+    ctx.strokeStyle = isUnlocked ? '#38bdf8' : '#475569';
+    ctx.beginPath(); ctx.moveTo(650, groundY - 2); ctx.lineTo(850, groundY - 2); ctx.stroke();
+    ctx.restore();
+
+    // Co-op Pressure Plate at x: 450
+    drawSelectPlate(450, groundY, selectPlatePressed);
+
+    // Co-op Lever Switch at x: 650
+    drawLever(650, groundY, isUnlocked, selectPlatePressed);
+
+    // Co-op Portal at x: 850 (NO NAME ON IT!)
+    if (isUnlocked) {
+      const remainingSec = Math.ceil((selectLeverExpiresAt - Date.now()) / 1000);
+      drawPortal(850, groundY, `[E] ENTER PORTAL (${remainingSec}s)`, '#38bdf8');
+    } else {
+      drawPortal(850, groundY, '[E] ???', '#334155');
+    }
   } else if (myWorld === 'coop1') {
     const offsetY = canvas.height - COOP_LEVEL_1.height;
 

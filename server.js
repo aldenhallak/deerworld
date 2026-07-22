@@ -230,7 +230,7 @@ io.on('connection', (socket) => {
     const prevWorld = player.world;
     player.world = targetWorld;
     if (targetWorld === 'garden') player.x = 120;
-    else if (targetWorld === 'select') player.x = (prevWorld === 'course' ? 240 : (prevWorld === 'coop1' ? 440 : 120));
+    else if (targetWorld === 'select') player.x = (prevWorld === 'course' ? 240 : (prevWorld === 'coop1' ? 850 : 120));
     else if (targetWorld === 'course') player.x = 120;
     else if (targetWorld === 'course2') player.x = 120;
     else if (targetWorld === 'coop1') player.x = 100;
@@ -240,6 +240,11 @@ io.on('connection', (socket) => {
 
     player.yRel = 0;
     io.emit('playerWorldSwitched', { id: socket.id, world: player.world, x: player.x, yRel: player.yRel });
+  });
+
+  socket.on('flipSelectLever', () => {
+    const expiresAt = Date.now() + 5000;
+    io.emit('selectLeverFlipped', { expiresAt });
   });
 
   // Collect single coin & spawn next single coin after short delay
