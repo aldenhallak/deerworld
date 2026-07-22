@@ -313,6 +313,8 @@ function updatePhysics(dt) {
       spawnFloatText(me.x, me.y - 40, `MEGA COURSE FINISHED! ${sec}s`, '#ff007f');
       if (socket) socket.emit('submitCourseTime', { timeMs: elapsedMs, courseId: 'course2' });
     }
+  }
+
   // Co-op Puzzle 1 Timers (Starts when crossing x: 220)
   if (myWorld === 'coop1' && selfId && players[selfId]) {
     const me = players[selfId];
