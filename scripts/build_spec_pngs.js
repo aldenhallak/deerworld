@@ -96,15 +96,15 @@ const specData = {
 // Target canvas size: 50x50 matching base Klipspringer frame
 const canvasW = 50, canvasH = 50;
 
-// Anchor offsets mapping each accessory to base Klipspringer frame (facing left)
+// Anchor offsets and pixel scale (2x scale for bold visibility)
 const targetOffsets = {
-  sunglasses: { targetMinX: 9,  targetMinY: 10 },
-  ascot:      { targetMinX: 18, targetMinY: 22 },
-  beanie:     { targetMinX: 11, targetMinY: 4 },
-  rainboots:  { targetMinX: 10, targetMinY: 34 },
-  cowboy_hat: { targetMinX: 4,  targetMinY: 4 },
-  glasses:    { targetMinX: 8,  targetMinY: 10 },
-  headphones: { targetMinX: 10, targetMinY: 2 }
+  sunglasses: { targetMinX: 7,  targetMinY: 9,  scale: 2 },
+  ascot:      { targetMinX: 18, targetMinY: 19, scale: 2 },
+  beanie:     { targetMinX: 9,  targetMinY: 2,  scale: 2.2 },
+  rainboots:  { targetMinX: 8,  targetMinY: 33, scale: 2 },
+  cowboy_hat: { targetMinX: 4,  targetMinY: 2,  scale: 2 },
+  glasses:    { targetMinX: 7,  targetMinY: 9,  scale: 2 },
+  headphones: { targetMinX: 9,  targetMinY: 2,  scale: 2 }
 };
 
 const accDir = path.join(process.cwd(), 'public', 'acc');
@@ -117,21 +117,31 @@ Object.entries(specData).forEach(([itemKey, pts]) => {
     if (p.y < minY) minY = p.y;
   });
 
-  const anchor = targetOffsets[itemKey] || { targetMinX: 10, targetMinY: 10 };
-  const offsetX = anchor.targetMinX - minX;
-  const offsetY = anchor.targetMinY - minY;
+  const config = targetOffsets[itemKey] || { targetMinX: 10, targetMinY: 10, scale: 2 };
+  const pScale = config.scale || 2;
+  const offsetX = config.targetMinX - minX * pScale;
+  const offsetY = config.targetMinY - minY * pScale;
 
   const rgba = Buffer.alloc(canvasW * canvasH * 4);
 
   pts.forEach(p => {
-    const tx = p.x + offsetX;
-    const ty = p.y + offsetY;
-    if (tx >= 0 && tx < canvasW && ty >= 0 && ty < canvasH) {
-      const idx = (ty * canvasW + tx) * 4;
-      rgba[idx] = p.r;
-      rgba[idx+1] = p.g;
-      rgba[idx+2] = p.b;
-      rgba[idx+3] = 255;
+    const baseTx = Math.round(p.x * pScale + offsetX);
+    const baseTy = Math.round(p.y * pScale + offsetY);
+    const kw = Math.ceil(pScale);
+    const kh = Math.ceil(pScale);
+
+    for (let dy = 0; dy < kh; dy++) {
+      for (let dx = 0; dx < kw; dx++) {
+        const tx = baseTx + dx;
+        const ty = baseTy + dy;
+        if (tx >= 0 && tx < canvasW && ty >= 0 && ty < canvasH) {
+          const idx = (ty * canvasW + tx) * 4;
+          rgba[idx] = p.r;
+          rgba[idx+1] = p.g;
+          rgba[idx+2] = p.b;
+          rgba[idx+3] = 255;
+        }
+      }
     }
   });
 
