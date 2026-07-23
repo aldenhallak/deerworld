@@ -83,16 +83,19 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // ---- Socket Connection ----
-function connectSocket(username, password) {
+function initSocketConnection() {
   if (!socket) {
     socket = io();
     setupSocketListeners();
   }
+}
 
+function joinGame(username, password) {
+  initSocketConnection();
   if (socket.connected) {
     socket.emit('join', { name: username, password: password || '' });
   } else {
-    socket.on('connect', () => {
+    socket.once('connect', () => {
       socket.emit('join', { name: username, password: password || '' });
     });
   }
@@ -900,7 +903,7 @@ if (usernameInput) {
       if (passwordContainer) passwordContainer.classList.add('hidden');
       return;
     }
-    if (!socket) connectSocket();
+    initSocketConnection();
     clearTimeout(checkNameTimeout);
     checkNameTimeout = setTimeout(() => {
       if (socket) socket.emit('checkNameStatus', { name });
@@ -914,7 +917,7 @@ joinForm.addEventListener('submit', (e) => {
   if (joinErrorText) joinErrorText.classList.add('hidden');
   const name = usernameInput.value.trim();
   const pass = passwordInput ? passwordInput.value.trim() : '';
-  if (name) connectSocket(name, pass);
+  if (name) joinGame(name, pass);
 });
 
 // Account Protection Modal Events
