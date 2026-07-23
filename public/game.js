@@ -741,9 +741,17 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (e.code === 'KeyL' && document.activeElement !== chatInput && document.activeElement !== usernameInput) {
-    if (leaderboardModal.classList.contains('hidden')) openLeaderboardModal();
-    else closeLeaderboardModal();
+  if ((e.code === 'KeyL' || e.key.toLowerCase() === 'l') && document.activeElement !== chatInput && document.activeElement !== usernameInput) {
+    if (leaderboardModal.classList.contains('hidden')) {
+      let defaultTab = 'fishing';
+      if (myWorld === 'frogger') defaultTab = 'frogger';
+      else if (myWorld === 'course') defaultTab = 'course1';
+      else if (myWorld === 'course2') defaultTab = 'course2';
+      else if (myWorld === 'coop1') defaultTab = 'coop';
+      openLeaderboardModal(defaultTab);
+    } else {
+      closeLeaderboardModal();
+    }
     return;
   }
 
