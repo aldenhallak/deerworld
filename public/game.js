@@ -48,9 +48,10 @@ let myEquippedHat = null;
 const spriteF = new Image(); spriteF.src = 'sprite_f.png';
 const spriteG = new Image(); spriteG.src = 'sprite_g.png';
 const spriteH = new Image(); spriteH.src = 'sprite_h.png';
+const trainSignImg = new Image(); trainSignImg.src = 'train_sign.png';
 let imagesLoaded = false, loadedCount = 0;
-function onImgLoad() { if (++loadedCount >= 3) imagesLoaded = true; }
-spriteF.onload = spriteG.onload = spriteH.onload = onImgLoad;
+function onImgLoad() { if (++loadedCount >= 4) imagesLoaded = true; }
+spriteF.onload = spriteG.onload = spriteH.onload = trainSignImg.onload = onImgLoad;
 
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -150,6 +151,7 @@ function connectSocket(username) {
         else if (data.world === 'course') wName = 'Obstacle Course 1';
         else if (data.world === 'course2') wName = 'MEGA Obstacle Course';
         else if (data.world === 'coop1') wName = 'Co-op Puzzle 1';
+        else if (data.world === 'beach') wName = 'Beach World';
         else if (data.world === 'frogger') {
           wName = 'Klipspringer Crossing';
           if (typeof FroggerMode !== 'undefined') FroggerMode.init();
@@ -392,7 +394,8 @@ function tryInteract() {
 
   // 1. World Portal / Doorway Interaction
   const mainPortalX = canvas.width - 100;
-  const shopX = canvas.width - 100;
+  const shopX = 1400;
+  const trainSignX = 1850;
 
   if (myWorld === 'main' && Math.abs(me.x - mainPortalX) < 70 && Math.abs(me.y - groundY) < 30) {
     socket.emit('switchWorld', 'garden');
@@ -404,6 +407,14 @@ function tryInteract() {
   }
   if (myWorld === 'garden' && Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
     socket.emit('switchWorld', 'main');
+    return;
+  }
+  if (myWorld === 'garden' && Math.abs(me.x - trainSignX) < 75 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'beach');
+    return;
+  }
+  if (myWorld === 'beach' && Math.abs(me.x - 80) < 75 && Math.abs(me.y - groundY) < 30) {
+    socket.emit('switchWorld', 'garden');
     return;
   }
   if (myWorld === 'select') {
@@ -454,7 +465,7 @@ function tryInteract() {
     return;
   }
 
-  // 2. Open Shop Popup Modal (when near Shop Stall on far right in Garden World)
+  // 2. Open Shop Popup Modal (when near Shop Stall in Garden World)
   if (myWorld === 'garden' && Math.abs(me.x - shopX) < 75 && Math.abs(me.y - groundY) < 30) {
     openShopModal();
     return;
@@ -477,12 +488,12 @@ function tryInteract() {
     }
   }
 
-  // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..canvas.width - 220)
+  // 5. Plant Seed (STRICT Soil Bed Constraint in Garden World: x: 180..1200)
   if (myWorld !== 'garden') {
     spawnFloatText(me.x, me.y - 40, 'Enter Garden World to plant!', '#ffab40');
     return;
   }
-  if (me.x < 180 || me.x > canvas.width - 220 || Math.abs(me.y - groundY) > 20) {
+  if (me.x < 180 || me.x > 1200 || Math.abs(me.y - groundY) > 20) {
     spawnFloatText(me.x, me.y - 40, 'Must plant inside soil bed!', '#ff5252');
     return;
   }
@@ -664,7 +675,11 @@ function render(now) {
   const groundY = getGroundY();
   const meX = (selfId && players[selfId]) ? players[selfId].x : 120;
   let cameraX = 0;
-  if (myWorld === 'course2') {
+  if (myWorld === 'garden') {
+    cameraX = Math.max(0, Math.min(2400 - canvas.width, meX - canvas.width / 2));
+  } else if (myWorld === 'beach') {
+    cameraX = Math.max(0, Math.min(2400 - canvas.width, meX - canvas.width / 2));
+  } else if (myWorld === 'course2') {
     cameraX = Math.max(0, Math.min(4100 - canvas.width, meX - canvas.width / 2));
   } else if (myWorld === 'frogger') {
     cameraX = Math.max(0, Math.min(2200 - canvas.width, meX - canvas.width / 2));
@@ -675,6 +690,13 @@ function render(now) {
   // Background color per world
   if (myWorld === 'garden') {
     ctx.fillStyle = '#1e3323';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else if (myWorld === 'beach') {
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    skyGrad.addColorStop(0, '#38bdf8');
+    skyGrad.addColorStop(0.65, '#bae6fd');
+    skyGrad.addColorStop(1, '#fef08a');
+    ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   } else if (myWorld === 'select') {
     ctx.fillStyle = '#111827';
@@ -722,8 +744,12 @@ function render(now) {
     drawGardenSoilBed(groundY);
     // Shop Building
     drawShopBuilding(groundY);
+    // Train Sign past Shop (x: 1850)
+    drawTrainSign(1850, groundY, trainSignImg, '[E] BOARD TRAIN TO BEACH');
     // Portal to Main World (far left in Garden World)
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
+  } else if (myWorld === 'beach') {
+    drawBeachEnvironment(groundY, animTime, trainSignImg);
   } else if (myWorld === 'frogger') {
     if (typeof FroggerMode !== 'undefined') {
       FroggerMode.render(ctx, animTime);

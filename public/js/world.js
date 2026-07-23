@@ -7,8 +7,14 @@ function getGroundY() {
 function getPlatforms() {
   const groundY = getGroundY();
   if (myWorld === 'garden') {
-    // Flat ground layout for Garden World
-    return [{ x: 0, y: groundY, w: canvas.width, h: 40 }];
+    // Extended ground layout for Garden World with scrolling train sign section
+    const gardenWidth = Math.max(2400, canvas.width);
+    return [{ x: 0, y: groundY, w: gardenWidth, h: 40 }];
+  }
+  if (myWorld === 'beach') {
+    // Seaside beach layout
+    const beachWidth = Math.max(2400, canvas.width);
+    return [{ x: 0, y: groundY, w: beachWidth, h: 40 }];
   }
   if (myWorld === 'select') {
     // Flat ground layout for Level Selection Hall (no floating platform)

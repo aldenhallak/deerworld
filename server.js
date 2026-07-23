@@ -239,12 +239,13 @@ io.on('connection', (socket) => {
   socket.on('switchWorld', (targetWorld) => {
     const player = players[socket.id];
     if (!player) return;
-    const allowed = ['main', 'garden', 'select', 'course', 'course2', 'coop1', 'frogger'];
+    const allowed = ['main', 'garden', 'select', 'course', 'course2', 'coop1', 'frogger', 'beach'];
     if (!allowed.includes(targetWorld)) return;
 
     const prevWorld = player.world;
     player.world = targetWorld;
-    if (targetWorld === 'garden') player.x = 120;
+    if (targetWorld === 'garden') player.x = prevWorld === 'beach' ? 1850 : 120;
+    else if (targetWorld === 'beach') player.x = 100;
     else if (targetWorld === 'select') player.x = (prevWorld === 'course' ? 240 : (prevWorld === 'frogger' ? 450 : (prevWorld === 'coop1' ? 850 : 120)));
     else if (targetWorld === 'course') player.x = 120;
     else if (targetWorld === 'course2') player.x = 120;

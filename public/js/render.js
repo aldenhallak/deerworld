@@ -123,9 +123,9 @@ function drawGateDoor(x, groundY, isOpen) {
   ctx.restore();
 }
 
-// Physical Shop Building (Far Right Edge of Garden World)
+// Physical Shop Building (Past Soil Bed in Garden World at x: 1400)
 function drawShopBuilding(groundY) {
-  const sx = canvas.width - 90;
+  const sx = 1400;
   const sy = groundY;
 
   ctx.save();
@@ -159,7 +159,7 @@ function drawShopBuilding(groundY) {
   ctx.fillText('FARM SHOP', sx, sy - 78);
 
   // Diegetic Prompt
-  if (selfId && players[selfId]) {
+  if (typeof selfId !== 'undefined' && selfId && players[selfId]) {
     const me = players[selfId];
     if (Math.abs(me.x - sx) < 70) {
       ctx.fillStyle = 'rgba(0,0,0,0.85)';
@@ -173,10 +173,50 @@ function drawShopBuilding(groundY) {
   ctx.restore();
 }
 
+// Custom Pixel Train Sign Renderer
+function drawTrainSign(x, groundY, img, promptText = '[E] BOARD TRAIN') {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+
+  if (img && img.complete && img.naturalWidth > 0) {
+    const sw = 140;
+    const sh = 140;
+    ctx.drawImage(img, x - sw / 2, groundY - sh, sw, sh);
+  } else {
+    // Fallback wooden sign post
+    ctx.fillStyle = '#795548';
+    ctx.fillRect(x - 8, groundY - 100, 16, 100);
+    ctx.fillStyle = '#a16207';
+    ctx.fillRect(x - 64, groundY - 160, 128, 70);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('🚂 TRAIN', x, groundY - 120);
+  }
+
+  // Diegetic Prompt when player is near
+  if (typeof selfId !== 'undefined' && selfId && players[selfId]) {
+    const me = players[selfId];
+    if (Math.abs(me.x - x) < 95) {
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(x - 100, groundY - 160, 200, 24);
+      ctx.strokeStyle = '#00e676';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 100, groundY - 160, 200, 24);
+      ctx.fillStyle = '#00e676';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(promptText, x, groundY - 144);
+    }
+  }
+
+  ctx.restore();
+}
+
 // Physical Garden Soil Bed Graphics (No Text)
 function drawGardenSoilBed(groundY) {
   const gx = 180;
-  const gw = Math.max(200, canvas.width - 360);
+  const gw = 1020;
   const gy = groundY;
 
   ctx.save();
@@ -449,6 +489,7 @@ function drawHUD() {
 
   let worldLabel = 'PLATFORMER';
   if (myWorld === 'garden') worldLabel = 'GARDEN & SHOP';
+  else if (myWorld === 'beach') worldLabel = 'BEACH WORLD';
   else if (myWorld === 'select') worldLabel = 'LEVEL SELECTION';
   else if (myWorld === 'course') worldLabel = 'OBSTACLE COURSE 1';
   else if (myWorld === 'course2') worldLabel = 'MEGA COURSE (STAGE 2)';
@@ -652,6 +693,76 @@ function drawFroggerEnvironment(groundY, animTime) {
 
   // Return Portal (far left in Frogger World)
   drawPortal(80, groundY, '[E] RETURN TO SELECT', '#00e676');
+
+  ctx.restore();
+}
+
+// Beach World Environment Graphics
+function drawBeachEnvironment(groundY, animTime, trainSignImg) {
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+
+  // 1. Ocean Water & Animated Shore Waves (x: 1300..2400)
+  ctx.fillStyle = '#0284c7';
+  ctx.fillRect(1300, 0, 1100, canvas.height);
+
+  // Shore wave foam
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+  for (let wy = 0; wy < canvas.height; wy += 35) {
+    const waveX = 1300 + Math.sin(animTime * 2.5 + wy * 0.05) * 18;
+    ctx.fillRect(waveX, wy, 20, 6);
+    ctx.fillRect(waveX + 250, wy + 15, 30, 4);
+  }
+
+  // 2. Sandy Beach Ground (x: 0..1320)
+  ctx.fillStyle = '#fef08a'; // Bright beach sand
+  ctx.fillRect(0, groundY, 1320, 40);
+  ctx.fillStyle = '#fde047'; // Sand accent line
+  ctx.fillRect(0, groundY, 1320, 4);
+
+  // Sand dunes / details in background
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath(); ctx.arc(350, groundY, 110, Math.PI, 0); ctx.fill();
+  ctx.beginPath(); ctx.arc(750, groundY, 85, Math.PI, 0); ctx.fill();
+
+  // 3. Decorative Palm Trees
+  function drawPalmTree(px, py) {
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(px - 6, py - 90, 12, 90);
+    ctx.fillStyle = '#92400e';
+    ctx.fillRect(px - 4, py - 90, 4, 90);
+
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath(); ctx.ellipse(px - 30, py - 95, 35, 10, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(px + 30, py - 95, 35, 10, 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(px, py - 110, 12, 35, 0, 0, Math.PI * 2); ctx.fill();
+  }
+
+  drawPalmTree(350, groundY);
+  drawPalmTree(700, groundY);
+  drawPalmTree(1100, groundY);
+
+  // 4. Beach Umbrella & Towel
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(520, groundY - 6, 60, 6); // Red towel
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(530, groundY - 6, 12, 6);
+  ctx.fillRect(558, groundY - 6, 12, 6);
+
+  // Umbrella pole & canopy
+  ctx.fillStyle = '#cbd5e1';
+  ctx.fillRect(550, groundY - 60, 4, 54);
+  ctx.fillStyle = '#3b82f6';
+  ctx.beginPath(); ctx.arc(552, groundY - 60, 35, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#fef08a';
+  ctx.beginPath(); ctx.arc(552, groundY - 60, 20, Math.PI, 0); ctx.fill();
+
+  // 5. Sun in sky
+  ctx.fillStyle = '#fde047';
+  ctx.beginPath(); ctx.arc(1150, 90, 45, 0, Math.PI * 2); ctx.fill();
+
+  // 6. Return Train Sign at x: 80
+  drawTrainSign(80, groundY, trainSignImg, '[E] BOARD TRAIN TO GARDEN');
 
   ctx.restore();
 }

@@ -186,7 +186,7 @@ function updatePhysics(dt) {
   });
 
   if (!landed) { me.y = nextY; me.isGrounded = false; }
-  const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'frogger' ? 2200 : (myWorld === 'coop1' ? 2400 : (myWorld === 'select' ? 1400 : canvas.width)));
+  const maxWorldX = myWorld === 'course2' ? 4100 : (myWorld === 'frogger' ? 2200 : (myWorld === 'coop1' ? 2400 : (myWorld === 'garden' ? 2400 : (myWorld === 'beach' ? 2400 : (myWorld === 'select' ? 1400 : canvas.width)))));
   me.x = Math.max(20, Math.min(maxWorldX - 20, finalX));
 
   // Fall off screen in Obstacle Courses = teleport to start
