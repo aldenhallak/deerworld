@@ -211,6 +211,8 @@ io.on('connection', (socket) => {
       fishingLeaderboard
     });
 
+    console.log(`[JOIN] ${username} (${socket.id}) connected`);
+
     socket.broadcast.emit('playerJoined', players[socket.id]);
   });
 
@@ -471,7 +473,10 @@ io.on('connection', (socket) => {
     chatHistory.push(msgObj);
     if (chatHistory.length > 200) chatHistory.shift();
 
-    // Append to text log file
+    // Log chat message to stdout (Render log stream)
+    console.log(`[CHAT] [${msgObj.time}] ${msgObj.sender}: ${msgObj.text}`);
+
+    // Append to text log file (if writable)
     const logLine = `[${new Date().toISOString()}] ${msgObj.sender}: ${msgObj.text}\n`;
     fs.appendFile(CHAT_LOG_FILE, logLine, (err) => {
       if (err) console.error('Chat log write error:', err);
@@ -598,6 +603,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (players[socket.id]) {
+      console.log(`[LEAVE] ${players[socket.id].name} (${socket.id}) disconnected`);
       delete players[socket.id];
       io.emit('playerLeft', socket.id);
     }
