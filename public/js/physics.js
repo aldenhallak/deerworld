@@ -62,9 +62,13 @@ function updatePhysics(dt) {
       socket.emit('playerMove', {
         x: Math.round(me.x * 10) / 10,
         yRel: Math.round((me.y - groundY) * 10) / 10,
+        gridX: typeof FroggerMode !== 'undefined' ? FroggerMode.player.gridX : 6,
+        gridY: typeof FroggerMode !== 'undefined' ? FroggerMode.player.gridY : 12,
         vx: 0, vy: 0,
         facing: me.facing || 'up',
-        isMoving: false, isJumping: false, isGrounded: true,
+        isMoving: me.isMoving || false,
+        isJumping: me.isJumping || false,
+        isGrounded: true,
         world: myWorld
       });
       lastEmitTime = now;

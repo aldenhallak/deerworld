@@ -219,6 +219,8 @@ io.on('connection', (socket) => {
     const player = players[socket.id];
     player.x = data.x;
     player.yRel = data.yRel !== undefined ? data.yRel : 0;
+    if (data.gridX !== undefined) player.gridX = data.gridX;
+    if (data.gridY !== undefined) player.gridY = data.gridY;
     player.vx = data.vx || 0; player.vy = data.vy || 0;
     player.facing = data.facing || player.facing;
     player.isMoving = !!data.isMoving;
@@ -229,6 +231,8 @@ io.on('connection', (socket) => {
       id: socket.id,
       x: player.x,
       yRel: player.yRel,
+      gridX: player.gridX,
+      gridY: player.gridY,
       vx: player.vx, vy: player.vy,
       facing: player.facing,
       isMoving: player.isMoving,
@@ -254,13 +258,17 @@ io.on('connection', (socket) => {
     else if (targetWorld === 'course') player.x = 120;
     else if (targetWorld === 'course2') player.x = 120;
     else if (targetWorld === 'coop1') player.x = 100;
-    else if (targetWorld === 'frogger') player.x = 100;
+    else if (targetWorld === 'frogger') {
+      player.x = 100;
+      player.gridX = 6;
+      player.gridY = 12;
+    }
     else if (prevWorld === 'course2') player.x = 1420;
     else if (prevWorld === 'select') player.x = 1400; // far right in main
     else player.x = 880;
 
     player.yRel = 0;
-    io.emit('playerWorldSwitched', { id: socket.id, world: player.world, x: player.x, yRel: player.yRel });
+    io.emit('playerWorldSwitched', { id: socket.id, world: player.world, x: player.x, yRel: player.yRel, gridX: player.gridX, gridY: player.gridY });
   });
 
   socket.on('flipSelectLever', () => {

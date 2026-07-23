@@ -128,6 +128,8 @@ function connectSocket(username) {
     const groundY = getGroundY();
     p.x = Number(data.x) || p.x;
     p.y = groundY + (data.yRel !== undefined ? Number(data.yRel) : 0);
+    if (data.gridX !== undefined) p.gridX = data.gridX;
+    if (data.gridY !== undefined) p.gridY = data.gridY;
     p.vx = Number(data.vx) || 0; p.vy = Number(data.vy) || 0;
     p.facing = data.facing; p.isMoving = data.isMoving;
     p.isJumping = data.isJumping; p.isGrounded = data.isGrounded;
@@ -139,6 +141,8 @@ function connectSocket(username) {
     if (players[data.id]) {
       players[data.id].world = data.world;
       players[data.id].x = data.x;
+      if (data.gridX !== undefined) players[data.id].gridX = data.gridX;
+      if (data.gridY !== undefined) players[data.id].gridY = data.gridY;
       const groundY = getGroundY();
       players[data.id].y = groundY + data.yRel;
       if (data.id === selfId) {
@@ -801,7 +805,7 @@ function render(now) {
     }
   } else if (myWorld === 'frogger') {
     if (typeof FroggerMode !== 'undefined') {
-      FroggerMode.render(ctx, animTime);
+      FroggerMode.render(ctx, animTime, dt);
     }
   } else if (myWorld === 'course') {
     // Obstacle Course World

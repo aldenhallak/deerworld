@@ -168,6 +168,8 @@ const FroggerMode = {
     const me = players[selfId];
     me.x = this.player.x;
     me.y = this.player.y;
+    me.gridX = this.player.gridX;
+    me.gridY = this.player.gridY;
     me.facing = this.player.facing;
     me.isMoving = this.player.isHopAnimating;
     me.isJumping = this.player.isHopAnimating;
@@ -305,7 +307,8 @@ const FroggerMode = {
     return cars;
   },
 
-  render(ctx, animTime) {
+  render(ctx, animTime, dt) {
+    const frameDt = dt || 0.016;
     const board = this.getBoardBounds();
     const ts = this.tileSize;
 
@@ -416,7 +419,19 @@ const FroggerMode = {
     if (typeof players !== 'undefined') {
       Object.values(players).forEach(other => {
         if (other.id !== selfId && (other.world || 'main') === 'frogger') {
-          drawKlipspringerPlayer(ctx, other.x, other.y, other.facing || 'right', false, other.equippedHat);
+          const gx = other.gridX !== undefined ? other.gridX : 6;
+          const gy = other.gridY !== undefined ? other.gridY : 12;
+          const targetX = board.startX + gx * this.tileSize + this.tileSize / 2;
+          const targetY = board.startY + gy * this.tileSize + this.tileSize / 2;
+
+          if (other.renderX === undefined) other.renderX = targetX;
+          if (other.renderY === undefined) other.renderY = targetY;
+
+          other.renderX += (targetX - other.renderX) * Math.min(1, 20 * frameDt);
+          other.renderY += (targetY - other.renderY) * Math.min(1, 20 * frameDt);
+
+          const isHop = (Math.hypot(targetX - other.renderX, targetY - other.renderY) > 2);
+          drawKlipspringerPlayer(ctx, other.renderX, other.renderY, other.facing || 'right', isHop, other.equippedHat);
         }
       });
     }
