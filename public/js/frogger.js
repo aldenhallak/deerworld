@@ -510,7 +510,7 @@ const FroggerMode = {
     // 8-Bit Clean Retro HUD
     ctx.font = 'bold 12px "Courier New", monospace';
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#00e676';
+    ctx.fillStyle = '#ffffff';
     ctx.fillText('[ESC / E] EXIT TO HALL | [L] LEADERBOARDS', board.startX, board.startY + board.boardH + 20);
 
     ctx.textAlign = 'right';
