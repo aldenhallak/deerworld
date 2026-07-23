@@ -181,17 +181,17 @@ body, html {
   opacity: 0.6;
 }
 
-/* Zero-Background Unobtrusive Floating Chat */
+/* Compact Unobtrusive Floating Chat */
 .chat-bar {
   position: absolute;
   bottom: 10px;
   left: 10px;
-  width: 360px;
+  width: 250px;
   max-width: calc(100vw - 20px);
   z-index: 5;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   pointer-events: none;
 }
 
@@ -199,9 +199,9 @@ body, html {
   display: none !important;
 }
 
-/* Chat Log: Zero background, pure floating text */
+/* Chat Log: Zero background, compact floating text */
 .chat-log {
-  height: 160px;
+  height: 95px;
   background: transparent !important;
   border: none !important;
   overflow: hidden;
@@ -209,14 +209,14 @@ body, html {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 2px;
   pointer-events: none;
 }
 
 .chat-msg {
   color: #ffffff;
-  font-size: 0.88rem;
-  line-height: 1.25;
+  font-size: 0.76rem;
+  line-height: 1.2;
   word-break: break-word;
   text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
   transition: opacity 0.5s ease;
@@ -236,12 +236,12 @@ body, html {
 /* Chat Input Bar: Only visible when actively typing */
 .chat-inputs {
   display: none; /* Hidden by default! Enabled when typing */
-  gap: 4px;
+  gap: 3px;
   pointer-events: auto;
-  background: rgba(0, 0, 0, 0.85);
-  padding: 4px;
-  border-radius: 4px;
-  border: 1px solid #777;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 3px;
+  border-radius: 3px;
+  border: 1px solid #555;
 }
 
 .chat-inputs.active {
@@ -250,123 +250,129 @@ body, html {
 
 .chat-inputs input {
   flex: 1;
-  padding: 6px 8px;
-  font-size: 0.9rem;
+  padding: 4px 6px;
+  font-size: 0.8rem;
   border: 1px solid #555;
-  background: #111;
-  color: #fff;
-  border-radius: 3px;
+  background: #000;
+  color: #00ff00;
+  font-family: monospace;
+  border-radius: 2px;
   outline: none;
 }
 
 .chat-inputs button {
-  padding: 6px 12px;
-  font-size: 0.9rem;
+  padding: 4px 8px;
+  font-size: 0.78rem;
   cursor: pointer;
   border: 1px solid #555;
-  background: #333;
+  background: #222;
   color: #fff;
-  border-radius: 3px;
+  font-family: monospace;
+  border-radius: 2px;
 }
 
 .chat-inputs button:hover {
   background: #444;
 }
 
-/* Leaderboards Modal Styling */
+/* Web 1.0 Retro 8-Bit Arcade Leaderboards Modal Styling */
 .leaderboard-box {
-  background: #0f172a;
-  color: #f8fafc;
-  border: 3px solid #38bdf8;
-  padding: 20px;
-  width: 540px;
+  background: #000000;
+  color: #00ff00;
+  border: 4px ridge #15803d;
+  outline: 2px solid #00ff00;
+  padding: 16px;
+  width: 500px;
   max-width: 92vw;
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.85);
-  font-family: monospace;
-  border-radius: 8px;
+  box-shadow: inset 0 0 20px rgba(0, 255, 0, 0.2), 8px 8px 0px #000;
+  font-family: "Courier New", Courier, monospace;
+  text-transform: uppercase;
 }
 
 .leaderboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid #1e293b;
-  padding-bottom: 10px;
-  margin-bottom: 12px;
+  border-bottom: 2px dashed #15803d;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .leaderboard-header h2 {
-  font-size: 1.25rem;
-  color: #ffd700;
+  font-size: 1.15rem;
+  color: #ffff00;
+  text-shadow: 2px 2px 0px #15803d;
+  letter-spacing: 1px;
 }
 
 .leaderboard-tabs {
   display: flex;
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 4px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
 .tab-btn {
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
-  padding: 6px 12px;
-  font-family: monospace;
+  background: #000000;
+  color: #00ff00;
+  border: 2px outset #15803d;
+  padding: 4px 8px;
+  font-family: "Courier New", Courier, monospace;
   font-weight: bold;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.15s ease;
+  text-transform: uppercase;
 }
 
 .tab-btn:hover {
-  background: #334155;
-  color: #fff;
+  background: #15803d;
+  color: #ffff00;
 }
 
 .tab-btn.active {
-  background: #0284c7;
-  color: #fff;
-  border-color: #38bdf8;
+  background: #15803d;
+  color: #ffff00;
+  border: 2px inset #00ff00;
 }
 
 .leaderboard-content {
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 6px;
-  padding: 12px;
-  min-height: 180px;
+  background: #051005;
+  border: 2px solid #15803d;
+  padding: 10px;
+  min-height: 170px;
 }
 
 .lb-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  font-family: "Courier New", Courier, monospace;
 }
 
 .lb-table th {
-  border-bottom: 2px solid #334155;
-  padding: 8px 6px;
-  color: #38bdf8;
-  font-size: 0.85rem;
+  border-bottom: 2px dashed #00ff00;
+  padding: 6px 4px;
+  color: #ffff00;
+  font-size: 0.8rem;
 }
 
 .lb-table td {
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  padding: 8px 6px;
-  font-size: 0.85rem;
+  border-bottom: 1px dotted #15803d;
+  padding: 6px 4px;
+  color: #00ff00;
+  font-size: 0.8rem;
 }
 
-.lb-table tr:nth-child(1) td { color: #ffd700; font-weight: bold; }
-.lb-table tr:nth-child(2) td { color: #e2e8f0; font-weight: bold; }
-.lb-table tr:nth-child(3) td { color: #cd7f32; font-weight: bold; }
+.lb-table tr:nth-child(1) td { color: #ffff00; font-weight: bold; }
+.lb-table tr:nth-child(2) td { color: #ffffff; font-weight: bold; }
+.lb-table tr:nth-child(3) td { color: #ff9900; font-weight: bold; }
 
 .lb-empty {
   text-align: center;
-  color: #94a3b8;
-  padding: 30px 10px;
+  color: #4ade80;
+  padding: 25px 10px;
   font-style: italic;
+  font-size: 0.85rem;
 }

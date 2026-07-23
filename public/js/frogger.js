@@ -459,11 +459,61 @@ const FroggerMode = {
       }
     }
 
+    // 8-Bit Environmental Leaderboard Billboard on Side of Board
+    const lbWidth = 160;
+    let lbX = board.startX + board.boardW + 12;
+    if (lbX + lbWidth > canvas.width - 10) {
+      lbX = Math.max(10, board.startX - lbWidth - 12);
+    }
+    const lbY = board.startY + 40;
+    const lbH = 170;
+
+    // Wooden/Metal Support Posts
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(lbX + 14, lbY + lbH, 8, board.boardH - (lbY - board.startY) - lbH);
+    ctx.fillRect(lbX + lbWidth - 22, lbY + lbH, 8, board.boardH - (lbY - board.startY) - lbH);
+
+    // Main 8-Bit Arcade Box
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(lbX, lbY, lbWidth, lbH);
+    ctx.strokeStyle = '#15803d';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(lbX, lbY, lbWidth, lbH);
+
+    // Title Header
+    ctx.fillStyle = '#ffff00';
+    ctx.font = 'bold 11px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏆 CROSSING RECORDS', lbX + lbWidth / 2, lbY + 16);
+
+    ctx.strokeStyle = '#15803d';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lbX + 6, lbY + 23); ctx.lineTo(lbX + lbWidth - 6, lbY + 23); ctx.stroke();
+
+    // High Scores List
+    ctx.font = '10px "Courier New", monospace';
+    const topRuns = (typeof froggerLeaderboard !== 'undefined' ? froggerLeaderboard : []).slice(0, 8);
+    topRuns.forEach((entry, i) => {
+      const sec = (entry.timeMs / 1000).toFixed(2);
+      const color = i === 0 ? '#ffff00' : (i === 1 ? '#ffffff' : (i === 2 ? '#ff9900' : '#00e676'));
+      ctx.fillStyle = color;
+      ctx.textAlign = 'left';
+      ctx.fillText(`${i + 1}.${entry.name.substring(0, 9)}`, lbX + 6, lbY + 38 + i * 15);
+      ctx.textAlign = 'right';
+      ctx.fillText(`${sec}s`, lbX + lbWidth - 6, lbY + 38 + i * 15);
+    });
+
+    if (topRuns.length === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.textAlign = 'center';
+      ctx.fillText('No runs yet!', lbX + lbWidth / 2, lbY + 55);
+    }
+
     // 8-Bit Clean Retro HUD
     ctx.font = 'bold 12px "Courier New", monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#00e676';
-    ctx.fillText('[ESC / E] EXIT TO HALL', board.startX, board.startY + board.boardH + 20);
+    ctx.fillText('[ESC / E] EXIT TO HALL | [L] LEADERBOARDS', board.startX, board.startY + board.boardH + 20);
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ffd700';
