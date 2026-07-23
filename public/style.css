@@ -167,19 +167,40 @@ body, html {
   background: #2b6cb0;
 }
 
-.account-btn {
-  background: #4a5568;
-  color: #edf2f7;
-  border: 1px solid #718096;
-  padding: 4px 8px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  margin-left: 6px;
-  font-family: monospace;
+/* Top Right HUD Controls */
+.top-right-hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 10px;
+  z-index: 9;
 }
 
-.account-btn:hover {
-  background: #718096;
+.top-right-hud.hidden {
+  display: none !important;
+}
+
+.hud-btn {
+  background: rgba(30, 36, 48, 0.85);
+  color: #63b3ed;
+  border: 2px solid #4a5568;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-family: monospace;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  transition: all 0.15s ease;
+}
+
+.hud-btn:hover {
+  background: #3182ce;
+  color: #fff;
+  border-color: #63b3ed;
+  transform: translateY(-1px);
 }
 
 /* Shop Modal Styling */

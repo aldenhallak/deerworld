@@ -173,6 +173,8 @@ function setupSocketListeners() {
 
     joinModal.classList.add('hidden');
     chatBar.classList.remove('hidden');
+    const topRightHud = document.getElementById('topRightHud');
+    if (topRightHud) topRightHud.classList.remove('hidden');
     renderShopGrid();
   });
 
