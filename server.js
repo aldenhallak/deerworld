@@ -227,7 +227,7 @@ io.on('connection', (socket) => {
     });
 
     console.log(`[JOIN] ${username} (${socket.id}) connected`);
-    broadcastSystemMessage(`📢 ${username} joined the world!`);
+    broadcastSystemMessage(`${username} joined the world!`);
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
   });
@@ -333,7 +333,7 @@ io.on('connection', (socket) => {
     io.emit('playerEquipUpdated', { id: socket.id, equippedHat: player.equippedHat, coins: player.coins, inventory: player.inventory });
     socket.emit('itemPurchased', { item, coins: player.coins, inventory: player.inventory });
     if (item.type === 'hat') {
-      broadcastSystemMessage(`🧢 ${player.name} unlocked the ${item.name}!`);
+      broadcastSystemMessage(`${player.name} unlocked the ${item.name}!`);
     }
   });
 
@@ -528,13 +528,13 @@ io.on('connection', (socket) => {
       megaCourseLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
       if (megaCourseLeaderboard.length > 10) megaCourseLeaderboard.length = 10;
       io.emit('megaLeaderboardUpdated', megaCourseLeaderboard);
-      broadcastSystemMessage(`🏆 ${player.name} completed Mega Course Stage 2 in ${formattedTime}!`);
+      broadcastSystemMessage(`${player.name} completed Mega Course Stage 2 in ${formattedTime}!`);
     } else {
       courseLeaderboard.push(record);
       courseLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
       if (courseLeaderboard.length > 10) courseLeaderboard.length = 10;
       io.emit('leaderboardUpdated', courseLeaderboard);
-      broadcastSystemMessage(`🏆 ${player.name} completed Obstacle Course 1 in ${formattedTime}!`);
+      broadcastSystemMessage(`${player.name} completed Obstacle Course 1 in ${formattedTime}!`);
     }
     atomicSaveState();
   });
@@ -560,7 +560,7 @@ io.on('connection', (socket) => {
     coopLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
     if (coopLeaderboard.length > 10) coopLeaderboard.length = 10;
     io.emit('coopLeaderboardUpdated', coopLeaderboard);
-    broadcastSystemMessage(`🤝 ${player.name} & ${partnerName} completed the Co-op Puzzle in ${formattedTime}!`);
+    broadcastSystemMessage(`${player.name} & ${partnerName} completed the Co-op Puzzle in ${formattedTime}!`);
 
     // Teleport ALL coop1 players back to spawn after a short delay
     setTimeout(() => {
@@ -596,7 +596,7 @@ io.on('connection', (socket) => {
     froggerLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
     if (froggerLeaderboard.length > 10) froggerLeaderboard.length = 10;
     io.emit('froggerLeaderboardUpdated', froggerLeaderboard);
-    broadcastSystemMessage(`⚡ ${player.name} completed Klipspringer Crossing in ${formattedTime}!`);
+    broadcastSystemMessage(`${player.name} completed Klipspringer Crossing in ${formattedTime}!`);
     atomicSaveState();
   });
 
@@ -622,7 +622,7 @@ io.on('connection', (socket) => {
 
     io.emit('fishingLeaderboardUpdated', fishingLeaderboard);
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
-    broadcastSystemMessage(`🎣 ${player.name} caught a ${payload.name || 'Fish'}! (+${yieldCoins} coins)`);
+    broadcastSystemMessage(`${player.name} caught a ${payload.name || 'Fish'}! (+${yieldCoins} coins)`);
     atomicSaveState();
   });
 
