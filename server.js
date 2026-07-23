@@ -13,13 +13,7 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ensure data directory exists
-const DATA_DIR = path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-const SAVE_PATH = path.join(DATA_DIR, 'save.json');
-const SAVE_TMP_PATH = path.join(DATA_DIR, 'save.json.tmp');
+const db = require('./db');
 
 // --- Persistent Game State ---
 const players = {};
@@ -27,104 +21,35 @@ const plants = {};
 const coins = {};
 const userProfiles = {}; // { username: { coins, inventory, equippedHat } }
 const chatHistory = [];   // Array of persistent chat message objects
-const courseLeaderboard = []; // Array of top speedrun records: [{ name, timeMs, formattedTime }]
-const megaCourseLeaderboard = []; // Array of mega speedrun records: [{ name, timeMs, formattedTime }]
-const coopLeaderboard = []; // Co-op completion records: [{ names, timeMs, formattedTime, date }]
-const froggerLeaderboard = []; // Frogger speedrun records: [{ name, timeMs, formattedTime }]
-const fishingLeaderboard = []; // Fishing records: [{ name, fishCount, lastFish }]
-const CHAT_LOG_FILE = path.join(DATA_DIR, 'chat_history.log');
+const courseLeaderboard = []; // Array of top speedrun records
+const megaCourseLeaderboard = []; // Array of mega speedrun records
+const coopLeaderboard = []; // Co-op completion records
+const froggerLeaderboard = []; // Frogger speedrun records
+const fishingLeaderboard = []; // Fishing records
 let plantIdCounter = 0;
 let coinIdCounter = 0;
 let droppedItemIdCounter = 0;
 const droppedItems = {};
 
-// --- Catalog & Configs ---
-const SHOP_ITEMS = {
-  straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', cost: 5 },
-  cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', cost: 4 },
-  sunglasses: { id: 'sunglasses', name: 'Sunglasses', type: 'hat', cost: 8 },
-  rainboots: { id: 'rainboots', name: 'Rainboots', type: 'hat', cost: 10 },
-  cowboy_hat: { id: 'cowboy_hat', name: 'Cowboy Hat', type: 'hat', cost: 12 },
-  ascot: { id: 'ascot', name: 'Red Ascot', type: 'hat', cost: 7 },
-  beanie: { id: 'beanie', name: 'Green Beanie', type: 'hat', cost: 6 },
-  glasses: { id: 'glasses', name: 'Wire Glasses', type: 'hat', cost: 7 },
-  headphones: { id: 'headphones', name: 'Headphones', type: 'hat', cost: 9 },
-  crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', cost: 1 },
-  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 3 },
-  corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', cost: 6 },
-  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 10 },
-  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', cost: 20 },
-  pumpkin_seed: { id: 'pumpkin_seed', name: 'Pumpkin Seed', type: 'seed', seedType: 'pumpkin', cost: 35 },
-  watermelon_seed: { id: 'watermelon_seed', name: 'Watermelon Seed', type: 'seed', seedType: 'watermelon', cost: 50 },
-  grape_seed: { id: 'grape_seed', name: 'Grape Seed', type: 'seed', seedType: 'grape', cost: 75 },
-  tree_seed: { id: 'tree_seed', name: 'Apple Tree Seed', type: 'seed', seedType: 'tree', cost: 100 }
-};
+// Initialize Google Cloud Firestore and load state on startup
+(async () => {
+  await db.initDb();
+  const loaded = await db.loadAllState();
+  if (loaded.plants) Object.assign(plants, loaded.plants);
+  if (loaded.userProfiles) Object.assign(userProfiles, loaded.userProfiles);
+  if (Array.isArray(loaded.chatHistory)) chatHistory.push(...loaded.chatHistory);
+  if (Array.isArray(loaded.courseLeaderboard)) courseLeaderboard.push(...loaded.courseLeaderboard);
+  if (Array.isArray(loaded.megaCourseLeaderboard)) megaCourseLeaderboard.push(...loaded.megaCourseLeaderboard);
+  if (Array.isArray(loaded.coopLeaderboard)) coopLeaderboard.push(...loaded.coopLeaderboard);
+  if (Array.isArray(loaded.froggerLeaderboard)) froggerLeaderboard.push(...loaded.froggerLeaderboard);
+  if (Array.isArray(loaded.fishingLeaderboard)) fishingLeaderboard.push(...loaded.fishingLeaderboard);
 
-// Farmville-style growth times & rebalanced yields (15 min up to 8 hours)
-const SEED_CONFIG = {
-  crop: { name: 'Wheat', cost: 1, yield: 3, maxStage: 2, totalTime: 900000, stageTime: 450000 },
-  carrot: { name: 'Carrot', cost: 3, yield: 8, maxStage: 2, totalTime: 1800000, stageTime: 900000 },
-  corn: { name: 'Corn', cost: 6, yield: 16, maxStage: 2, totalTime: 2700000, stageTime: 1350000 },
-  strawberry: { name: 'Strawberry', cost: 10, yield: 28, maxStage: 2, totalTime: 3600000, stageTime: 1800000 },
-  flower: { name: 'Flower', cost: 20, yield: 55, maxStage: 3, totalTime: 7200000, stageTime: 2400000 },
-  pumpkin: { name: 'Pumpkin', cost: 35, yield: 100, maxStage: 3, totalTime: 10800000, stageTime: 3600000 },
-  watermelon: { name: 'Watermelon', cost: 50, yield: 150, maxStage: 3, totalTime: 14400000, stageTime: 4800000 },
-  grape: { name: 'Grape', cost: 75, yield: 240, maxStage: 3, totalTime: 21600000, stageTime: 7200000 },
-  tree: { name: 'Apple Tree', cost: 100, yield: 350, maxStage: 3, totalTime: 28800000, stageTime: 9600000 }
-};
-
-// --- Atomic File Writer ---
-let isSaving = false;
-async function atomicSaveState() {
-  if (isSaving) return;
-  isSaving = true;
-  try {
-    // Sync current connected player states to userProfiles
-    Object.values(players).forEach(p => {
-      if (p.name) {
-        userProfiles[p.name] = {
-          coins: p.coins,
-          inventory: p.inventory || [],
-          equippedHat: p.equippedHat || null
-        };
-      }
-    });
-
-    const dataToSave = JSON.stringify({
-      plants,
-      coins,
-      userProfiles,
-      chatHistory: chatHistory.slice(-100),
-      courseLeaderboard: courseLeaderboard.slice(0, 10),
-      megaCourseLeaderboard: megaCourseLeaderboard.slice(0, 10),
-      coopLeaderboard: coopLeaderboard.slice(0, 10),
-      froggerLeaderboard: froggerLeaderboard.slice(0, 10),
-      fishingLeaderboard: fishingLeaderboard.slice(0, 10),
-      timestamp: Date.now()
-    }, null, 2);
-    await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
-    await fs.promises.rename(SAVE_TMP_PATH, SAVE_PATH);
-  } catch (err) {
-    console.error('Atomic save error:', err);
-  } finally {
-    isSaving = false;
-  }
-}
-
-try {
-  if (fs.existsSync(SAVE_PATH)) {
-    const raw = fs.readFileSync(SAVE_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-    if (parsed.plants) Object.assign(plants, parsed.plants);
-    if (parsed.userProfiles) Object.assign(userProfiles, parsed.userProfiles);
-    if (Array.isArray(parsed.chatHistory)) chatHistory.push(...parsed.chatHistory);
-    if (Array.isArray(parsed.courseLeaderboard)) courseLeaderboard.push(...parsed.courseLeaderboard);
-    if (Array.isArray(parsed.megaCourseLeaderboard)) megaCourseLeaderboard.push(...parsed.megaCourseLeaderboard);
-    if (Array.isArray(parsed.coopLeaderboard)) coopLeaderboard.push(...parsed.coopLeaderboard);
-    if (Array.isArray(parsed.froggerLeaderboard)) froggerLeaderboard.push(...parsed.froggerLeaderboard);
-    if (Array.isArray(parsed.fishingLeaderboard)) fishingLeaderboard.push(...parsed.fishingLeaderboard);
-  }
-} catch (e) {}
+  // Sync plant counter
+  Object.keys(plants).forEach(id => {
+    const num = parseInt(id.replace('plant_', ''), 10);
+    if (!isNaN(num) && num >= plantIdCounter) plantIdCounter = num + 1;
+  });
+})();
 
 // --- SINGLE COIN SPAWNING SYSTEM ---
 const COIN_POSITIONS = [
@@ -168,7 +93,7 @@ setInterval(() => {
     }
   });
   if (updated) {
-    atomicSaveState();
+    Object.values(plants).forEach(p => db.savePlant(p));
   }
 }, 1000);
 
@@ -298,9 +223,10 @@ io.on('connection', (socket) => {
   socket.on('collectCoin', (coinId) => {
     if (!players[socket.id] || !coins[coinId]) return;
     delete coins[coinId];
-    players[socket.id].coins += 1;
-    io.emit('coinCollected', { coinId, playerId: socket.id, coins: players[socket.id].coins });
-    atomicSaveState();
+    const player = players[socket.id];
+    player.coins += 1;
+    io.emit('coinCollected', { coinId, playerId: socket.id, coins: player.coins });
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
 
     // Spawn next single coin after 1.5 seconds
     setTimeout(() => {
@@ -332,6 +258,7 @@ io.on('connection', (socket) => {
 
     io.emit('playerEquipUpdated', { id: socket.id, equippedHat: player.equippedHat, coins: player.coins, inventory: player.inventory });
     socket.emit('itemPurchased', { item, coins: player.coins, inventory: player.inventory });
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
     if (item.type === 'hat') {
       broadcastSystemMessage(`${player.name} unlocked the ${item.name}!`);
     }
@@ -344,6 +271,7 @@ io.on('connection', (socket) => {
     if (hatId === null || player.inventory.includes(hatId)) {
       player.equippedHat = hatId;
       io.emit('playerEquipUpdated', { id: socket.id, equippedHat: player.equippedHat, coins: player.coins, inventory: player.inventory });
+      if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
     }
   });
 
@@ -391,7 +319,8 @@ io.on('connection', (socket) => {
 
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
     io.emit('plantCreated', plants[id]);
-    atomicSaveState();
+    db.savePlant(plants[id]);
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
   });
 
   // Harvest plant
@@ -412,7 +341,8 @@ io.on('connection', (socket) => {
       reward: config.yield,
       plantType: plant.type
     });
-    atomicSaveState();
+    db.deletePlant(plantId);
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
   });
 
   // Drop item
@@ -448,6 +378,7 @@ io.on('connection', (socket) => {
 
     io.emit('itemDropped', droppedItems[id]);
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
   });
 
   // Pickup item
@@ -465,6 +396,7 @@ io.on('connection', (socket) => {
 
     io.emit('itemPickedUp', { dropId, playerId: socket.id, coins: player.coins, inventory: player.inventory });
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
   });
 
   // Kiss
@@ -495,14 +427,8 @@ io.on('connection', (socket) => {
     // Log chat message to stdout (Render log stream)
     console.log(`[CHAT] [${msgObj.time}] ${msgObj.sender}: ${msgObj.text}`);
 
-    // Append to text log file (if writable)
-    const logLine = `[${new Date().toISOString()}] ${msgObj.sender}: ${msgObj.text}\n`;
-    fs.appendFile(CHAT_LOG_FILE, logLine, (err) => {
-      if (err) console.error('Chat log write error:', err);
-    });
-
     io.emit('chatMessage', msgObj);
-    atomicSaveState();
+    db.saveChatHistory(chatHistory);
   });
 
   // Submit Obstacle Course Speedrun Time (courseId: 'course' or 'course2')
@@ -529,14 +455,15 @@ io.on('connection', (socket) => {
       if (megaCourseLeaderboard.length > 10) megaCourseLeaderboard.length = 10;
       io.emit('megaLeaderboardUpdated', megaCourseLeaderboard);
       broadcastSystemMessage(`${player.name} completed Mega Course Stage 2 in ${formattedTime}!`);
+      db.saveLeaderboard('mega_course', megaCourseLeaderboard);
     } else {
       courseLeaderboard.push(record);
       courseLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
       if (courseLeaderboard.length > 10) courseLeaderboard.length = 10;
       io.emit('leaderboardUpdated', courseLeaderboard);
       broadcastSystemMessage(`${player.name} completed Obstacle Course 1 in ${formattedTime}!`);
+      db.saveLeaderboard('course', courseLeaderboard);
     }
-    atomicSaveState();
   });
 
   // Submit Co-op Puzzle completion time
@@ -561,6 +488,7 @@ io.on('connection', (socket) => {
     if (coopLeaderboard.length > 10) coopLeaderboard.length = 10;
     io.emit('coopLeaderboardUpdated', coopLeaderboard);
     broadcastSystemMessage(`${player.name} & ${partnerName} completed the Co-op Puzzle in ${formattedTime}!`);
+    db.saveLeaderboard('coop', coopLeaderboard);
 
     // Teleport ALL coop1 players back to spawn after a short delay
     setTimeout(() => {
@@ -573,8 +501,6 @@ io.on('connection', (socket) => {
       });
       io.emit('coopLevelReset', {});
     }, 3000);
-
-    atomicSaveState();
   });
 
   // Submit Frogger Level completion time
@@ -597,7 +523,7 @@ io.on('connection', (socket) => {
     if (froggerLeaderboard.length > 10) froggerLeaderboard.length = 10;
     io.emit('froggerLeaderboardUpdated', froggerLeaderboard);
     broadcastSystemMessage(`${player.name} completed Klipspringer Crossing in ${formattedTime}!`);
-    atomicSaveState();
+    db.saveLeaderboard('frogger', froggerLeaderboard);
   });
 
   // Submit Fish Catch
@@ -623,12 +549,15 @@ io.on('connection', (socket) => {
     io.emit('fishingLeaderboardUpdated', fishingLeaderboard);
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
     broadcastSystemMessage(`${player.name} caught a ${payload.name || 'Fish'}! (+${yieldCoins} coins)`);
-    atomicSaveState();
+    db.saveLeaderboard('fishing', fishingLeaderboard);
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
   });
 
   socket.on('disconnect', () => {
     if (players[socket.id]) {
-      console.log(`[LEAVE] ${players[socket.id].name} (${socket.id}) disconnected`);
+      const p = players[socket.id];
+      console.log(`[LEAVE] ${p.name} (${socket.id}) disconnected`);
+      if (p.name) db.saveUserProfile(p.name, { coins: p.coins, inventory: p.inventory, equippedHat: p.equippedHat });
       delete players[socket.id];
       io.emit('playerLeft', socket.id);
     }
