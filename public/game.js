@@ -10,11 +10,17 @@ const chatForm = document.getElementById('chatForm');
 const chatInput = document.getElementById('chatInput');
 const btnJump = document.getElementById('btnJump');
 
-// Shop Modal elements
+// Shop & Leaderboard Modal elements
 const shopModal = document.getElementById('shopModal');
 const shopGrid = document.getElementById('shopGrid');
 const shopCoinsText = document.getElementById('shopCoinsText');
 const btnCloseShop = document.getElementById('btnCloseShop');
+
+const leaderboardModal = document.getElementById('leaderboardModal');
+const btnCloseLeaderboard = document.getElementById('btnCloseLeaderboard');
+const btnLeaderboard = document.getElementById('btnLeaderboard');
+const leaderboardContent = document.getElementById('leaderboardContent');
+let currentLeaderboardTab = 'fishing';
 
 let socket = null;
 let selfId = null;
@@ -278,22 +284,27 @@ function connectSocket(username) {
 
   socket.on('leaderboardUpdated', (lb) => {
     courseLeaderboard = lb || [];
+    if (!leaderboardModal.classList.contains('hidden')) renderLeaderboardContent();
   });
 
   socket.on('megaLeaderboardUpdated', (lb) => {
     megaCourseLeaderboard = lb || [];
+    if (!leaderboardModal.classList.contains('hidden')) renderLeaderboardContent();
   });
 
   socket.on('coopLeaderboardUpdated', (lb) => {
     coopLeaderboard = lb || [];
+    if (!leaderboardModal.classList.contains('hidden')) renderLeaderboardContent();
   });
 
   socket.on('froggerLeaderboardUpdated', (lb) => {
     froggerLeaderboard = lb || [];
+    if (!leaderboardModal.classList.contains('hidden')) renderLeaderboardContent();
   });
 
   socket.on('fishingLeaderboardUpdated', (lb) => {
     fishingLeaderboard = lb || [];
+    if (!leaderboardModal.classList.contains('hidden')) renderLeaderboardContent();
   });
 
   socket.on('surfLeaderboardUpdated', (lb) => {
@@ -362,6 +373,124 @@ function closeShopModal() {
 if (btnCloseShop) {
   btnCloseShop.addEventListener('click', closeShopModal);
 }
+
+// ---- Leaderboard Modal Logic ----
+function openLeaderboardModal(tab = 'fishing') {
+  currentLeaderboardTab = tab;
+  renderLeaderboardContent();
+  leaderboardModal.classList.remove('hidden');
+}
+
+function closeLeaderboardModal() {
+  leaderboardModal.classList.add('hidden');
+}
+
+function renderLeaderboardContent() {
+  if (!leaderboardContent) return;
+
+  const tabBtns = leaderboardModal.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === currentLeaderboardTab);
+  });
+
+  let html = '';
+  if (currentLeaderboardTab === 'fishing') {
+    const list = fishingLeaderboard || [];
+    if (list.length === 0) {
+      html = '<div class="lb-empty">No fishing catches recorded yet! Cast your line on Beach World.</div>';
+    } else {
+      html = `<table class="lb-table">
+        <thead><tr><th>Rank</th><th>Angler Name</th><th>Fish Caught</th><th>Last Species</th></tr></thead>
+        <tbody>` + list.slice(0, 10).map((e, i) => `
+          <tr>
+            <td>${i === 0 ? '🥇 1st' : (i === 1 ? '🥈 2nd' : (i === 2 ? '🥉 3rd' : `#${i + 1}`))}</td>
+            <td>${escapeHTML(e.name)}</td>
+            <td>${e.fishCount || 1} fish</td>
+            <td>${escapeHTML(e.lastFish || 'Fish')}</td>
+          </tr>
+        `).join('') + `</tbody></table>`;
+    }
+  } else if (currentLeaderboardTab === 'frogger') {
+    const list = froggerLeaderboard || [];
+    if (list.length === 0) {
+      html = '<div class="lb-empty">No Klipspringer Crossing speedrun records yet!</div>';
+    } else {
+      html = `<table class="lb-table">
+        <thead><tr><th>Rank</th><th>Player</th><th>Time</th><th>Date</th></tr></thead>
+        <tbody>` + list.slice(0, 10).map((e, i) => `
+          <tr>
+            <td>${i === 0 ? '🥇 1st' : (i === 1 ? '🥈 2nd' : (i === 2 ? '🥉 3rd' : `#${i + 1}`))}</td>
+            <td>${escapeHTML(e.name)}</td>
+            <td>${e.formattedTime || (e.timeMs / 1000).toFixed(2) + 's'}</td>
+            <td>${e.date || ''}</td>
+          </tr>
+        `).join('') + `</tbody></table>`;
+    }
+  } else if (currentLeaderboardTab === 'course1') {
+    const list = courseLeaderboard || [];
+    if (list.length === 0) {
+      html = '<div class="lb-empty">No Obstacle Course 1 records yet!</div>';
+    } else {
+      html = `<table class="lb-table">
+        <thead><tr><th>Rank</th><th>Runner</th><th>Time</th><th>Date</th></tr></thead>
+        <tbody>` + list.slice(0, 10).map((e, i) => `
+          <tr>
+            <td>${i === 0 ? '🥇 1st' : (i === 1 ? '🥈 2nd' : (i === 2 ? '🥉 3rd' : `#${i + 1}`))}</td>
+            <td>${escapeHTML(e.name)}</td>
+            <td>${e.formattedTime}</td>
+            <td>${e.date || ''}</td>
+          </tr>
+        `).join('') + `</tbody></table>`;
+    }
+  } else if (currentLeaderboardTab === 'course2') {
+    const list = megaCourseLeaderboard || [];
+    if (list.length === 0) {
+      html = '<div class="lb-empty">No Mega Obstacle Course records yet!</div>';
+    } else {
+      html = `<table class="lb-table">
+        <thead><tr><th>Rank</th><th>Runner</th><th>Time</th><th>Date</th></tr></thead>
+        <tbody>` + list.slice(0, 10).map((e, i) => `
+          <tr>
+            <td>${i === 0 ? '🥇 1st' : (i === 1 ? '🥈 2nd' : (i === 2 ? '🥉 3rd' : `#${i + 1}`))}</td>
+            <td>${escapeHTML(e.name)}</td>
+            <td>${e.formattedTime}</td>
+            <td>${e.date || ''}</td>
+          </tr>
+        `).join('') + `</tbody></table>`;
+    }
+  } else if (currentLeaderboardTab === 'coop') {
+    const list = coopLeaderboard || [];
+    if (list.length === 0) {
+      html = '<div class="lb-empty">No Co-op Puzzle completion records yet!</div>';
+    } else {
+      html = `<table class="lb-table">
+        <thead><tr><th>Rank</th><th>Team Duo</th><th>Time</th><th>Date</th></tr></thead>
+        <tbody>` + list.slice(0, 10).map((e, i) => `
+          <tr>
+            <td>${i === 0 ? '🥇 1st' : (i === 1 ? '🥈 2nd' : (i === 2 ? '🥉 3rd' : `#${i + 1}`))}</td>
+            <td>${escapeHTML((e.names || []).join(' & '))}</td>
+            <td>${e.formattedTime}</td>
+            <td>${e.date || ''}</td>
+          </tr>
+        `).join('') + `</tbody></table>`;
+    }
+  }
+
+  leaderboardContent.innerHTML = html;
+}
+
+if (btnCloseLeaderboard) btnCloseLeaderboard.addEventListener('click', closeLeaderboardModal);
+if (btnLeaderboard) btnLeaderboard.addEventListener('click', () => openLeaderboardModal('fishing'));
+
+document.querySelectorAll('.leaderboard-tabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const tab = e.target.dataset.tab;
+    if (tab) {
+      currentLeaderboardTab = tab;
+      renderLeaderboardContent();
+    }
+  });
+});
 
 // ---- Particles & Text ----
 const floatTexts = [];
@@ -608,6 +737,13 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape') {
     closeChatInput();
     closeShopModal();
+    closeLeaderboardModal();
+    return;
+  }
+
+  if (e.code === 'KeyL' && document.activeElement !== chatInput && document.activeElement !== usernameInput) {
+    if (leaderboardModal.classList.contains('hidden')) openLeaderboardModal();
+    else closeLeaderboardModal();
     return;
   }
 

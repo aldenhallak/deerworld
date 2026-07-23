@@ -504,7 +504,7 @@ function drawHUD() {
 
   ctx.font = '11px sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin', 14, 68);
+  ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin | [L] Leaderboards', 14, 68);
 
   // Live Obstacle Course & Frogger Stopwatch Header
   let activeRunStartTime = 0;
@@ -790,8 +790,12 @@ function drawBeachEnvironment(groundY, animTime, trainSignImg) {
     }
   }
 
-  // 6. Fishing Leaderboard Billboard at x: 1080
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+  // 6. Fishing Leaderboard Billboard Structure at x: 1080
+  ctx.fillStyle = '#78350f'; // Wooden Sign Posts
+  ctx.fillRect(1020, groundY - 180, 10, 180);
+  ctx.fillRect(1130, groundY - 180, 10, 180);
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
   ctx.fillRect(1000, groundY - 180, 160, 130);
   ctx.strokeStyle = '#38bdf8';
   ctx.lineWidth = 2;

@@ -34,12 +34,33 @@
       </div>
     </div>
 
+    <!-- Leaderboards Popup Modal -->
+    <div id="leaderboardModal" class="modal hidden">
+      <div class="leaderboard-box">
+        <div class="leaderboard-header">
+          <h2>🏆 World Leaderboards</h2>
+          <button type="button" id="btnCloseLeaderboard" class="close-btn">✕</button>
+        </div>
+        <div class="leaderboard-tabs">
+          <button type="button" class="tab-btn active" data-tab="fishing">🎣 Anglers</button>
+          <button type="button" class="tab-btn" data-tab="frogger">🐸 Frogger</button>
+          <button type="button" class="tab-btn" data-tab="course1">🏃 Course 1</button>
+          <button type="button" class="tab-btn" data-tab="course2">⚡ Mega Course</button>
+          <button type="button" class="tab-btn" data-tab="coop">🤝 Co-op</button>
+        </div>
+        <div id="leaderboardContent" class="leaderboard-content">
+          <!-- Populated dynamically by game.js -->
+        </div>
+      </div>
+    </div>
+
     <!-- Minimal Chat Bar -->
     <div id="chatBar" class="chat-bar hidden">
       <div id="chatMessages" class="chat-log"></div>
       <form id="chatForm" class="chat-inputs">
         <input type="text" id="chatInput" placeholder="Type message..." maxlength="140" autocomplete="off">
         <button type="submit">Send</button>
+        <button type="button" id="btnLeaderboard">🏆 Leaderboards [L]</button>
         <button type="button" id="btnJump">Jump</button>
       </form>
     </div>

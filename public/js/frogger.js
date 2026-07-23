@@ -432,12 +432,32 @@ const FroggerMode = {
 
           const isHop = (Math.hypot(targetX - other.renderX, targetY - other.renderY) > 2);
           drawKlipspringerPlayer(ctx, other.renderX, other.renderY, other.facing || 'right', isHop, other.equippedHat);
+
+          if (typeof drawNameTag !== 'undefined') {
+            drawNameTag(other.renderX, other.renderY - 22, other.name || 'Pip');
+          }
+          if (typeof speechBubbles !== 'undefined' && speechBubbles[other.id] && speechBubbles[other.id].expiresAt > Date.now()) {
+            if (typeof drawSpeechBubble !== 'undefined') {
+              drawSpeechBubble(other.renderX, other.renderY - 42, speechBubbles[other.id].text);
+            }
+          }
         }
       });
     }
 
     // Render Player Klipspringer Character
     drawKlipspringerPlayer(ctx, this.player.x, this.player.y, this.player.facing, this.player.isHopAnimating, myEquippedHat);
+    if (typeof selfId !== 'undefined' && players[selfId]) {
+      const me = players[selfId];
+      if (typeof drawNameTag !== 'undefined') {
+        drawNameTag(this.player.x, this.player.y - 22, me.name || 'Pip');
+      }
+      if (typeof speechBubbles !== 'undefined' && speechBubbles[selfId] && speechBubbles[selfId].expiresAt > Date.now()) {
+        if (typeof drawSpeechBubble !== 'undefined') {
+          drawSpeechBubble(this.player.x, this.player.y - 42, speechBubbles[selfId].text);
+        }
+      }
+    }
 
     // 8-Bit Clean Retro HUD
     ctx.font = 'bold 12px "Courier New", monospace';
