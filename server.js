@@ -31,6 +31,7 @@ const courseLeaderboard = []; // Array of top speedrun records: [{ name, timeMs,
 const megaCourseLeaderboard = []; // Array of mega speedrun records: [{ name, timeMs, formattedTime }]
 const coopLeaderboard = []; // Co-op completion records: [{ names, timeMs, formattedTime, date }]
 const froggerLeaderboard = []; // Frogger speedrun records: [{ name, timeMs, formattedTime }]
+const fishingLeaderboard = []; // Fishing records: [{ name, fishCount, lastFish }]
 const CHAT_LOG_FILE = path.join(DATA_DIR, 'chat_history.log');
 let plantIdCounter = 0;
 let coinIdCounter = 0;
@@ -98,6 +99,7 @@ async function atomicSaveState() {
       megaCourseLeaderboard: megaCourseLeaderboard.slice(0, 10),
       coopLeaderboard: coopLeaderboard.slice(0, 10),
       froggerLeaderboard: froggerLeaderboard.slice(0, 10),
+      fishingLeaderboard: fishingLeaderboard.slice(0, 10),
       timestamp: Date.now()
     }, null, 2);
     await fs.promises.writeFile(SAVE_TMP_PATH, dataToSave, 'utf8');
@@ -120,6 +122,7 @@ try {
     if (Array.isArray(parsed.megaCourseLeaderboard)) megaCourseLeaderboard.push(...parsed.megaCourseLeaderboard);
     if (Array.isArray(parsed.coopLeaderboard)) coopLeaderboard.push(...parsed.coopLeaderboard);
     if (Array.isArray(parsed.froggerLeaderboard)) froggerLeaderboard.push(...parsed.froggerLeaderboard);
+    if (Array.isArray(parsed.fishingLeaderboard)) fishingLeaderboard.push(...parsed.fishingLeaderboard);
   }
 } catch (e) {}
 
@@ -204,7 +207,8 @@ io.on('connection', (socket) => {
       courseLeaderboard,
       megaCourseLeaderboard,
       coopLeaderboard,
-      froggerLeaderboard
+      froggerLeaderboard,
+      fishingLeaderboard
     });
 
     socket.broadcast.emit('playerJoined', players[socket.id]);
@@ -556,6 +560,31 @@ io.on('connection', (socket) => {
     froggerLeaderboard.sort((a, b) => a.timeMs - b.timeMs);
     if (froggerLeaderboard.length > 10) froggerLeaderboard.length = 10;
     io.emit('froggerLeaderboardUpdated', froggerLeaderboard);
+    atomicSaveState();
+  });
+
+  // Submit Fish Catch
+  socket.on('submitFishCatch', (payload) => {
+    const player = players[socket.id];
+    if (!player || !payload) return;
+
+    const yieldCoins = Number(payload.yield) || 1;
+    player.coins += yieldCoins;
+
+    // Update player's fishing leaderboard entry
+    let entry = fishingLeaderboard.find(e => e.name === player.name);
+    if (entry) {
+      entry.fishCount = (entry.fishCount || 0) + 1;
+      entry.lastFish = payload.name || 'Fish';
+    } else {
+      entry = { name: player.name, fishCount: 1, lastFish: payload.name || 'Fish' };
+      fishingLeaderboard.push(entry);
+    }
+    fishingLeaderboard.sort((a, b) => b.fishCount - a.fishCount);
+    if (fishingLeaderboard.length > 10) fishingLeaderboard.length = 10;
+
+    io.emit('fishingLeaderboardUpdated', fishingLeaderboard);
+    socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
     atomicSaveState();
   });
 

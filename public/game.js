@@ -34,6 +34,8 @@ let courseLeaderboard = [];
 let megaCourseLeaderboard = [];
 let coopLeaderboard = [];
 let froggerLeaderboard = [];
+let fishingLeaderboard = [];
+let surfLeaderboard = [];
 let courseRunStartTime = 0;
 let courseRunFinished = false;
 let coopStartTime = 0;
@@ -93,6 +95,8 @@ function connectSocket(username) {
     if (Array.isArray(data.megaCourseLeaderboard)) megaCourseLeaderboard = data.megaCourseLeaderboard;
     if (Array.isArray(data.coopLeaderboard)) coopLeaderboard = data.coopLeaderboard;
     if (Array.isArray(data.froggerLeaderboard)) froggerLeaderboard = data.froggerLeaderboard;
+    if (Array.isArray(data.fishingLeaderboard)) fishingLeaderboard = data.fishingLeaderboard;
+    if (Array.isArray(data.surfLeaderboard)) surfLeaderboard = data.surfLeaderboard;
     
     const me = data.players[selfId];
     if (me) {
@@ -284,6 +288,14 @@ function connectSocket(username) {
     froggerLeaderboard = lb || [];
   });
 
+  socket.on('fishingLeaderboardUpdated', (lb) => {
+    fishingLeaderboard = lb || [];
+  });
+
+  socket.on('surfLeaderboardUpdated', (lb) => {
+    surfLeaderboard = lb || [];
+  });
+
   socket.on('coopLevelReset', () => {
     if (typeof COOP_LEVEL_1 !== 'undefined') {
       COOP_LEVEL_1.keys.forEach(k => k.isCollected = false);
@@ -413,9 +425,19 @@ function tryInteract() {
     socket.emit('switchWorld', 'beach');
     return;
   }
-  if (myWorld === 'beach' && Math.abs(me.x - 80) < 75 && Math.abs(me.y - groundY) < 30) {
-    socket.emit('switchWorld', 'garden');
-    return;
+  if (myWorld === 'beach') {
+    if (Math.abs(me.x - 80) < 75 && Math.abs(me.y - groundY) < 30) {
+      if (typeof FishingMode !== 'undefined') FishingMode.cancel();
+      socket.emit('switchWorld', 'garden');
+      return;
+    }
+    // Fishing Pier Interaction (x: 1200..1380)
+    if (Math.abs(me.x - 1290) < 90 && Math.abs(me.y - (groundY - 15)) < 35) {
+      if (typeof FishingMode !== 'undefined') {
+        if (!FishingMode.active) FishingMode.init(me.x, groundY);
+      }
+      return;
+    }
   }
   if (myWorld === 'select') {
     if (Math.abs(me.x - 80) < 60 && Math.abs(me.y - groundY) < 30) {
@@ -606,6 +628,13 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
+  if (myWorld === 'beach') {
+    if (typeof FishingMode !== 'undefined' && FishingMode.active) {
+      const handled = FishingMode.handleKeyDown(e.code);
+      if (handled) return;
+    }
+  }
+
   if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
     keysPressed[e.code] = true;
 
@@ -620,6 +649,9 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => {
   delete keysPressed[e.code];
+  if (myWorld === 'beach' && typeof FishingMode !== 'undefined' && FishingMode.active) {
+    FishingMode.handleKeyUp(e.code);
+  }
   if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId]) {
     const me = players[selfId];
     if (me.vy < -250) me.vy *= 0.45;
@@ -632,6 +664,19 @@ if (btnJump) {
     if (selfId && players[selfId]) players[selfId].jumpBufferTimer = 0.15;
   });
 }
+
+canvas.addEventListener('pointerdown', () => {
+  getAudioContext();
+  if (myWorld === 'beach' && typeof FishingMode !== 'undefined' && FishingMode.active) {
+    FishingMode.handlePointerDown();
+  }
+});
+
+canvas.addEventListener('pointerup', () => {
+  if (myWorld === 'beach' && typeof FishingMode !== 'undefined' && FishingMode.active) {
+    FishingMode.handlePointerUp();
+  }
+});
 
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -750,6 +795,10 @@ function render(now) {
     drawPortal(80, groundY, '[E] RETURN TO PLATFORMER', '#00e676');
   } else if (myWorld === 'beach') {
     drawBeachEnvironment(groundY, animTime, trainSignImg);
+    if (typeof FishingMode !== 'undefined') {
+      FishingMode.update(dt);
+      FishingMode.render(ctx, animTime);
+    }
   } else if (myWorld === 'frogger') {
     if (typeof FroggerMode !== 'undefined') {
       FroggerMode.render(ctx, animTime);

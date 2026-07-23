@@ -757,11 +757,72 @@ function drawBeachEnvironment(groundY, animTime, trainSignImg) {
   ctx.fillStyle = '#fef08a';
   ctx.beginPath(); ctx.arc(552, groundY - 60, 20, Math.PI, 0); ctx.fill();
 
-  // 5. Sun in sky
+  // 5. Wooden Fishing Pier (x: 1200..1380) over Ocean Water
+  ctx.fillStyle = '#78350f'; // Dark Wood Pilings
+  [1210, 1260, 1310, 1360].forEach(px => {
+    ctx.fillRect(px, groundY - 15, 10, canvas.height - (groundY - 15));
+  });
+  // Pier Deck
+  ctx.fillStyle = '#b45309';
+  ctx.fillRect(1200, groundY - 15, 180, 15);
+  ctx.fillStyle = '#d97706';
+  ctx.fillRect(1200, groundY - 15, 180, 3);
+
+  // Lantern Post on Pier
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(1370, groundY - 55, 4, 40);
+  ctx.fillStyle = '#fef08a';
+  ctx.fillRect(1366, groundY - 60, 12, 10);
+
+  // Diegetic Fishing Prompt near pier
+  if (typeof selfId !== 'undefined' && players[selfId]) {
+    const me = players[selfId];
+    if (Math.abs(me.x - 1290) < 90 && Math.abs(me.y - (groundY - 15)) < 35) {
+      ctx.fillStyle = 'rgba(0,0,0,0.85)';
+      ctx.fillRect(1230, groundY - 70, 120, 22);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(1230, groundY - 70, 120, 22);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('[E] START FISHING', 1290, groundY - 55);
+    }
+  }
+
+  // 6. Fishing Leaderboard Billboard at x: 1080
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+  ctx.fillRect(1000, groundY - 180, 160, 130);
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1000, groundY - 180, 160, 130);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('🏆 TOP ANGLERS', 1080, groundY - 165);
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+  ctx.beginPath(); ctx.moveTo(1005, groundY - 158); ctx.lineTo(1155, groundY - 158); ctx.stroke();
+
+  ctx.font = '10px monospace';
+  const topFishers = (typeof fishingLeaderboard !== 'undefined' ? fishingLeaderboard : []).slice(0, 6);
+  topFishers.forEach((entry, i) => {
+    ctx.fillStyle = i === 0 ? '#ffd700' : (i === 1 ? '#c0c0c0' : (i === 2 ? '#cd7f32' : 'rgba(255,255,255,0.7)'));
+    ctx.textAlign = 'left';
+    ctx.fillText(`${i + 1}. ${entry.name}`, 1006, groundY - 142 + i * 15);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${entry.fishCount || entry.yield || 1} fish`, 1154, groundY - 142 + i * 15);
+  });
+  if (topFishers.length === 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.textAlign = 'center';
+    ctx.fillText('No catches yet!', 1080, groundY - 130);
+  }
+
+  // 9. Sun in sky
   ctx.fillStyle = '#fde047';
   ctx.beginPath(); ctx.arc(1150, 90, 45, 0, Math.PI * 2); ctx.fill();
 
-  // 6. Return Train Sign at x: 80
+  // 10. Return Train Sign at x: 80
   drawTrainSign(80, groundY, trainSignImg, '[E] BOARD TRAIN TO GARDEN');
 
   ctx.restore();

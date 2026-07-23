@@ -12,9 +12,12 @@ function getPlatforms() {
     return [{ x: 0, y: groundY, w: gardenWidth, h: 40 }];
   }
   if (myWorld === 'beach') {
-    // Seaside beach layout
+    // Seaside beach layout + Wooden Fishing Pier over ocean waves
     const beachWidth = Math.max(2400, canvas.width);
-    return [{ x: 0, y: groundY, w: beachWidth, h: 40 }];
+    return [
+      { x: 0, y: groundY, w: beachWidth, h: 40 },
+      { x: 1200, y: groundY - 15, w: 180, h: 15 } // Wooden Fishing Pier
+    ];
   }
   if (myWorld === 'select') {
     // Flat ground layout for Level Selection Hall (no floating platform)

@@ -140,3 +140,75 @@ function playHonkSound() {
     osc1.stop(actx.currentTime + 0.2); osc2.stop(actx.currentTime + 0.2);
   } catch(e) {}
 }
+
+function playReelSound() {
+  try {
+    const actx = getAudioContext();
+    const osc = actx.createOscillator(); const gain = actx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(600 + Math.random() * 200, actx.currentTime);
+    gain.gain.setValueAtTime(0.04, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.03);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(); osc.stop(actx.currentTime + 0.03);
+  } catch(e) {}
+}
+
+function playCatchSound() {
+  try {
+    const actx = getAudioContext();
+    [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+      const osc = actx.createOscillator(); const gain = actx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, actx.currentTime + i * 0.08);
+      gain.gain.setValueAtTime(0.12, actx.currentTime + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + i * 0.08 + 0.15);
+      osc.connect(gain); gain.connect(actx.destination);
+      osc.start(actx.currentTime + i * 0.08);
+      osc.stop(actx.currentTime + i * 0.08 + 0.15);
+    });
+  } catch(e) {}
+}
+
+function playSurfCarveSound() {
+  try {
+    const actx = getAudioContext();
+    const osc = actx.createOscillator(); const gain = actx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(280, actx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.08, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.15);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(); osc.stop(actx.currentTime + 0.15);
+  } catch(e) {}
+}
+
+function playTrickSound() {
+  try {
+    const actx = getAudioContext();
+    const osc = actx.createOscillator(); const gain = actx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, actx.currentTime + 0.18);
+    gain.gain.setValueAtTime(0.14, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.2);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(); osc.stop(actx.currentTime + 0.2);
+  } catch(e) {}
+}
+
+function playWipeoutSound() {
+  try {
+    const actx = getAudioContext();
+    const osc = actx.createOscillator(); const gain = actx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, actx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.18, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.3);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(); osc.stop(actx.currentTime + 0.3);
+  } catch(e) {}
+}
+
