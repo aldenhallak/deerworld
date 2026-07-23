@@ -101,12 +101,15 @@ async function loadAllState() {
 async function saveUserProfile(username, profileData) {
   if (!username) return;
   try {
-    await USERS_COL.doc(username).set({
+    const payload = {
       coins: profileData.coins || 0,
       inventory: profileData.inventory || [],
       equippedHat: profileData.equippedHat || null,
       updatedAt: Date.now()
-    }, { merge: true });
+    };
+    if (profileData.passwordHash) payload.passwordHash = profileData.passwordHash;
+    if (profileData.salt) payload.salt = profileData.salt;
+    await USERS_COL.doc(username).set(payload, { merge: true });
   } catch (err) {
     console.error(`[GCP Firestore] Save profile error (${username}):`, err.message);
   }
@@ -120,12 +123,15 @@ async function saveAllUserProfiles(profilesObj) {
     const batch = firestore.batch();
     Object.entries(profilesObj).forEach(([username, data]) => {
       const ref = USERS_COL.doc(username);
-      batch.set(ref, {
+      const payload = {
         coins: data.coins || 0,
         inventory: data.inventory || [],
         equippedHat: data.equippedHat || null,
         updatedAt: Date.now()
-      }, { merge: true });
+      };
+      if (data.passwordHash) payload.passwordHash = data.passwordHash;
+      if (data.salt) payload.salt = data.salt;
+      batch.set(ref, payload, { merge: true });
     });
     await batch.commit();
   } catch (err) {

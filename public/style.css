@@ -69,6 +69,119 @@ body, html {
   cursor: pointer;
 }
 
+.password-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.password-container.hidden {
+  display: none !important;
+}
+
+.join-error {
+  color: #d32f2f;
+  font-size: 0.85rem;
+  font-weight: bold;
+  background: #ffebee;
+  padding: 6px;
+  border: 1px solid #ef9a9a;
+  border-radius: 3px;
+}
+
+.join-error.hidden {
+  display: none !important;
+}
+
+/* Account Protection Modal */
+.account-box {
+  background: #1e2430;
+  color: #fff;
+  border: 3px solid #4a5568;
+  padding: 20px;
+  width: 380px;
+  max-width: 90vw;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  font-family: monospace;
+}
+
+.account-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #2d3748;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.account-header h2 {
+  font-size: 1.1rem;
+  color: #63b3ed;
+}
+
+.account-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-body p {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  line-height: 1.3;
+}
+
+.account-body .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.account-body label {
+  font-size: 0.85rem;
+  color: #cbd5e0;
+}
+
+.account-body input {
+  padding: 8px;
+  font-size: 0.95rem;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #fff;
+}
+
+.account-body button {
+  padding: 8px;
+  font-size: 0.95rem;
+  background: #3182ce;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.account-body button:hover {
+  background: #2b6cb0;
+}
+
+.account-btn {
+  background: #4a5568;
+  color: #edf2f7;
+  border: 1px solid #718096;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-left: 6px;
+  font-family: monospace;
+}
+
+.account-btn:hover {
+  background: #718096;
+}
+
 /* Shop Modal Styling */
 .shop-box {
   background: #2b1f1d;

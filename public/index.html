@@ -16,8 +16,37 @@
       <form id="joinForm" class="join-box">
         <label for="usernameInput">Name:</label>
         <input type="text" id="usernameInput" placeholder="Pip" maxlength="16" required autofocus autocomplete="off">
+        <div id="passwordContainer" class="password-container hidden">
+          <label for="passwordInput">Password:</label>
+          <input type="password" id="passwordInput" placeholder="Protected Name Password" autocomplete="off">
+        </div>
+        <div id="joinErrorText" class="join-error hidden"></div>
         <button type="submit">Enter</button>
       </form>
+    </div>
+
+    <!-- Account Protection Modal -->
+    <div id="accountModal" class="modal hidden">
+      <div class="account-box">
+        <div class="account-header">
+          <h2>ACCOUNT PROTECTION</h2>
+          <button type="button" id="btnCloseAccount" class="close-btn">[X]</button>
+        </div>
+        <div class="account-body">
+          <p id="accountStatusText">Protect your name so no one else can claim 'Pip'!</p>
+          <form id="accountForm">
+            <div id="oldPasswordGroup" class="form-group hidden">
+              <label for="oldPasswordInput">Current Password:</label>
+              <input type="password" id="oldPasswordInput" placeholder="Current password">
+            </div>
+            <div class="form-group">
+              <label for="newPasswordInput">New Password:</label>
+              <input type="password" id="newPasswordInput" placeholder="At least 4 characters" required minlength="4">
+            </div>
+            <button type="submit" id="btnSavePassword">Protect Name</button>
+          </form>
+        </div>
+      </div>
     </div>
 
     <!-- Shop Catalog Popup Modal -->
@@ -60,18 +89,19 @@
       <form id="chatForm" class="chat-inputs">
         <input type="text" id="chatInput" placeholder="Type message..." maxlength="140" autocomplete="off">
         <button type="submit">Send</button>
+        <button type="button" id="btnOpenAccount" class="account-btn" title="Account Protection">Account</button>
       </form>
     </div>
   </div>
 
-  <script src="js/config.js?v=23"></script>
-  <script src="js/levels.js?v=23"></script>
-  <script src="js/audio.js?v=23"></script>
-  <script src="js/world.js?v=23"></script>
-  <script src="js/render.js?v=23"></script>
-  <script src="js/physics.js?v=23"></script>
-  <script src="js/frogger.js?v=23"></script>
-  <script src="js/fishing.js?v=23"></script>
-  <script src="game.js?v=23"></script>
+  <script src="js/config.js?v=24"></script>
+  <script src="js/levels.js?v=24"></script>
+  <script src="js/audio.js?v=24"></script>
+  <script src="js/world.js?v=24"></script>
+  <script src="js/render.js?v=24"></script>
+  <script src="js/physics.js?v=24"></script>
+  <script src="js/frogger.js?v=24"></script>
+  <script src="js/fishing.js?v=24"></script>
+  <script src="game.js?v=24"></script>
 </body>
 </html>

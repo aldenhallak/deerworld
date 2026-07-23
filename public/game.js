@@ -22,6 +22,20 @@ const btnLeaderboard = document.getElementById('btnLeaderboard');
 const leaderboardContent = document.getElementById('leaderboardContent');
 let currentLeaderboardTab = 'fishing';
 
+// Account & Password DOM elements
+const passwordContainer = document.getElementById('passwordContainer');
+const passwordInput = document.getElementById('passwordInput');
+const joinErrorText = document.getElementById('joinErrorText');
+const accountModal = document.getElementById('accountModal');
+const btnOpenAccount = document.getElementById('btnOpenAccount');
+const btnCloseAccount = document.getElementById('btnCloseAccount');
+const accountForm = document.getElementById('accountForm');
+const accountStatusText = document.getElementById('accountStatusText');
+const oldPasswordGroup = document.getElementById('oldPasswordGroup');
+const oldPasswordInput = document.getElementById('oldPasswordInput');
+const newPasswordInput = document.getElementById('newPasswordInput');
+const btnSavePassword = document.getElementById('btnSavePassword');
+
 let socket = null;
 let selfId = null;
 let players = {};
@@ -69,11 +83,48 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 // ---- Socket Connection ----
-function connectSocket(username) {
-  socket = io();
+function connectSocket(username, password) {
+  if (!socket) {
+    socket = io();
+    setupSocketListeners();
+  }
 
-  socket.on('connect', () => {
-    socket.emit('join', { name: username });
+  if (socket.connected) {
+    socket.emit('join', { name: username, password: password || '' });
+  } else {
+    socket.on('connect', () => {
+      socket.emit('join', { name: username, password: password || '' });
+    });
+  }
+}
+
+function setupSocketListeners() {
+  if (!socket) return;
+
+  socket.on('nameStatus', (data) => {
+    if (data && data.isProtected) {
+      if (passwordContainer) passwordContainer.classList.remove('hidden');
+      if (passwordInput) passwordInput.required = true;
+    } else {
+      if (passwordContainer) passwordContainer.classList.add('hidden');
+      if (passwordInput) {
+        passwordInput.required = false;
+        passwordInput.value = '';
+      }
+    }
+  });
+
+  socket.on('joinError', (data) => {
+    if (joinErrorText) {
+      joinErrorText.textContent = (data && data.message) ? data.message : 'Error joining!';
+      joinErrorText.classList.remove('hidden');
+    }
+  });
+
+  socket.on('accountProtectedSuccess', (data) => {
+    if (accountModal) accountModal.classList.add('hidden');
+    if (oldPasswordInput) oldPasswordInput.value = '';
+    if (newPasswordInput) newPasswordInput.value = '';
   });
 
   socket.on('init', (data) => {
@@ -840,12 +891,59 @@ chatInput.addEventListener('blur', () => {
   }, 150);
 });
 
+let checkNameTimeout = null;
+if (usernameInput) {
+  usernameInput.addEventListener('input', () => {
+    if (joinErrorText) joinErrorText.classList.add('hidden');
+    const name = usernameInput.value.trim();
+    if (!name) {
+      if (passwordContainer) passwordContainer.classList.add('hidden');
+      return;
+    }
+    if (!socket) connectSocket();
+    clearTimeout(checkNameTimeout);
+    checkNameTimeout = setTimeout(() => {
+      if (socket) socket.emit('checkNameStatus', { name });
+    }, 200);
+  });
+}
+
 joinForm.addEventListener('submit', (e) => {
   e.preventDefault();
   getAudioContext();
+  if (joinErrorText) joinErrorText.classList.add('hidden');
   const name = usernameInput.value.trim();
-  if (name) connectSocket(name);
+  const pass = passwordInput ? passwordInput.value.trim() : '';
+  if (name) connectSocket(name, pass);
 });
+
+// Account Protection Modal Events
+if (btnOpenAccount) {
+  btnOpenAccount.addEventListener('click', () => {
+    if (!selfId || !players[selfId]) return;
+    const me = players[selfId];
+    if (accountModal) accountModal.classList.remove('hidden');
+    if (accountStatusText) accountStatusText.textContent = `Set or update password for '${me.name}' to protect your name and progress:`;
+    if (socket) socket.emit('checkNameStatus', { name: me.name });
+  });
+}
+
+if (btnCloseAccount) {
+  btnCloseAccount.addEventListener('click', () => {
+    if (accountModal) accountModal.classList.add('hidden');
+  });
+}
+
+if (accountForm) {
+  accountForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const newPass = newPasswordInput ? newPasswordInput.value.trim() : '';
+    const oldPass = oldPasswordInput ? oldPasswordInput.value.trim() : '';
+    if (newPass && socket) {
+      socket.emit('protectAccount', { password: newPass, oldPassword: oldPass });
+    }
+  });
+}
 
 // Main render loop handles canvas drawing and animation frame
 let lastFrameTime = 0, animTime = 0;

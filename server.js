@@ -147,8 +147,63 @@ function broadcastSystemMessage(text) {
   io.emit('chatMessage', msgObj);
 }
 
+const crypto = require('crypto');
+
+function hashPassword(password, saltHex) {
+  const salt = saltHex || crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return { hash, salt };
+}
+
+function verifyPassword(password, storedHash, storedSalt) {
+  if (!password || !storedHash || !storedSalt) return false;
+  const { hash } = hashPassword(password, storedSalt);
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'));
+}
+
 io.on('connection', (socket) => {
   console.log(`Player connected: ${socket.id}`);
+
+  // Check if username is password-protected
+  socket.on('checkNameStatus', (data) => {
+    const name = (data && data.name) ? data.name.trim() : '';
+    if (!name) return socket.emit('nameStatus', { name: '', isProtected: false });
+    const profile = userProfiles[name];
+    const isProtected = !!(profile && profile.passwordHash);
+    socket.emit('nameStatus', { name, isProtected });
+  });
+
+  // Protect or change password for active player
+  socket.on('protectAccount', (data) => {
+    const player = players[socket.id];
+    if (!player || !player.name || !data || !data.password) return;
+    const password = data.password.trim();
+    if (password.length < 4) {
+      socket.emit('notice', { text: 'Password must be at least 4 characters!' });
+      return;
+    }
+
+    const profile = userProfiles[player.name] || { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat };
+
+    if (profile.passwordHash) {
+      if (!verifyPassword(data.oldPassword || '', profile.passwordHash, profile.salt)) {
+        socket.emit('notice', { text: 'Current password incorrect!' });
+        return;
+      }
+    }
+
+    const { hash, salt } = hashPassword(password);
+    profile.passwordHash = hash;
+    profile.salt = salt;
+    profile.coins = player.coins;
+    profile.inventory = player.inventory || [];
+    profile.equippedHat = player.equippedHat || null;
+
+    userProfiles[player.name] = profile;
+    db.saveUserProfile(player.name, profile);
+    socket.emit('accountProtectedSuccess', { name: player.name, isProtected: true });
+    socket.emit('notice', { text: `Name '${player.name}' password protected!` });
+  });
 
   socket.on('join', (data) => {
     const username = (data && data.name && data.name.trim())
@@ -156,6 +211,16 @@ io.on('connection', (socket) => {
       : `Klipspringer #${Math.floor(1000 + Math.random() * 9000)}`;
 
     const saved = userProfiles[username] || { coins: 0, inventory: [], equippedHat: null };
+
+    // Password check for protected names
+    if (saved.passwordHash) {
+      const providedPassword = (data && data.password) ? data.password.trim() : '';
+      if (!verifyPassword(providedPassword, saved.passwordHash, saved.salt)) {
+        socket.emit('joinError', { message: 'Incorrect password for this protected name!' });
+        return;
+      }
+    }
+
     const spawnX = 200 + Math.random() * 400;
 
     players[socket.id] = {
