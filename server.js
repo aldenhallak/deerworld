@@ -31,6 +31,41 @@ let coinIdCounter = 0;
 let droppedItemIdCounter = 0;
 const droppedItems = {};
 
+// --- Catalog & Configs ---
+const SHOP_ITEMS = {
+  straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', cost: 5 },
+  cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', cost: 4 },
+  sunglasses: { id: 'sunglasses', name: 'Sunglasses', type: 'hat', cost: 8 },
+  rainboots: { id: 'rainboots', name: 'Rainboots', type: 'hat', cost: 10 },
+  cowboy_hat: { id: 'cowboy_hat', name: 'Cowboy Hat', type: 'hat', cost: 12 },
+  ascot: { id: 'ascot', name: 'Red Ascot', type: 'hat', cost: 7 },
+  beanie: { id: 'beanie', name: 'Green Beanie', type: 'hat', cost: 6 },
+  glasses: { id: 'glasses', name: 'Wire Glasses', type: 'hat', cost: 7 },
+  headphones: { id: 'headphones', name: 'Headphones', type: 'hat', cost: 9 },
+  crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', cost: 1 },
+  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', cost: 3 },
+  corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', cost: 6 },
+  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', cost: 10 },
+  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', cost: 20 },
+  pumpkin_seed: { id: 'pumpkin_seed', name: 'Pumpkin Seed', type: 'seed', seedType: 'pumpkin', cost: 35 },
+  watermelon_seed: { id: 'watermelon_seed', name: 'Watermelon Seed', type: 'seed', seedType: 'watermelon', cost: 50 },
+  grape_seed: { id: 'grape_seed', name: 'Grape Seed', type: 'seed', seedType: 'grape', cost: 75 },
+  tree_seed: { id: 'tree_seed', name: 'Apple Tree Seed', type: 'seed', seedType: 'tree', cost: 100 }
+};
+
+// Farmville-style growth times & rebalanced yields (15 min up to 8 hours)
+const SEED_CONFIG = {
+  crop: { name: 'Wheat', cost: 1, yield: 3, maxStage: 2, totalTime: 900000, stageTime: 450000 },
+  carrot: { name: 'Carrot', cost: 3, yield: 8, maxStage: 2, totalTime: 1800000, stageTime: 900000 },
+  corn: { name: 'Corn', cost: 6, yield: 16, maxStage: 2, totalTime: 2700000, stageTime: 1350000 },
+  strawberry: { name: 'Strawberry', cost: 10, yield: 28, maxStage: 2, totalTime: 3600000, stageTime: 1800000 },
+  flower: { name: 'Flower', cost: 20, yield: 55, maxStage: 3, totalTime: 7200000, stageTime: 2400000 },
+  pumpkin: { name: 'Pumpkin', cost: 35, yield: 100, maxStage: 3, totalTime: 10800000, stageTime: 3600000 },
+  watermelon: { name: 'Watermelon', cost: 50, yield: 150, maxStage: 3, totalTime: 14400000, stageTime: 4800000 },
+  grape: { name: 'Grape', cost: 75, yield: 240, maxStage: 3, totalTime: 21600000, stageTime: 7200000 },
+  tree: { name: 'Apple Tree', cost: 100, yield: 350, maxStage: 3, totalTime: 28800000, stageTime: 9600000 }
+};
+
 // Initialize Google Cloud Firestore and load state on startup
 (async () => {
   await db.initDb();
