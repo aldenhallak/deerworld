@@ -164,6 +164,7 @@ function setupSocketListeners() {
       myCoins = me.coins !== undefined ? me.coins : 0;
       myInventory = me.inventory || [];
       myEquippedHat = me.equippedHat || null;
+      if (typeof playStageMusic === 'function') playStageMusic(myWorld);
     }
 
     if (Array.isArray(data.chatHistory) && data.chatHistory.length > 0) {
@@ -216,6 +217,7 @@ function setupSocketListeners() {
       players[data.id].y = groundY + data.yRel;
       if (data.id === selfId) {
         myWorld = data.world;
+        if (typeof playStageMusic === 'function') playStageMusic(myWorld);
         courseRunStartTime = 0;
         courseRunFinished = false;
         coopStartTime = 0;
@@ -1046,7 +1048,10 @@ window.addEventListener('keydown', (e) => {
     else openLeaderboardModal('fishing');
   }
   if (e.code === 'KeyM') {
-    if (typeof toggleMute === 'function') toggleMute();
+    if (typeof toggleMusic === 'function') toggleMusic();
+  }
+  if (e.code === 'KeyN') {
+    if (typeof toggleSfx === 'function') toggleSfx();
   }
   if (e.code === 'KeyQ') dropCoinOnGround();
 
@@ -1129,10 +1134,17 @@ joinForm.addEventListener('submit', (e) => {
   if (name) joinGame(name, pass);
 });
 
-const btnToggleMute = document.getElementById('btnToggleMute');
-if (btnToggleMute) {
-  btnToggleMute.addEventListener('click', () => {
-    if (typeof toggleMute === 'function') toggleMute();
+const btnToggleMusic = document.getElementById('btnToggleMusic');
+if (btnToggleMusic) {
+  btnToggleMusic.addEventListener('click', () => {
+    if (typeof toggleMusic === 'function') toggleMusic();
+  });
+}
+
+const btnToggleSfx = document.getElementById('btnToggleSfx');
+if (btnToggleSfx) {
+  btnToggleSfx.addEventListener('click', () => {
+    if (typeof toggleSfx === 'function') toggleSfx();
   });
 }
 

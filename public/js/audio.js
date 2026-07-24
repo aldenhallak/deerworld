@@ -1,49 +1,93 @@
-// ---- Web Audio API Synthesizer & Background Music ----
+// ---- Web Audio API Synthesizer & Stage Background Music ----
 let audioCtx = null;
 let bgMusic = null;
-let isMuted = false;
+let musicMuted = false;
+let sfxMuted = false;
+let currentStageName = 'main';
+let currentMusicTrack = null;
 
-function toggleMute() {
-  isMuted = !isMuted;
-  if (isMuted) {
-    if (bgMusic) bgMusic.pause();
-  } else {
-    if (bgMusic) bgMusic.play().catch(() => {});
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  }
-  updateMuteButtonText();
-  return isMuted;
+const STAGE_MUSIC_MAP = {
+  garden: '/garden.wav',
+  main: '/lobby.wav'
+};
+
+function getStageMusicTrack(stageName) {
+  return STAGE_MUSIC_MAP[stageName] || STAGE_MUSIC_MAP.main;
 }
 
-function updateMuteButtonText() {
-  const btn = document.getElementById('btnToggleMute');
-  if (btn) {
-    btn.innerText = isMuted ? '[ Unmute ]' : '[ Mute ]';
-  }
-}
+function playStageMusic(stageName) {
+  const targetStage = stageName || 'main';
+  const targetTrack = getStageMusicTrack(targetStage);
+  currentStageName = targetStage;
 
-function startBackgroundMusic() {
-  if (bgMusic) return;
+  if (bgMusic && currentMusicTrack === targetTrack) {
+    if (!musicMuted && bgMusic.paused) {
+      bgMusic.play().catch(() => {});
+    }
+    return;
+  }
+
+  if (bgMusic) {
+    bgMusic.pause();
+    bgMusic = null;
+  }
+
   try {
-    bgMusic = new Audio('/bg_music.wav');
+    bgMusic = new Audio(targetTrack);
     bgMusic.loop = true;
     bgMusic.volume = 0.20; // 20% volume
-    if (!isMuted) {
+    currentMusicTrack = targetTrack;
+    if (!musicMuted) {
       bgMusic.play().catch(e => {
-        // Autoplay blocked by browser until user interaction
+        // Autoplay policy
       });
     }
   } catch (e) {
-    console.warn("Could not play background music:", e);
+    console.warn("Could not load background music track:", targetTrack, e);
+  }
+}
+
+function toggleMusic() {
+  musicMuted = !musicMuted;
+  if (musicMuted) {
+    if (bgMusic) bgMusic.pause();
+  } else {
+    if (!bgMusic) {
+      playStageMusic(currentStageName);
+    } else if (bgMusic.paused) {
+      bgMusic.play().catch(() => {});
+    }
+  }
+  updateMusicButtonText();
+  return !musicMuted;
+}
+
+function toggleSfx() {
+  sfxMuted = !sfxMuted;
+  updateSfxButtonText();
+  return !sfxMuted;
+}
+
+function updateMusicButtonText() {
+  const btn = document.getElementById('btnToggleMusic');
+  if (btn) {
+    btn.innerText = musicMuted ? '[ Music: OFF ]' : '[ Music: ON ]';
+  }
+}
+
+function updateSfxButtonText() {
+  const btn = document.getElementById('btnToggleSfx');
+  if (btn) {
+    btn.innerText = sfxMuted ? '[ SFX: OFF ]' : '[ SFX: ON ]';
   }
 }
 
 function getAudioContext() {
-  if (isMuted) return null;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
-  startBackgroundMusic();
-  if (bgMusic && bgMusic.paused && !isMuted) {
+  if (!currentMusicTrack) {
+    playStageMusic(currentStageName || 'main');
+  } else if (bgMusic && bgMusic.paused && !musicMuted) {
     bgMusic.play().catch(() => {});
   }
   return audioCtx;
@@ -54,6 +98,7 @@ document.addEventListener('pointerdown', () => { getAudioContext(); }, { once: t
 document.addEventListener('keydown', () => { getAudioContext(); }, { once: true });
 
 function playFootstepSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator();
@@ -69,6 +114,7 @@ function playFootstepSound() {
 }
 
 function playKissSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc1 = actx.createOscillator(); const osc2 = actx.createOscillator();
@@ -87,6 +133,7 @@ function playKissSound() {
 }
 
 function playCoinSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -101,6 +148,7 @@ function playCoinSound() {
 }
 
 function playPlantSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -115,6 +163,7 @@ function playPlantSound() {
 }
 
 function playHarvestSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     [0, 0.07, 0.14].forEach((t, i) => {
@@ -130,6 +179,7 @@ function playHarvestSound() {
 }
 
 function playShopSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -144,6 +194,7 @@ function playShopSound() {
 }
 
 function playHopSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -158,6 +209,7 @@ function playHopSound() {
 }
 
 function playSplashSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -172,6 +224,7 @@ function playSplashSound() {
 }
 
 function playHonkSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc1 = actx.createOscillator(); const osc2 = actx.createOscillator();
@@ -181,13 +234,14 @@ function playHonkSound() {
     osc2.frequency.setValueAtTime(220, actx.currentTime);
     gain.gain.setValueAtTime(0.15, actx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.2);
-    osc1.connect(gain); osc2.connect(gain); gain.connect(actx.destination);
+    osc1.connect(gain); gain.connect(actx.destination);
     osc1.start(); osc2.start();
     osc1.stop(actx.currentTime + 0.2); osc2.stop(actx.currentTime + 0.2);
   } catch(e) {}
 }
 
 function playReelSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -201,6 +255,7 @@ function playReelSound() {
 }
 
 function playCatchSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
@@ -217,6 +272,7 @@ function playCatchSound() {
 }
 
 function playSurfCarveSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -231,6 +287,7 @@ function playSurfCarveSound() {
 }
 
 function playTrickSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -245,6 +302,7 @@ function playTrickSound() {
 }
 
 function playWipeoutSound() {
+  if (sfxMuted) return;
   try {
     const actx = getAudioContext();
     const osc = actx.createOscillator(); const gain = actx.createGain();
