@@ -1,6 +1,26 @@
 // ---- Web Audio API Synthesizer & Background Music ----
 let audioCtx = null;
 let bgMusic = null;
+let isMuted = false;
+
+function toggleMute() {
+  isMuted = !isMuted;
+  if (isMuted) {
+    if (bgMusic) bgMusic.pause();
+  } else {
+    if (bgMusic) bgMusic.play().catch(() => {});
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  updateMuteButtonText();
+  return isMuted;
+}
+
+function updateMuteButtonText() {
+  const btn = document.getElementById('btnToggleMute');
+  if (btn) {
+    btn.innerText = isMuted ? '[ Unmute ]' : '[ Mute ]';
+  }
+}
 
 function startBackgroundMusic() {
   if (bgMusic) return;
@@ -8,19 +28,22 @@ function startBackgroundMusic() {
     bgMusic = new Audio('/bg_music.wav');
     bgMusic.loop = true;
     bgMusic.volume = 0.20; // 20% volume
-    bgMusic.play().catch(e => {
-      // Autoplay blocked by browser until user interaction
-    });
+    if (!isMuted) {
+      bgMusic.play().catch(e => {
+        // Autoplay blocked by browser until user interaction
+      });
+    }
   } catch (e) {
     console.warn("Could not play background music:", e);
   }
 }
 
 function getAudioContext() {
+  if (isMuted) return null;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   startBackgroundMusic();
-  if (bgMusic && bgMusic.paused) {
+  if (bgMusic && bgMusic.paused && !isMuted) {
     bgMusic.play().catch(() => {});
   }
   return audioCtx;

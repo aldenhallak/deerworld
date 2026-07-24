@@ -1045,6 +1045,9 @@ window.addEventListener('keydown', (e) => {
     if (modal && !modal.classList.contains('hidden')) closeLeaderboardModal();
     else openLeaderboardModal('fishing');
   }
+  if (e.code === 'KeyM') {
+    if (typeof toggleMute === 'function') toggleMute();
+  }
   if (e.code === 'KeyQ') dropCoinOnGround();
 
   if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
@@ -1125,6 +1128,13 @@ joinForm.addEventListener('submit', (e) => {
   const pass = passwordInput ? passwordInput.value.trim() : '';
   if (name) joinGame(name, pass);
 });
+
+const btnToggleMute = document.getElementById('btnToggleMute');
+if (btnToggleMute) {
+  btnToggleMute.addEventListener('click', () => {
+    if (typeof toggleMute === 'function') toggleMute();
+  });
+}
 
 // Account Protection Modal Events
 if (btnOpenAccount) {
