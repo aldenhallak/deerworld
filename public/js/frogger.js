@@ -34,7 +34,7 @@ function drawKlipspringerPlayer(ctx, x, y, facing, isHopAnimating, equippedHat) 
   ctx.restore();
 
   // Render Equipped Hat if available
-  const currentHat = (typeof myEquippedHat !== 'undefined') ? myEquippedHat : equippedHat;
+  const currentHat = equippedHat;
   if (currentHat && typeof drawWearableHat !== 'undefined') {
     drawWearableHat(px, py, currentHat, facing, activeSprite);
   }
