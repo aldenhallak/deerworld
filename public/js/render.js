@@ -392,8 +392,8 @@ function drawWearableHat(px, py, hatId, facing, activeSpriteOrH) {
     drawPixelBlocks(0.5, 3.6, [
       // Row 0: 7 black blocks
       {dx:0, dy:0, c:'#080808'}, {dx:1, dy:0, c:'#080808'}, {dx:2, dy:0, c:'#080808'}, {dx:3, dy:0, c:'#080808'}, {dx:4, dy:0, c:'#080808'}, {dx:5, dy:0, c:'#080808'}, {dx:6, dy:0, c:'#080808'},
-      // Row 1: frame sides (█.██.██)
-      {dx:0, dy:1, c:'#080808'}, {dx:2, dy:1, c:'#080808'}, {dx:3, dy:1, c:'#080808'}, {dx:5, dy:1, c:'#080808'}, {dx:6, dy:1, c:'#080808'}
+      // Row 1: frame sides (██.██.█)
+      {dx:0, dy:1, c:'#080808'}, {dx:1, dy:1, c:'#080808'}, {dx:3, dy:1, c:'#080808'}, {dx:4, dy:1, c:'#080808'}, {dx:6, dy:1, c:'#080808'}
     ]);
 
   // 2. BEANIE (Exact PNG: trapezoid dome cap 2 top, 4 brim)
