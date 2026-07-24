@@ -83,8 +83,32 @@
       </div>
     </div>
 
+    <!-- Inventory Popup Modal -->
+    <div id="inventoryModal" class="modal hidden">
+      <div class="inventory-box">
+        <div class="inventory-header">
+          <h2>INVENTORY</h2>
+          <button type="button" id="btnCloseInventory" class="close-btn">[X]</button>
+        </div>
+        <div class="inventory-tabs">
+          <button type="button" class="tab-btn active" data-invtab="all">[ All ]</button>
+          <button type="button" class="tab-btn" data-invtab="seed">[ Seeds ]</button>
+          <button type="button" class="tab-btn" data-invtab="fish">[ Fish ]</button>
+          <button type="button" class="tab-btn" data-invtab="hat">[ Hats ]</button>
+        </div>
+        <div class="inventory-active-seed">
+          <span>Active Planting Seed:</span>
+          <span id="activeSeedText" class="active-seed-badge">Wheat Seed (Default)</span>
+        </div>
+        <div id="inventoryGrid" class="inventory-grid">
+          <!-- Populated dynamically by game.js -->
+        </div>
+      </div>
+    </div>
+
     <!-- Top Right HUD Controls -->
     <div id="topRightHud" class="top-right-hud hidden">
+      <button type="button" id="btnOpenInventory" class="hud-btn" title="Open Inventory (Hotkey: I)">🎒 Inventory</button>
       <button type="button" id="btnOpenAccount" class="hud-btn" title="Account & Password Protection">[ Account ]</button>
     </div>
 

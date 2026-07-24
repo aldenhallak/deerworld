@@ -197,6 +197,13 @@ function setupSocketListeners() {
     p.isJumping = data.isJumping; p.isGrounded = data.isGrounded;
     p.equippedHat = data.equippedHat;
     if (data.world) p.world = data.world;
+    if (data.fishingState !== undefined) p.fishingState = data.fishingState;
+  });
+
+  socket.on('playerFishingUpdated', (data) => {
+    if (players[data.id] && data.id !== selfId) {
+      players[data.id].fishingState = data.fishingState;
+    }
   });
 
   socket.on('playerWorldSwitched', (data) => {
@@ -300,6 +307,7 @@ function setupSocketListeners() {
     myCoins = data.coins;
     if (data.inventory) myInventory = data.inventory;
     updateShopBalance();
+    if (typeof renderInventoryGrid === 'function') renderInventoryGrid();
   });
 
   // Plant events
@@ -428,6 +436,181 @@ function closeShopModal() {
 
 if (btnCloseShop) {
   btnCloseShop.addEventListener('click', closeShopModal);
+}
+
+// ---- Inventory Modal & Seed Selection System ----
+const ITEM_CATALOG = {
+  straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', icon: '👒', desc: 'Classic sun protection for farming.' },
+  cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', icon: '🎀', desc: 'Charming pink ribbon.' },
+  sunglasses: { id: 'sunglasses', name: 'Sunglasses', type: 'hat', icon: '🕶️', desc: 'Cool shades for beach days.' },
+  rainboots: { id: 'rainboots', name: 'Rainboots', type: 'hat', icon: '👢', desc: 'Waterproof blue rubber boots.' },
+  cowboy_hat: { id: 'cowboy_hat', name: 'Cowboy Hat', type: 'hat', icon: '🤠', desc: 'Rugged leather hat.' },
+  ascot: { id: 'ascot', name: 'Red Ascot', type: 'hat', icon: '🧣', desc: 'Stylish red necktie.' },
+  beanie: { id: 'beanie', name: 'Green Beanie', type: 'hat', icon: '🧢', desc: 'Warm knitted green beanie.' },
+  glasses: { id: 'glasses', name: 'Wire Glasses', type: 'hat', icon: '👓', desc: 'Smart wireframe spectacles.' },
+  headphones: { id: 'headphones', name: 'Headphones', type: 'hat', icon: '🎧', desc: 'Audio headset for music lovers.' },
+
+  crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', icon: '🌾', desc: 'Grows golden wheat (15m).' },
+  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', icon: '🥕', desc: 'Grows crunchy carrots (30m).' },
+  corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', icon: '🌽', desc: 'Grows sweet corn (45m).' },
+  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', icon: '🍓', desc: 'Grows juicy strawberries (1h).' },
+  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', icon: '🌻', desc: 'Grows vibrant sunflowers (2h).' },
+  pumpkin_seed: { id: 'pumpkin_seed', name: 'Pumpkin Seed', type: 'seed', seedType: 'pumpkin', icon: '🎃', desc: 'Grows autumn pumpkins (3h).' },
+  watermelon_seed: { id: 'watermelon_seed', name: 'Watermelon Seed', type: 'seed', seedType: 'watermelon', icon: '🍉', desc: 'Grows watermelons (4h).' },
+  grape_seed: { id: 'grape_seed', name: 'Grape Seed', type: 'seed', seedType: 'grape', icon: '🍇', desc: 'Grows grape vines (6h).' },
+  tree_seed: { id: 'tree_seed', name: 'Apple Tree Seed', type: 'seed', seedType: 'tree', icon: '🍎', desc: 'Grows an apple tree (8h).' },
+
+  small_fry: { id: 'small_fry', name: 'Small Fry', type: 'fish', icon: '🐟', sellPrice: 2, desc: 'A tiny blue freshwater fish.' },
+  sea_bass: { id: 'sea_bass', name: 'Sea Bass', type: 'fish', icon: '🐠', sellPrice: 5, desc: 'A common coastal sea bass.' },
+  golden_salmon: { id: 'golden_salmon', name: 'Golden Salmon', type: 'fish', icon: '🐡', sellPrice: 12, desc: 'A rare salmon with golden scales.' },
+  legendary_marlin: { id: 'legendary_marlin', name: 'Legendary Marlin', type: 'fish', icon: '🦈', sellPrice: 25, desc: 'A prized legendary ocean marlin!' },
+  old_boot: { id: 'old_boot', name: 'Old Boot', type: 'fish', icon: '👞', sellPrice: 1, desc: 'A soggy leather boot from the sea.' }
+};
+
+let mySelectedSeed = 'crop_seed';
+let currentInventoryTab = 'all';
+
+function renderInventoryGrid() {
+  const inventoryGrid = document.getElementById('inventoryGrid');
+  const activeSeedText = document.getElementById('activeSeedText');
+  if (!inventoryGrid) return;
+
+  if (activeSeedText) {
+    const seedInfo = ITEM_CATALOG[mySelectedSeed] || ITEM_CATALOG.crop_seed;
+    const count = myInventory.filter(id => id === mySelectedSeed).length;
+    activeSeedText.innerText = `${seedInfo.name} (${count > 0 ? count + ' in inventory' : '0 owned'})`;
+  }
+
+  inventoryGrid.innerHTML = '';
+
+  const itemCounts = {};
+  myInventory.forEach(id => {
+    itemCounts[id] = (itemCounts[id] || 0) + 1;
+  });
+
+  const uniqueIds = Object.keys(itemCounts);
+
+  let filteredIds = uniqueIds.filter(id => {
+    const info = ITEM_CATALOG[id] || { type: 'item' };
+    if (currentInventoryTab === 'seed') return info.type === 'seed';
+    if (currentInventoryTab === 'fish') return info.type === 'fish';
+    if (currentInventoryTab === 'hat') return info.type === 'hat';
+    return true;
+  });
+
+  if (filteredIds.length === 0) {
+    inventoryGrid.innerHTML = `<div class="inv-empty">No ${currentInventoryTab === 'all' ? 'items' : currentInventoryTab + 's'} in your inventory!<br>Catch fish in Beach World or buy seeds in Garden World.</div>`;
+    return;
+  }
+
+  filteredIds.forEach(id => {
+    const info = ITEM_CATALOG[id] || { name: id, icon: '📦', type: 'item', desc: 'An item.' };
+    const count = itemCounts[id];
+    const card = document.createElement('div');
+    card.className = 'inventory-card' + (mySelectedSeed === id ? ' selected-seed' : '');
+
+    const isHat = info.type === 'hat';
+    const isSeed = info.type === 'seed';
+    const isFish = info.type === 'fish';
+    const isEquippedHat = myEquippedHat === id;
+    const isSelectedSeed = mySelectedSeed === id;
+
+    let actionButtonsHTML = '';
+    if (isSeed) {
+      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-select-seed">${isSelectedSeed ? '✓ ACTIVE' : 'SELECT TO PLANT'}</button>`;
+    }
+    if (isHat) {
+      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-equip">${isEquippedHat ? 'UNEQUIP' : 'EQUIP HAT'}</button>`;
+    }
+    if (isFish) {
+      const price = info.sellPrice || 1;
+      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-sell">SELL (+${price} 🪙)</button>`;
+    }
+    actionButtonsHTML += `<button type="button" class="btn-inv-action btn-drop">DROP</button>`;
+
+    card.innerHTML = `
+      <div class="inv-count">x${count}</div>
+      <div class="inv-icon">${info.icon || '📦'}</div>
+      <div class="inv-name">${escapeHTML(info.name)}</div>
+      <div class="inv-desc">${escapeHTML(info.desc || '')}</div>
+      <div class="inv-actions">
+        ${actionButtonsHTML}
+      </div>
+    `;
+
+    const selectBtn = card.querySelector('.btn-select-seed');
+    if (selectBtn) {
+      selectBtn.addEventListener('click', () => {
+        mySelectedSeed = id;
+        renderInventoryGrid();
+        if (typeof spawnFloatText !== 'undefined' && typeof selfId !== 'undefined' && players[selfId]) {
+          spawnFloatText(players[selfId].x, players[selfId].y - 40, `Selected Seed: ${info.name}`, '#76ff03');
+        }
+      });
+    }
+
+    const equipBtn = card.querySelector('.btn-equip');
+    if (equipBtn) {
+      equipBtn.addEventListener('click', () => {
+        const nextHat = isEquippedHat ? null : id;
+        if (socket) socket.emit('equipItem', nextHat);
+        if (typeof playShopSound !== 'undefined') playShopSound();
+      });
+    }
+
+    const sellBtn = card.querySelector('.btn-sell');
+    if (sellBtn) {
+      sellBtn.addEventListener('click', () => {
+        if (socket) socket.emit('sellItem', id);
+      });
+    }
+
+    const dropBtn = card.querySelector('.btn-drop');
+    if (dropBtn) {
+      dropBtn.addEventListener('click', () => {
+        if (socket) socket.emit('dropItem', { type: 'item', itemId: id });
+      });
+    }
+
+    inventoryGrid.appendChild(card);
+  });
+}
+
+function openInventoryModal() {
+  const modal = document.getElementById('inventoryModal');
+  if (modal) {
+    renderInventoryGrid();
+    modal.classList.remove('hidden');
+  }
+}
+
+function closeInventoryModal() {
+  const modal = document.getElementById('inventoryModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+const btnOpenInventory = document.getElementById('btnOpenInventory');
+const btnCloseInventory = document.getElementById('btnCloseInventory');
+const inventoryModal = document.getElementById('inventoryModal');
+
+if (btnOpenInventory) {
+  btnOpenInventory.addEventListener('click', openInventoryModal);
+}
+if (btnCloseInventory) {
+  btnCloseInventory.addEventListener('click', closeInventoryModal);
+}
+
+if (inventoryModal) {
+  const tabBtns = inventoryModal.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentInventoryTab = btn.dataset.invtab || 'all';
+      tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+      renderInventoryGrid();
+    });
+  });
 }
 
 // ---- Leaderboard Modal Logic ----
@@ -706,16 +889,23 @@ function tryInteract() {
   }
 
   const yRel = me.y - groundY;
-  const seedOrder = ['carrot_seed','corn_seed','strawberry_seed','flower_seed','pumpkin_seed','watermelon_seed','grape_seed','tree_seed','crop_seed'];
-  let foundSeed = seedOrder.find(s => myInventory.includes(s));
+  const selSeed = mySelectedSeed || 'crop_seed';
+  let seedInfo = ITEM_CATALOG[selSeed] || ITEM_CATALOG.crop_seed;
+  let seedType = seedInfo.seedType || 'crop';
 
-  if (foundSeed) {
-    const type = shopCatalog[foundSeed] ? shopCatalog[foundSeed].seedType || 'crop' : 'crop';
-    socket.emit('plant', { type, x: me.x, yRel });
-  } else if (myCoins >= 1) {
-    socket.emit('plant', { type: 'crop', x: me.x, yRel });
+  if (myInventory.includes(selSeed)) {
+    socket.emit('plant', { seedType, seedItemId: selSeed, x: me.x, yRel });
   } else {
-    spawnFloatText(me.x, me.y - 40, 'No seeds or coins to plant!', '#ff5252');
+    const seedOrder = ['crop_seed','carrot_seed','corn_seed','strawberry_seed','flower_seed','pumpkin_seed','watermelon_seed','grape_seed','tree_seed'];
+    let fallbackSeed = seedOrder.find(s => myInventory.includes(s));
+    if (fallbackSeed) {
+      let type = ITEM_CATALOG[fallbackSeed] ? ITEM_CATALOG[fallbackSeed].seedType || 'crop' : 'crop';
+      socket.emit('plant', { seedType: type, seedItemId: fallbackSeed, x: me.x, yRel });
+    } else if (myCoins >= 1) {
+      socket.emit('plant', { seedType: 'crop', seedItemId: 'crop_seed', x: me.x, yRel });
+    } else {
+      spawnFloatText(me.x, me.y - 40, 'No seeds or coins to plant!', '#ff5252');
+    }
   }
 }
 
@@ -841,6 +1031,16 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyK') tryKiss();
   if (e.code === 'KeyE') tryInteract();
   if (e.code === 'KeyH') cycleEquippedHat();
+  if (e.code === 'KeyI') {
+    const modal = document.getElementById('inventoryModal');
+    if (modal && !modal.classList.contains('hidden')) closeInventoryModal();
+    else openInventoryModal();
+  }
+  if (e.code === 'KeyL') {
+    const modal = document.getElementById('leaderboardModal');
+    if (modal && !modal.classList.contains('hidden')) closeLeaderboardModal();
+    else openLeaderboardModal('fishing');
+  }
   if (e.code === 'KeyQ') dropCoinOnGround();
 
   if (['Space','KeyW','ArrowUp'].includes(e.code) && selfId && players[selfId])
@@ -1546,6 +1746,11 @@ function render(now) {
     // Draw Wearable Hat
     const currentHat = p.id === selfId ? myEquippedHat : p.equippedHat;
     drawWearableHat(px, py, currentHat, p.facing, activeSprite);
+
+    // Draw Remote Player Fishing Rod (if fishing on beach)
+    if (p.id !== selfId && myWorld === 'beach' && typeof drawRemotePlayerFishingRod !== 'undefined') {
+      drawRemotePlayerFishingRod(ctx, p, groundY, animTime);
+    }
 
     // Name / speech bubble offset higher if wearing a hat
     const textYOffset = currentHat ? -18 : -4;

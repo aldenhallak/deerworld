@@ -233,7 +233,8 @@ io.on('connection', (socket) => {
       coins: saved.coins !== undefined ? saved.coins : 0,
       equippedHat: saved.equippedHat || null,
       inventory: saved.inventory || [],
-      world: 'main'
+      world: 'main',
+      fishingState: null
     };
 
     socket.emit('init', {
@@ -269,6 +270,7 @@ io.on('connection', (socket) => {
     player.isMoving = !!data.isMoving;
     player.isJumping = !!data.isJumping;
     player.isGrounded = !!data.isGrounded;
+    if (data.fishingState !== undefined) player.fishingState = data.fishingState;
 
     socket.broadcast.emit('playerMoved', {
       id: socket.id,
@@ -282,7 +284,17 @@ io.on('connection', (socket) => {
       isJumping: player.isJumping,
       isGrounded: player.isGrounded,
       equippedHat: player.equippedHat,
-      world: player.world
+      world: player.world,
+      fishingState: player.fishingState
+    });
+  });
+
+  socket.on('playerFishingState', (data) => {
+    if (!players[socket.id]) return;
+    players[socket.id].fishingState = data;
+    socket.broadcast.emit('playerFishingUpdated', {
+      id: socket.id,
+      fishingState: data
     });
   });
 
@@ -389,10 +401,13 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const plantType = data.type || 'crop';
+    let plantType = data.seedType || data.type || 'crop';
+    if (plantType.endsWith('_seed')) {
+      plantType = plantType.replace('_seed', '');
+    }
     const config = SEED_CONFIG[plantType] || SEED_CONFIG.crop;
 
-    const seedItemId = `${plantType}_seed`;
+    const seedItemId = data.seedItemId || `${plantType}_seed`;
     const seedIdx = player.inventory.indexOf(seedItemId);
 
     if (seedIdx !== -1) {
@@ -634,6 +649,10 @@ io.on('connection', (socket) => {
     const yieldCoins = Number(payload.yield) || 1;
     player.coins += yieldCoins;
 
+    if (payload.fishId) {
+      player.inventory.push(payload.fishId);
+    }
+
     // Update player's fishing leaderboard entry
     let entry = fishingLeaderboard.find(e => e.name === player.name);
     if (entry) {
@@ -650,6 +669,32 @@ io.on('connection', (socket) => {
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
     broadcastSystemMessage(`${player.name} caught a ${payload.name || 'Fish'}! (+${yieldCoins} coins)`);
     db.saveLeaderboard('fishing', fishingLeaderboard);
+    if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
+  });
+
+  // Sell item from inventory
+  socket.on('sellItem', (itemId) => {
+    const player = players[socket.id];
+    if (!player || !itemId) return;
+
+    const idx = player.inventory.indexOf(itemId);
+    if (idx === -1) {
+      socket.emit('notice', { text: 'Item not in your inventory!' });
+      return;
+    }
+
+    const prices = {
+      small_fry: 2, sea_bass: 5, golden_salmon: 12, legendary_marlin: 25, old_boot: 1,
+      crop_seed: 1, carrot_seed: 2, corn_seed: 4, strawberry_seed: 7, flower_seed: 14,
+      pumpkin_seed: 25, watermelon_seed: 35, grape_seed: 50, tree_seed: 70
+    };
+
+    const earned = prices[itemId] || 1;
+    player.inventory.splice(idx, 1);
+    player.coins += earned;
+
+    socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
+    socket.emit('notice', { text: `Sold item for +${earned} coins!` });
     if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
   });
 

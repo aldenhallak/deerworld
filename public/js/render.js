@@ -499,12 +499,16 @@ function drawHUD() {
   ctx.fillText(`COINS: ${myCoins} | WORLD: ${worldLabel}`, 14, 26);
 
   const hatName = myEquippedHat && shopCatalog[myEquippedHat] ? shopCatalog[myEquippedHat].name : 'None';
+  let seedLabel = 'Default (Wheat)';
+  if (typeof mySelectedSeed !== 'undefined' && mySelectedSeed && typeof ITEM_CATALOG !== 'undefined' && ITEM_CATALOG[mySelectedSeed]) {
+    seedLabel = ITEM_CATALOG[mySelectedSeed].name;
+  }
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(`HAT: ${hatName} [H to Swap]`, 14, 48);
+  ctx.fillText(`HAT: ${hatName} | SEED: ${seedLabel} [I: Inventory]`, 14, 48);
 
   ctx.font = '11px sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  ctx.fillText('[E] Interact / Enter Portal | [K] Kiss | [Q] Drop Coin | [L] Leaderboards', 14, 68);
+  ctx.fillText('[E] Interact / Plant | [I] Inventory | [K] Kiss | [Q] Drop Coin | [L] Leaderboards', 14, 68);
 
   // Live Obstacle Course & Frogger Stopwatch Header
   let activeRunStartTime = 0;
@@ -842,5 +846,66 @@ function drawPixelHeart(x, y, scale) {
   ctx.fillRect(x - s * 2, y + s, s * 5, s);
   ctx.fillRect(x - s, y + s * 2, s * 3, s);
   ctx.fillRect(x, y + s * 3, s, s);
+  ctx.restore();
+}
+
+function drawRemotePlayerFishingRod(ctx, player, groundY, animTime) {
+  if (!player || !player.fishingState || !player.fishingState.isFishing) return;
+  const fs = player.fishingState;
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+
+  const meX = player.renderX !== undefined ? player.renderX : player.x;
+  const meY = player.renderY !== undefined ? player.renderY : (player.y !== undefined ? player.y : groundY);
+  const rodX = meX + (player.facing === 'left' ? -20 : 20);
+  const rodY = meY - 28;
+
+  const bx = fs.bobberX || (meX + 120);
+  const by = fs.bobberY || (groundY + 12);
+  const targetY = fs.targetY || (groundY + 12);
+
+  // 1. Draw Wooden Fishing Rod
+  ctx.strokeStyle = '#78350f';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(meX, meY - 10);
+  ctx.lineTo(rodX, rodY);
+  ctx.stroke();
+
+  // 2. Fishing Line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(rodX, rodY);
+  ctx.lineTo(bx, by);
+  ctx.stroke();
+
+  // 3. Bobber & Water Ripples
+  if (fs.state !== 'idle') {
+    // Water Ripple Rings around Bobber
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    const ripR = 6 + Math.sin((animTime || 0) * 5) * 4;
+    ctx.beginPath();
+    ctx.ellipse(bx, targetY + 4, ripR, ripR * 0.4, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Red/White Bobber
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath(); ctx.arc(bx, by, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(bx, by - 2, 3, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // 4. Fish Bite Alert above Bobber if hooked or nibbling
+  if (fs.nibble || fs.state === 'hooked') {
+    const alertY = by - 25;
+    ctx.fillStyle = '#76ff03';
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('!', bx, alertY);
+  }
+
   ctx.restore();
 }

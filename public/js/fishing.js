@@ -25,6 +25,20 @@ const FishingMode = {
   fishMoveTimer: 0,
   catchProgress: 35, // Progress (0..100) -> 100 = catch, 0 = fail
   isReeling: false,
+  syncTimer: 0,
+
+  syncNetworkState() {
+    if (typeof socket !== 'undefined' && socket) {
+      socket.emit('playerFishingState', {
+        isFishing: this.active,
+        state: this.state,
+        bobberX: this.bobber ? this.bobber.x : 0,
+        bobberY: this.bobber ? this.bobber.y : 0,
+        targetY: this.bobber ? this.bobber.targetY : 0,
+        nibble: this.nibbleTriggered
+      });
+    }
+  },
 
   init(playerX, groundY) {
     this.active = true;
@@ -49,6 +63,8 @@ const FishingMode = {
     this.fishShadowX = this.bobber.targetX + 60;
     this.nibbleTriggered = false;
     this.isReeling = false;
+    this.syncTimer = 0;
+    this.syncNetworkState();
   },
 
   pickRandomFish() {
@@ -62,10 +78,14 @@ const FishingMode = {
   },
 
   cancel() {
+    const wasActive = this.active;
     this.active = false;
     this.state = 'idle';
     this.isReeling = false;
     this.nibbleTriggered = false;
+    if (wasActive) {
+      this.syncNetworkState();
+    }
   },
 
   handleKeyDown(code) {
@@ -82,6 +102,7 @@ const FishingMode = {
           // Fish hooked!
           this.state = 'hooked';
           this.catchProgress = 40;
+          this.syncNetworkState();
           if (typeof playSplashSound !== 'undefined') playSplashSound();
         } else {
           // Reeled in early before bite -> cancel
@@ -116,6 +137,7 @@ const FishingMode = {
       if (this.nibbleTriggered) {
         this.state = 'hooked';
         this.catchProgress = 40;
+        this.syncNetworkState();
         if (typeof playSplashSound !== 'undefined') playSplashSound();
       } else {
         this.cancel();
@@ -137,6 +159,12 @@ const FishingMode = {
   update(dt) {
     if (!this.active) return;
 
+    this.syncTimer += dt;
+    if (this.syncTimer >= 0.1) {
+      this.syncTimer = 0;
+      this.syncNetworkState();
+    }
+
     if (this.state === 'casting') {
       this.timer -= dt;
       const t = 1 - Math.max(0, this.timer / 0.6);
@@ -147,6 +175,7 @@ const FishingMode = {
       if (this.timer <= 0) {
         this.state = 'waiting';
         this.timer = 1.8 + Math.random() * 2.2; // Wait for bite
+        this.syncNetworkState();
         if (typeof playSplashSound !== 'undefined') playSplashSound();
       }
     } else if (this.state === 'waiting') {
@@ -162,6 +191,7 @@ const FishingMode = {
       if (this.timer <= 0 && !this.nibbleTriggered) {
         this.nibbleTriggered = true;
         this.timer = 1.6; // 1.6 second bite window to hook!
+        this.syncNetworkState();
         if (typeof playSplashSound !== 'undefined') playSplashSound();
       }
 
@@ -169,6 +199,7 @@ const FishingMode = {
         // Missed the bite!
         this.state = 'failed';
         this.timer = 1.0;
+        this.syncNetworkState();
         if (typeof spawnFloatText !== 'undefined' && typeof selfId !== 'undefined' && players[selfId]) {
           spawnFloatText(players[selfId].x, players[selfId].y - 40, 'Got away...', '#94a3b8');
         }
@@ -207,6 +238,7 @@ const FishingMode = {
       if (this.catchProgress >= 100) {
         this.state = 'caught';
         this.timer = 1.5;
+        this.syncNetworkState();
 
         if (socket) {
           socket.emit('submitFishCatch', { fishId: this.fish.id, yield: this.fish.yield, name: this.fish.name });
@@ -219,6 +251,7 @@ const FishingMode = {
       } else if (this.catchProgress <= 0) {
         this.state = 'failed';
         this.timer = 1.0;
+        this.syncNetworkState();
         if (typeof spawnFloatText !== 'undefined' && typeof selfId !== 'undefined' && players[selfId]) {
           spawnFloatText(players[selfId].x, players[selfId].y - 40, 'Line snapped!', '#ef4444');
         }
