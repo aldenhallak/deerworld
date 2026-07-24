@@ -439,32 +439,33 @@ if (btnCloseShop) {
 }
 
 // ---- Inventory Modal & Seed Selection System ----
+// ---- Inventory Modal & Seed Selection System ----
 const ITEM_CATALOG = {
-  straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', icon: '👒', desc: 'Classic sun protection for farming.' },
-  cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', icon: '🎀', desc: 'Charming pink ribbon.' },
-  sunglasses: { id: 'sunglasses', name: 'Sunglasses', type: 'hat', icon: '🕶️', desc: 'Cool shades for beach days.' },
-  rainboots: { id: 'rainboots', name: 'Rainboots', type: 'hat', icon: '👢', desc: 'Waterproof blue rubber boots.' },
-  cowboy_hat: { id: 'cowboy_hat', name: 'Cowboy Hat', type: 'hat', icon: '🤠', desc: 'Rugged leather hat.' },
-  ascot: { id: 'ascot', name: 'Red Ascot', type: 'hat', icon: '🧣', desc: 'Stylish red necktie.' },
-  beanie: { id: 'beanie', name: 'Green Beanie', type: 'hat', icon: '🧢', desc: 'Warm knitted green beanie.' },
-  glasses: { id: 'glasses', name: 'Wire Glasses', type: 'hat', icon: '👓', desc: 'Smart wireframe spectacles.' },
-  headphones: { id: 'headphones', name: 'Headphones', type: 'hat', icon: '🎧', desc: 'Audio headset for music lovers.' },
+  straw_hat: { id: 'straw_hat', name: 'Straw Hat', type: 'hat', tag: '[Hat]', desc: 'Classic sun protection for farming.' },
+  cute_bow: { id: 'cute_bow', name: 'Pink Bow', type: 'hat', tag: '[Hat]', desc: 'Charming pink ribbon.' },
+  sunglasses: { id: 'sunglasses', name: 'Sunglasses', type: 'hat', tag: '[Hat]', desc: 'Cool shades for beach days.' },
+  rainboots: { id: 'rainboots', name: 'Rainboots', type: 'hat', tag: '[Hat]', desc: 'Waterproof blue rubber boots.' },
+  cowboy_hat: { id: 'cowboy_hat', name: 'Cowboy Hat', type: 'hat', tag: '[Hat]', desc: 'Rugged leather hat.' },
+  ascot: { id: 'ascot', name: 'Red Ascot', type: 'hat', tag: '[Hat]', desc: 'Stylish red necktie.' },
+  beanie: { id: 'beanie', name: 'Green Beanie', type: 'hat', tag: '[Hat]', desc: 'Warm knitted green beanie.' },
+  glasses: { id: 'glasses', name: 'Wire Glasses', type: 'hat', tag: '[Hat]', desc: 'Smart wireframe spectacles.' },
+  headphones: { id: 'headphones', name: 'Headphones', type: 'hat', tag: '[Hat]', desc: 'Audio headset for music lovers.' },
 
-  crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', icon: '🌾', desc: 'Grows golden wheat (15m).' },
-  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', icon: '🥕', desc: 'Grows crunchy carrots (30m).' },
-  corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', icon: '🌽', desc: 'Grows sweet corn (45m).' },
-  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', icon: '🍓', desc: 'Grows juicy strawberries (1h).' },
-  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', icon: '🌻', desc: 'Grows vibrant sunflowers (2h).' },
-  pumpkin_seed: { id: 'pumpkin_seed', name: 'Pumpkin Seed', type: 'seed', seedType: 'pumpkin', icon: '🎃', desc: 'Grows autumn pumpkins (3h).' },
-  watermelon_seed: { id: 'watermelon_seed', name: 'Watermelon Seed', type: 'seed', seedType: 'watermelon', icon: '🍉', desc: 'Grows watermelons (4h).' },
-  grape_seed: { id: 'grape_seed', name: 'Grape Seed', type: 'seed', seedType: 'grape', icon: '🍇', desc: 'Grows grape vines (6h).' },
-  tree_seed: { id: 'tree_seed', name: 'Apple Tree Seed', type: 'seed', seedType: 'tree', icon: '🍎', desc: 'Grows an apple tree (8h).' },
+  crop_seed: { id: 'crop_seed', name: 'Wheat Seed', type: 'seed', seedType: 'crop', tag: '[Seed]', desc: 'Grows golden wheat (15m).' },
+  carrot_seed: { id: 'carrot_seed', name: 'Carrot Seed', type: 'seed', seedType: 'carrot', tag: '[Seed]', desc: 'Grows crunchy carrots (30m).' },
+  corn_seed: { id: 'corn_seed', name: 'Corn Seed', type: 'seed', seedType: 'corn', tag: '[Seed]', desc: 'Grows sweet corn (45m).' },
+  strawberry_seed: { id: 'strawberry_seed', name: 'Strawberry Seed', type: 'seed', seedType: 'strawberry', tag: '[Seed]', desc: 'Grows juicy strawberries (1h).' },
+  flower_seed: { id: 'flower_seed', name: 'Flower Seed', type: 'seed', seedType: 'flower', tag: '[Seed]', desc: 'Grows vibrant sunflowers (2h).' },
+  pumpkin_seed: { id: 'pumpkin_seed', name: 'Pumpkin Seed', type: 'seed', seedType: 'pumpkin', tag: '[Seed]', desc: 'Grows autumn pumpkins (3h).' },
+  watermelon_seed: { id: 'watermelon_seed', name: 'Watermelon Seed', type: 'seed', seedType: 'watermelon', tag: '[Seed]', desc: 'Grows watermelons (4h).' },
+  grape_seed: { id: 'grape_seed', name: 'Grape Seed', type: 'seed', seedType: 'grape', tag: '[Seed]', desc: 'Grows grape vines (6h).' },
+  tree_seed: { id: 'tree_seed', name: 'Apple Tree Seed', type: 'seed', seedType: 'tree', tag: '[Seed]', desc: 'Grows an apple tree (8h).' },
 
-  small_fry: { id: 'small_fry', name: 'Small Fry', type: 'fish', icon: '🐟', sellPrice: 2, desc: 'A tiny blue freshwater fish.' },
-  sea_bass: { id: 'sea_bass', name: 'Sea Bass', type: 'fish', icon: '🐠', sellPrice: 5, desc: 'A common coastal sea bass.' },
-  golden_salmon: { id: 'golden_salmon', name: 'Golden Salmon', type: 'fish', icon: '🐡', sellPrice: 12, desc: 'A rare salmon with golden scales.' },
-  legendary_marlin: { id: 'legendary_marlin', name: 'Legendary Marlin', type: 'fish', icon: '🦈', sellPrice: 25, desc: 'A prized legendary ocean marlin!' },
-  old_boot: { id: 'old_boot', name: 'Old Boot', type: 'fish', icon: '👞', sellPrice: 1, desc: 'A soggy leather boot from the sea.' }
+  small_fry: { id: 'small_fry', name: 'Small Fry', type: 'fish', tag: '[Fish]', sellPrice: 2, desc: 'A tiny blue freshwater fish.' },
+  sea_bass: { id: 'sea_bass', name: 'Sea Bass', type: 'fish', tag: '[Fish]', sellPrice: 5, desc: 'A common coastal sea bass.' },
+  golden_salmon: { id: 'golden_salmon', name: 'Golden Salmon', type: 'fish', tag: '[Fish]', sellPrice: 12, desc: 'A rare salmon with golden scales.' },
+  legendary_marlin: { id: 'legendary_marlin', name: 'Legendary Marlin', type: 'fish', tag: '[Fish]', sellPrice: 25, desc: 'A prized legendary ocean marlin!' },
+  old_boot: { id: 'old_boot', name: 'Old Boot', type: 'fish', tag: '[Junk]', sellPrice: 1, desc: 'A soggy leather boot from the sea.' }
 };
 
 let mySelectedSeed = 'crop_seed';
@@ -499,12 +500,12 @@ function renderInventoryGrid() {
   });
 
   if (filteredIds.length === 0) {
-    inventoryGrid.innerHTML = `<div class="inv-empty">No ${currentInventoryTab === 'all' ? 'items' : currentInventoryTab + 's'} in your inventory!<br>Catch fish in Beach World or buy seeds in Garden World.</div>`;
+    inventoryGrid.innerHTML = `<div class="inv-empty">No ${currentInventoryTab === 'all' ? 'items' : currentInventoryTab + 's'} in inventory.<br>Catch fish in Beach World or buy seeds in Garden World.</div>`;
     return;
   }
 
   filteredIds.forEach(id => {
-    const info = ITEM_CATALOG[id] || { name: id, icon: '📦', type: 'item', desc: 'An item.' };
+    const info = ITEM_CATALOG[id] || { name: id, tag: '[Item]', type: 'item', desc: 'An item.' };
     const count = itemCounts[id];
     const card = document.createElement('div');
     card.className = 'inventory-card' + (mySelectedSeed === id ? ' selected-seed' : '');
@@ -517,20 +518,20 @@ function renderInventoryGrid() {
 
     let actionButtonsHTML = '';
     if (isSeed) {
-      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-select-seed">${isSelectedSeed ? '✓ ACTIVE' : 'SELECT TO PLANT'}</button>`;
+      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-select-seed">${isSelectedSeed ? '[ACTIVE SEED]' : '[SELECT SEED]'}</button>`;
     }
     if (isHat) {
-      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-equip">${isEquippedHat ? 'UNEQUIP' : 'EQUIP HAT'}</button>`;
+      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-equip">${isEquippedHat ? '[UNEQUIP]' : '[EQUIP HAT]'}</button>`;
     }
     if (isFish) {
       const price = info.sellPrice || 1;
-      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-sell">SELL (+${price} 🪙)</button>`;
+      actionButtonsHTML += `<button type="button" class="btn-inv-action btn-sell">[SELL: +${price} Coins]</button>`;
     }
-    actionButtonsHTML += `<button type="button" class="btn-inv-action btn-drop">DROP</button>`;
+    actionButtonsHTML += `<button type="button" class="btn-inv-action btn-drop">[DROP]</button>`;
 
     card.innerHTML = `
       <div class="inv-count">x${count}</div>
-      <div class="inv-icon">${info.icon || '📦'}</div>
+      <div class="inv-tag">${escapeHTML(info.tag || '[Item]')}</div>
       <div class="inv-name">${escapeHTML(info.name)}</div>
       <div class="inv-desc">${escapeHTML(info.desc || '')}</div>
       <div class="inv-actions">
@@ -901,10 +902,8 @@ function tryInteract() {
     if (fallbackSeed) {
       let type = ITEM_CATALOG[fallbackSeed] ? ITEM_CATALOG[fallbackSeed].seedType || 'crop' : 'crop';
       socket.emit('plant', { seedType: type, seedItemId: fallbackSeed, x: me.x, yRel });
-    } else if (myCoins >= 1) {
-      socket.emit('plant', { seedType: 'crop', seedItemId: 'crop_seed', x: me.x, yRel });
     } else {
-      spawnFloatText(me.x, me.y - 40, 'No seeds or coins to plant!', '#ff5252');
+      spawnFloatText(me.x, me.y - 40, 'No seeds in inventory to plant!', '#ff5252');
     }
   }
 }
@@ -1028,6 +1027,11 @@ window.addEventListener('keydown', (e) => {
   if (['ArrowLeft','ArrowRight','ArrowUp','KeyA','KeyD','KeyW','Space'].includes(e.code))
     keysPressed[e.code] = true;
 
+  if (e.code === 'Escape') {
+    closeInventoryModal();
+    closeShopModal();
+    closeLeaderboardModal();
+  }
   if (e.code === 'KeyK') tryKiss();
   if (e.code === 'KeyE') tryInteract();
   if (e.code === 'KeyH') cycleEquippedHat();

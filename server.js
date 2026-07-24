@@ -412,10 +412,8 @@ io.on('connection', (socket) => {
 
     if (seedIdx !== -1) {
       player.inventory.splice(seedIdx, 1);
-    } else if (player.coins >= config.cost) {
-      player.coins -= config.cost;
     } else {
-      socket.emit('notice', { text: `Need seed or ${config.cost} coins to plant!` });
+      socket.emit('notice', { text: 'You need seeds in your inventory to plant!' });
       return;
     }
 
@@ -646,9 +644,6 @@ io.on('connection', (socket) => {
     const player = players[socket.id];
     if (!player || !payload) return;
 
-    const yieldCoins = Number(payload.yield) || 1;
-    player.coins += yieldCoins;
-
     if (payload.fishId) {
       player.inventory.push(payload.fishId);
     }
@@ -667,7 +662,7 @@ io.on('connection', (socket) => {
 
     io.emit('fishingLeaderboardUpdated', fishingLeaderboard);
     socket.emit('coinsUpdated', { coins: player.coins, inventory: player.inventory });
-    broadcastSystemMessage(`${player.name} caught a ${payload.name || 'Fish'}! (+${yieldCoins} coins)`);
+    broadcastSystemMessage(`${player.name} caught a ${payload.name || 'Fish'}!`);
     db.saveLeaderboard('fishing', fishingLeaderboard);
     if (player.name) db.saveUserProfile(player.name, { coins: player.coins, inventory: player.inventory, equippedHat: player.equippedHat });
   });

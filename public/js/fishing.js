@@ -246,7 +246,7 @@ const FishingMode = {
 
         if (typeof playCatchSound !== 'undefined') playCatchSound();
         if (typeof spawnFloatText !== 'undefined' && typeof selfId !== 'undefined' && players[selfId]) {
-          spawnFloatText(players[selfId].x, players[selfId].y - 45, `CATCH! ${this.fish.name} (+${this.fish.yield} Coins)`, this.fish.color);
+          spawnFloatText(players[selfId].x, players[selfId].y - 45, `CATCH! ${this.fish.name}`, this.fish.color);
         }
       } else if (this.catchProgress <= 0) {
         this.state = 'failed';
