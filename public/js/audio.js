@@ -1,11 +1,34 @@
-// ---- Web Audio API Synthesizer ----
+// ---- Web Audio API Synthesizer & Background Music ----
 let audioCtx = null;
+let bgMusic = null;
+
+function startBackgroundMusic() {
+  if (bgMusic) return;
+  try {
+    bgMusic = new Audio('/bg_music.wav');
+    bgMusic.loop = true;
+    bgMusic.volume = 0.20; // 20% volume
+    bgMusic.play().catch(e => {
+      // Autoplay blocked by browser until user interaction
+    });
+  } catch (e) {
+    console.warn("Could not play background music:", e);
+  }
+}
 
 function getAudioContext() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
+  startBackgroundMusic();
+  if (bgMusic && bgMusic.paused) {
+    bgMusic.play().catch(() => {});
+  }
   return audioCtx;
 }
+
+// Global listeners to start audio/music on first user action
+document.addEventListener('pointerdown', () => { getAudioContext(); }, { once: true });
+document.addEventListener('keydown', () => { getAudioContext(); }, { once: true });
 
 function playFootstepSound() {
   try {
